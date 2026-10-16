@@ -1,0 +1,11 @@
+# NVIDIA GPU 서버에서 실행할 때:
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
+services:
+  api:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

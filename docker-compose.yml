@@ -1,0 +1,38 @@
+services:
+  api:
+    build:
+      context: ./backend/fastapi
+      args:
+        INSTALL_ML: ${INSTALL_ML:-false}
+    env_file: .env
+    ports:
+      - "11000:11000"
+    volumes:
+      - ./backend/fastapi/app:/app/app
+      - ./models:/models:ro
+      - hf-cache:/root/.cache/huggingface
+
+  frontend:
+    build: ./frontend
+    environment:
+      VITE_API_PROXY_TARGET: http://api:11000
+    ports:
+      - "12000:12000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - api
+
+  # 학습용 — 필요할 때만 실행: docker compose --profile train run --rm trainer
+  trainer:
+    profiles: ["train"]
+    build: ./backend/ai
+    env_file: .env
+    volumes:
+      - ./backend/ai:/app
+      - ./models:/models
+      - hf-cache:/root/.cache/huggingface
+
+volumes:
+  hf-cache:

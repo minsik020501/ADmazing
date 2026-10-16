@@ -1,0 +1,35 @@
+# os
+.DS_Store
+
+# editor
+.idea/
+.vscode/
+
+# claude
+.claude/
+CLAUDE.md
+
+# env
+.env
+.env.*
+!.env.example
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# jupyter
+.ipynb_checkpoints/
+backend/ai/notebooks/scratch/
+
+# node
+node_modules/
+dist/
+*.tsbuildinfo
+npm-debug.log*
+
+# model artifacts
+models/*
+!models/.gitkeep

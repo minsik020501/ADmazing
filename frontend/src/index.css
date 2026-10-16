@@ -1,0 +1,54 @@
+/**
+ * 전역 스타일.
+ *
+ * 생성일자: 2026-10-16
+ * 생성자: ven_choi
+ * 수정일자: 2026-10-16
+ * 수정자: ven_choi
+ */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
+}
+
+.container {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 32px 16px;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+textarea {
+  width: 100%;
+  padding: 12px;
+  font-size: 1rem;
+}
+
+button {
+  align-self: flex-end;
+  padding: 10px 20px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.error {
+  color: #d32f2f;
+}
+
+.result img {
+  width: 100%;
+  border-radius: 8px;
+}

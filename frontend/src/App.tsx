@@ -1,0 +1,73 @@
+/**
+ * 메인 화면 컴포넌트.
+ *
+ * 생성일자: 2026-10-16
+ * 생성자: ven_choi
+ * 수정일자: 2026-10-16
+ * 수정자: ven_choi
+ */
+
+import { FormEvent, useState } from "react";
+import { generateImage, GenerateResponse } from "./api/client";
+
+/**
+ * 프롬프트 입력 폼과 생성 결과를 보여주는 메인 화면.
+ *
+ * @returns 메인 화면
+ */
+export default function App() {
+  const [prompt, setPrompt] = useState("");
+  const [result, setResult] = useState<GenerateResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  /**
+   * 입력한 프롬프트로 이미지 생성을 요청하고 결과를 상태에 반영한다.
+   *
+   * @param e - 폼 제출 이벤트
+   */
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!prompt.trim()) return;
+
+    setLoading(true);
+    setError(null);
+    try {
+      setResult(await generateImage(prompt));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main className="container">
+      <h1>Admazing</h1>
+      <p>만들고 싶은 광고 이미지를 설명해 주세요.</p>
+
+      <form onSubmit={handleSubmit}>
+        <textarea
+          value={prompt}
+          onChange={(e) => setPrompt(e.target.value)}
+          placeholder="예) 여름 해변에서 시원한 레몬 탄산음료를 들고 있는 모습, 밝고 청량한 분위기"
+          rows={4}
+        />
+        <button type="submit" disabled={loading}>
+          {loading ? "생성 중..." : "이미지 생성"}
+        </button>
+      </form>
+
+      {error && <p className="error">{error}</p>}
+
+      {result && (
+        <section className="result">
+          <p>
+            <strong>번역된 프롬프트:</strong> {result.translated_prompt}
+          </p>
+          <img src={`data:image/png;base64,${result.image_base64}`} alt={result.original_prompt} />
+        </section>
+      )}
+    </main>
+  );
+}
