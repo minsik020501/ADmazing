@@ -2,7 +2,7 @@
 
 생성일자: 2026-10-16
 생성자: ven_choi
-수정일자: 2026-10-16
+수정일자: 2026-10-19
 수정자: ven_choi
 """
 
@@ -35,6 +35,5 @@ async def translate_to_english(text: str) -> str:
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": text},
         ],
-        temperature=0,
     )
     return response.choices[0].message.content.strip()
