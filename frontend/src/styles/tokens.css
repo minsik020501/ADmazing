@@ -1,0 +1,143 @@
+/**
+ * 디자인 토큰(색상, 글꼴, 간격, 모서리, 그림자).
+ * 컴포넌트 스타일은 값을 직접 쓰지 않고 이 변수들을 참조한다.
+ *
+ * 테마: 기본은 라이트, 기기 설정이 다크면 다크.
+ * <html data-theme="light|dark">가 지정되면 기기 설정보다 우선한다(테마 전환 버튼용).
+ *
+ * 생성일자: 2026-10-20
+ * 생성자: bioyejin
+ * 수정일자: 2026-10-20
+ * 수정자: bioyejin
+ */
+
+/* ---- 테마와 무관한 값 ---- */
+:root {
+  --font-sans: "Mona12", "Noto Sans KR", system-ui, sans-serif;
+  --font-size-sm: 12px;
+  --font-size-md: 12px;
+  --font-size-lg: 24px;
+  --font-size-xl: 36px;
+  --font-weight-regular: 400;
+  --font-weight-bold: 700;
+
+  /* 간격 (4px 단위) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* 모서리 (2~6px, 미세하게 둥근 업무용 느낌) */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+
+  /* 움직임 */
+  --transition-fast: 120ms ease;
+}
+
+/* ---- 라이트 테마 (기본) ---- */
+:root {
+  color-scheme: light;
+
+  /* 포인트 색 (인디고) */
+  --color-primary: #4f4be8;
+  --color-primary-hover: #3f3bd6;
+  --color-primary-weak: #eeeeff;
+  --color-primary-text: #4a50d8;
+
+  /* 보조 강조색 (섹션 제목 등, 초록) */
+  --color-accent: #1f9d55;
+
+  /* 배경 / 면 */
+  --color-bg: #f6f7fb;
+  --color-surface: #ffffff;
+  --color-surface-muted: #eef0f6;
+  --color-overlay: rgba(14, 18, 32, 0.45);
+
+  /* 글자 */
+  --color-text: #151827;
+  --color-text-secondary: #545a70;
+  --color-text-tertiary: #8a90a6;
+  --color-text-on-primary: #ffffff;
+
+  /* 테두리 */
+  --color-border: #dadde8;
+  --color-border-strong: #c3c7d6;
+
+  /* 상태 */
+  --color-danger: #d93025;
+  --color-success: #1f9d55;
+
+  /* 그림자 */
+  --shadow-md: 0 4px 12px rgba(14, 18, 32, 0.08);
+  --shadow-lg: 0 12px 32px rgba(14, 18, 32, 0.16);
+}
+
+/* ---- 다크 테마 (시안 기준) ---- */
+/* 같은 값을 두 번 쓰는 이유: 기기 설정이 다크일 때와, 전환 버튼으로 다크를 고른 때를 모두 적용하기 위함 */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --color-primary: #5b57f2;
+    --color-primary-hover: #6e6bf5;
+    --color-primary-weak: rgba(91, 87, 242, 0.14);
+    --color-primary-text: #9da3ff;
+
+    --color-accent: #86e08a;
+
+    --color-bg: #0e1220;
+    --color-surface: #131828;
+    --color-surface-muted: #1b2133;
+    --color-overlay: rgba(0, 0, 0, 0.6);
+
+    --color-text: #e6e8f0;
+    --color-text-secondary: #9aa0b4;
+    --color-text-tertiary: #6b7189;
+    --color-text-on-primary: #ffffff;
+
+    --color-border: #2a3045;
+    --color-border-strong: #3a4160;
+
+    --color-danger: #ff6b6b;
+    --color-success: #6fd58a;
+
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-primary: #5b57f2;
+  --color-primary-hover: #6e6bf5;
+  --color-primary-weak: rgba(91, 87, 242, 0.14);
+  --color-primary-text: #9da3ff;
+
+  --color-accent: #86e08a;
+
+  --color-bg: #0e1220;
+  --color-surface: #131828;
+  --color-surface-muted: #1b2133;
+  --color-overlay: rgba(0, 0, 0, 0.6);
+
+  --color-text: #e6e8f0;
+  --color-text-secondary: #9aa0b4;
+  --color-text-tertiary: #6b7189;
+  --color-text-on-primary: #ffffff;
+
+  --color-border: #2a3045;
+  --color-border-strong: #3a4160;
+
+  --color-danger: #ff6b6b;
+  --color-success: #6fd58a;
+
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
+}
