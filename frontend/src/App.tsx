@@ -74,7 +74,7 @@ export default function App() {
 
         {/* 기존 입력 폼과 결과 화면. 입력 화면 단계에서 새 컴포넌트로 교체 예정 */}
         <main className="container">
-          <h1>Admazing</h1>
+          <h1>👾 ADmazing</h1>
           <p>만들고 싶은 광고 이미지를 설명해 주세요.</p>
 
           <form onSubmit={handleSubmit}>
