@@ -2,7 +2,7 @@
 
 생성일자: 2026-10-16
 생성자: ven_choi
-수정일자: 2026-10-19
+수정일자: 2026-10-20
 수정자: ven_choi
 """
 
@@ -21,6 +21,14 @@ def health():
     Returns:
         HealthResponse: 서버 상태, 이미지 생성 모드, 모델 경로, LoRA 경로.
     """
+    if settings.image_generator == "sdxl":
+        # SDXL은 MODEL_PATH, LORA_PATH 대신 SDXL_MODEL_DIR을 쓴다
+        return HealthResponse(
+            status="ok",
+            image_generator="sdxl",
+            model_path=str(settings.sdxl_model_dir),
+            lora_path=None,
+        )
     return HealthResponse(
         status="ok",
         image_generator=settings.image_generator,

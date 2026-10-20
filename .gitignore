@@ -33,3 +33,4 @@ npm-debug.log*
 # model artifacts
 models/*
 !models/.gitkeep
+backend/ai/outputs/

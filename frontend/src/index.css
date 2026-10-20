@@ -3,52 +3,101 @@
  *
  * 생성일자: 2026-10-16
  * 생성자: ven_choi
- * 수정일자: 2026-10-16
- * 수정자: ven_choi
+ * 수정일자: 2026-10-20
+ * 수정자: bioyejin
  */
+
+@import "./styles/tokens.css";
 
 * {
   box-sizing: border-box;
 }
 
+html,
+body,
+#root {
+  height: 100%;
+}
+
 body {
   margin: 0;
-  font-family:
-    system-ui,
-    -apple-system,
-    sans-serif;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-regular);
+  line-height: 1.5;
+  color: var(--color-text);
+  background: var(--color-bg);
 }
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* 기존 App.tsx 화면용 스타일. 새 화면 구성으로 교체할 때 삭제 */
 
 .container {
   max-width: 720px;
   margin: 0 auto;
-  padding: 32px 16px;
+  padding: var(--space-8) var(--space-4);
 }
 
-form {
+.container h1 {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-accent);
+}
+
+.container form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--space-3);
 }
 
-textarea {
+.container textarea {
   width: 100%;
-  padding: 12px;
-  font-size: 1rem;
+  padding: var(--space-3);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-regular);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
 }
 
-button {
+.container button {
   align-self: flex-end;
   padding: 10px 20px;
-  font-size: 1rem;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-on-primary);
+  background: var(--color-primary);
+  border: none;
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
 
+.container button:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.container button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .error {
-  color: #d32f2f;
+  color: var(--color-danger);
 }
 
 .result img {
   width: 100%;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
 }
