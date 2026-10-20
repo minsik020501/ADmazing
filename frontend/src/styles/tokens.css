@@ -38,6 +38,9 @@
 
   /* 움직임 */
   --transition-fast: 120ms ease;
+
+  /* 레이아웃 */
+  --sidebar-width: 264px;
 }
 
 /* ---- 라이트 테마 (기본) ---- */
@@ -57,6 +60,8 @@
   --color-bg: #f6f7fb;
   --color-surface: #ffffff;
   --color-surface-muted: #eef0f6;
+  /* 좌측 패널: 배경과 비슷하되 구분되는 톤 */
+  --color-panel: #eceef4;
   --color-overlay: rgba(14, 18, 32, 0.45);
 
   /* 글자 */
@@ -94,6 +99,7 @@
     --color-bg: #0e1220;
     --color-surface: #131828;
     --color-surface-muted: #1b2133;
+    --color-panel: #121726;
     --color-overlay: rgba(0, 0, 0, 0.6);
 
     --color-text: #e6e8f0;
@@ -125,6 +131,7 @@
   --color-bg: #0e1220;
   --color-surface: #131828;
   --color-surface-muted: #1b2133;
+  --color-panel: #121726;
   --color-overlay: rgba(0, 0, 0, 0.6);
 
   --color-text: #e6e8f0;
