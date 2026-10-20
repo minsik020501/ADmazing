@@ -1,0 +1,84 @@
+/**
+ * Button 컴포넌트 스타일.
+ *
+ * 생성일자: 2026-10-20
+ * 생성자: bioyejin
+ * 수정일자: 2026-10-20
+ * 수정자: bioyejin
+ */
+
+.button {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+
+.button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.icon {
+  display: inline-flex;
+}
+
+/* 종류 */
+
+.primary {
+  color: var(--color-text-on-primary);
+  background: var(--color-primary);
+}
+
+.primary:not(:disabled):hover {
+  background: var(--color-primary-hover);
+}
+
+.secondary {
+  color: var(--color-text);
+  background: var(--color-surface);
+  border-color: var(--color-border);
+}
+
+.secondary:not(:disabled):hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-weak);
+}
+
+.ghost {
+  color: var(--color-text-secondary);
+  background: transparent;
+}
+
+.ghost:not(:disabled):hover {
+  color: var(--color-text);
+  background: var(--color-surface-muted);
+}
+
+/* 크기 */
+
+.sm {
+  height: 32px;
+  padding: 0 var(--space-2);
+}
+
+.md {
+  height: 36px;
+  padding: 0 var(--space-4);
+}
+
+.lg {
+  height: 44px;
+  padding: 0 var(--space-6);
+}

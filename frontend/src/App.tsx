@@ -3,15 +3,19 @@
  *
  * 생성일자: 2026-10-16
  * 생성자: ven_choi
- * 수정일자: 2026-10-16
- * 수정자: ven_choi
+ * 수정일자: 2026-10-20
+ * 수정자: bioyejin
  */
 
 import { FormEvent, useState } from "react";
+import { Menu } from "lucide-react";
 import { generateImage, GenerateResponse } from "./api/client";
+import Button from "./components/common/Button";
+import Sidebar from "./components/layout/Sidebar";
+import styles from "./App.module.css";
 
 /**
- * 프롬프트 입력 폼과 생성 결과를 보여주는 메인 화면.
+ * 좌측 패널과 메인 영역(프롬프트 입력 폼, 생성 결과)으로 이루어진 화면.
  *
  * @returns 메인 화면
  */
@@ -20,6 +24,15 @@ export default function App() {
   const [result, setResult] = useState<GenerateResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  /** 입력값과 결과를 비우고 처음 상태로 돌아간다. */
+  function handleNewProject() {
+    setPrompt("");
+    setResult(null);
+    setError(null);
+    setSidebarOpen(false);
+  }
 
   /**
    * 입력한 프롬프트로 이미지 생성을 요청하고 결과를 상태에 반영한다.
@@ -42,32 +55,55 @@ export default function App() {
   }
 
   return (
-    <main className="container">
-      <h1>Admazing</h1>
-      <p>만들고 싶은 광고 이미지를 설명해 주세요.</p>
+    <>
+      <Sidebar
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        onNewProject={handleNewProject}
+      />
 
-      <form onSubmit={handleSubmit}>
-        <textarea
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          placeholder="예) 여름 해변에서 시원한 레몬 탄산음료를 들고 있는 모습, 밝고 청량한 분위기"
-          rows={4}
+      <div className={styles.main}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className={styles.menuButton}
+          icon={<Menu size={16} />}
+          aria-label="패널 열기"
+          onClick={() => setSidebarOpen(true)}
         />
-        <button type="submit" disabled={loading}>
-          {loading ? "생성 중..." : "이미지 생성"}
-        </button>
-      </form>
 
-      {error && <p className="error">{error}</p>}
+        {/* 기존 입력 폼과 결과 화면. 입력 화면 단계에서 새 컴포넌트로 교체 예정 */}
+        <main className="container">
+          <h1>👾 ADmazing</h1>
+          <p>만들고 싶은 광고 이미지를 설명해 주세요.</p>
 
-      {result && (
-        <section className="result">
-          <p>
-            <strong>번역된 프롬프트:</strong> {result.translated_prompt}
-          </p>
-          <img src={`data:image/png;base64,${result.image_base64}`} alt={result.original_prompt} />
-        </section>
-      )}
-    </main>
+          <form onSubmit={handleSubmit}>
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="예) 여름 해변에서 시원한 레몬 탄산음료를 들고 있는 모습, 밝고 청량한 분위기"
+              rows={4}
+            />
+            <button type="submit" disabled={loading}>
+              {loading ? "생성 중..." : "이미지 생성"}
+            </button>
+          </form>
+
+          {error && <p className="error">{error}</p>}
+
+          {result && (
+            <section className="result">
+              <p>
+                <strong>번역된 프롬프트:</strong> {result.translated_prompt}
+              </p>
+              <img
+                src={`data:image/png;base64,${result.image_base64}`}
+                alt={result.original_prompt}
+              />
+            </section>
+          )}
+        </main>
+      </div>
+    </>
   );
 }
