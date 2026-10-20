@@ -1,0 +1,21 @@
+/**
+ * App 레이아웃 스타일 (메인 영역 + 패널 열기 버튼).
+ *
+ * 생성일자: 2026-10-20
+ * 생성자: bioyejin
+ * 수정일자: 2026-10-20
+ * 수정자: bioyejin
+ */
+
+/* 메인 영역은 항상 화면 전체 폭을 쓰고, 좌측 패널은 그 위에 겹쳐 열린다 */
+.main {
+  position: relative;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.menuButton {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+}
