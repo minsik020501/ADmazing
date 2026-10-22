@@ -14,9 +14,11 @@ import Button from "./components/common/Button";
 import ExampleChips from "./components/input/ExampleChips";
 import GenerateButton from "./components/input/GenerateButton";
 import PromptInput from "./components/input/PromptInput";
+import StylePicker from "./components/input/StylePicker";
 import ServerStatusBadge, { type ServerStatus } from "./components/layout/ServerStatusBadge";
 import Sidebar from "./components/layout/Sidebar";
 import ThemeToggle from "./components/layout/ThemeToggle";
+import { DEFAULT_STYLE_ID } from "./constants/stylePresets";
 import styles from "./App.module.css";
 
 /**
@@ -31,6 +33,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [serverStatus, setServerStatus] = useState<ServerStatus>({ kind: "loading" });
+  const [styleId, setStyleId] = useState(DEFAULT_STYLE_ID);
 
   const canGenerate = prompt.trim().length > 0 && !loading;
 
@@ -63,7 +66,7 @@ export default function App() {
     setLoading(true);
     setError(null);
     try {
-      setResult(await generateImage(prompt));
+      setResult(await generateImage({ prompt, styleId }));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -102,6 +105,7 @@ export default function App() {
             loading={loading}
           />
           <ExampleChips value={prompt} onSelect={setPrompt} />
+          <StylePicker value={styleId} onChange={setStyleId} />
           <GenerateButton
             disabled={!canGenerate}
             loading={loading}

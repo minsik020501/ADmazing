@@ -7,6 +7,8 @@
  * 수정자: bioyejin
  */
 
+import { STYLE_PRESETS } from "../constants/stylePresets";
+
 /** 생성된 이미지 한 장 */
 export interface GeneratedImage {
   /** PNG 이미지의 base64 문자열 */
@@ -54,18 +56,39 @@ function toErrorMessage(detail: unknown, status: number): string {
   return `요청 실패 (${status})`;
 }
 
+/** 화면에서 고른 생성 옵션 */
+export interface GenerateOptions {
+  /** 한국어 광고 이미지 설명 */
+  prompt: string;
+  /** 스타일 id (constants/stylePresets.ts) */
+  styleId: string;
+}
+
 /**
- * 한국어 프롬프트로 광고 이미지 생성을 요청한다.
+ * 서버로 보낼 프롬프트를 만든다. 서버에 스타일 항목이 없어 스타일 문구를 프롬프트 뒤에 붙인다.
  *
- * @param prompt - 한국어 광고 이미지 설명
+ * @param prompt - 입력한 프롬프트
+ * @param styleId - 고른 스타일 id
+ * @returns 스타일 문구가 붙은 프롬프트
+ */
+function buildPrompt(prompt: string, styleId: string): string {
+  const style = STYLE_PRESETS.find((preset) => preset.id === styleId);
+  return style?.suffix ? `${prompt.trim()}, ${style.suffix}` : prompt;
+}
+
+/**
+ * 화면에서 고른 옵션으로 광고 이미지 생성을 요청한다.
+ * 화면 옵션을 서버 요청 형식으로 바꾸는 일은 이 함수에서만 한다.
+ *
+ * @param options - 프롬프트와 스타일
  * @returns 원본 프롬프트, 번역된 프롬프트, 생성된 이미지와 seed 목록
  * @throws {Error} 응답 상태가 2xx가 아닐 때
  */
-export async function generateImage(prompt: string): Promise<GenerateResponse> {
+export async function generateImage(options: GenerateOptions): Promise<GenerateResponse> {
   const res = await fetch("/api/generate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt }),
+    body: JSON.stringify({ prompt: buildPrompt(options.prompt, options.styleId) }),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => null);
