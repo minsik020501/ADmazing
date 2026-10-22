@@ -2,11 +2,13 @@
 
 생성일자: 2026-10-16
 생성자: ven_choi
-수정일자: 2026-10-16
+수정일자: 2026-10-22
 수정자: ven_choi
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+from app.schemas.generated_image import GeneratedImage
 
 
 class GenerateResponse(BaseModel):
@@ -14,4 +16,6 @@ class GenerateResponse(BaseModel):
 
     original_prompt: str
     translated_prompt: str
-    image_base64: str
+    images: list[GeneratedImage] = Field(
+        ..., description="생성된 이미지 목록 (NUM_IMAGES_PER_REQUEST 장)"
+    )

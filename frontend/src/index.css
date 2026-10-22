@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-10-16
  * 생성자: ven_choi
- * 수정일자: 2026-10-20
+ * 수정일자: 2026-10-22
  * 수정자: bioyejin
  */
 
@@ -51,7 +51,7 @@ select {
 }
 
 .container h1 {
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-xl);
   font-weight: var(--font-weight-bold);
   color: var(--color-accent);
 }
@@ -95,9 +95,18 @@ select {
 
 .error {
   color: var(--color-danger);
+  /* 검증 에러가 여러 개면 줄을 나눠 표시 */
+  white-space: pre-line;
+}
+
+.result-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
 }
 
 .result img {
+  display: block;
   width: 100%;
   border-radius: var(--radius-lg);
 }

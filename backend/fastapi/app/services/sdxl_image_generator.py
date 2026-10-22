@@ -5,13 +5,14 @@ api 컨테이너에는 backend/ai가 없으므로 직접 import하지 않는다.
 
 생성일자: 2026-10-20
 생성자: ven_choi
-수정일자: 2026-10-20
+수정일자: 2026-10-22
 수정자: ven_choi
 """
 
 import threading
 
 from app.core.config import settings
+from app.services.gpu_out_of_memory_error import GpuOutOfMemoryError
 from app.utils.image import to_base64
 
 
@@ -91,32 +92,41 @@ class SdxlImageGenerator:
         prompt: str,
         width: int,
         height: int,
-        seed: int | None = None,
-    ) -> str:
-        """로드된 SDXL 파이프라인으로 이미지를 생성한다.
+        seeds: list[int],
+    ) -> list[str]:
+        """로드된 SDXL 파이프라인으로 seed 개수만큼 이미지를 한 번에(배치로) 생성한다.
 
         Args:
             prompt: 영어 프롬프트.
             width: 이미지 너비.
             height: 이미지 높이.
-            seed: 재현용 랜덤 시드. None이면 매번 다른 이미지를 생성한다.
+            seeds: 이미지마다 사용할 seed 목록. 목록 길이만큼 이미지를 생성한다.
 
         Returns:
-            str: PNG 이미지의 base64 문자열.
+            list[str]: seeds 순서대로 생성한 PNG 이미지의 base64 문자열 목록.
+
+        Raises:
+            GpuOutOfMemoryError: 생성 중 GPU 메모리가 부족할 때.
         """
-        generator = None
-        if seed is not None:
-            # 디바이스와 상관없이 같은 seed면 같은 그림이 나오도록 CPU 생성기를 쓴다
-            generator = self._torch.Generator(device="cpu").manual_seed(seed)
+        # 디바이스와 상관없이 같은 seed면 같은 그림이 나오도록 CPU 생성기를 쓴다.
+        # 이미지마다 생성기를 따로 두어야 seed 하나로 해당 이미지를 재현할 수 있다
+        generators = [
+            self._torch.Generator(device="cpu").manual_seed(seed) for seed in seeds
+        ]
 
         with self._lock:
-            image = self.pipe(
-                prompt=prompt,
-                negative_prompt=settings.sdxl_negative_prompt,
-                num_inference_steps=settings.sdxl_steps,
-                guidance_scale=settings.sdxl_guidance_scale,
-                width=width,
-                height=height,
-                generator=generator,
-            ).images[0]
-        return to_base64(image)
+            try:
+                images = self.pipe(
+                    prompt=prompt,
+                    negative_prompt=settings.sdxl_negative_prompt,
+                    num_inference_steps=settings.sdxl_steps,
+                    guidance_scale=settings.sdxl_guidance_scale,
+                    width=width,
+                    height=height,
+                    num_images_per_prompt=len(seeds),
+                    generator=generators,
+                ).images
+            except self._torch.cuda.OutOfMemoryError as e:
+                self._torch.cuda.empty_cache()
+                raise GpuOutOfMemoryError from e
+        return [to_base64(image) for image in images]

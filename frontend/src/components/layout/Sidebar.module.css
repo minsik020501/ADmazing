@@ -1,0 +1,76 @@
+/**
+ * Sidebar 컴포넌트 스타일.
+ *
+ * 생성일자: 2026-10-20
+ * 생성자: bioyejin
+ * 수정일자: 2026-10-20
+ * 수정자: bioyejin
+ */
+
+/* 평소에는 화면 왼쪽 밖에 숨어 있다가, 열면 메인 화면 위로 겹쳐 들어오는 서랍 */
+.sidebar {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  width: var(--sidebar-width);
+  max-width: 85vw;
+  padding: var(--space-4);
+  background: var(--color-panel);
+  border-right: 1px solid var(--color-border);
+  box-shadow: var(--shadow-lg);
+  transform: translateX(-100%);
+  visibility: hidden;
+  transition:
+    transform 180ms ease,
+    visibility 180ms;
+}
+
+.open {
+  transform: translateX(0);
+  visibility: visible;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.newButton {
+  width: 100%;
+  margin-bottom: var(--space-5);
+}
+
+.history {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.empty {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: var(--color-overlay);
+}
