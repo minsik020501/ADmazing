@@ -21,6 +21,11 @@ export interface GeneratedImage {
 export interface GenerateResponse {
   original_prompt: string;
   translated_prompt: string;
+  /** 요청한 이미지 비율 (예: "16:9") */
+  ratio: string;
+  /** 서버가 비율에 맞춰 정한 해상도(px) */
+  width: number;
+  height: number;
   /** 서버 설정(NUM_IMAGES_PER_REQUEST)만큼 생성된 이미지 목록 */
   images: GeneratedImage[];
 }
@@ -62,6 +67,8 @@ export interface GenerateOptions {
   prompt: string;
   /** 스타일 id (constants/stylePresets.ts) */
   styleId: string;
+  /** 비율 (constants/imageRatios.ts, 서버 허용값과 같음) */
+  ratio: string;
 }
 
 /**
@@ -80,15 +87,18 @@ function buildPrompt(prompt: string, styleId: string): string {
  * 화면에서 고른 옵션으로 광고 이미지 생성을 요청한다.
  * 화면 옵션을 서버 요청 형식으로 바꾸는 일은 이 함수에서만 한다.
  *
- * @param options - 프롬프트와 스타일
- * @returns 원본 프롬프트, 번역된 프롬프트, 생성된 이미지와 seed 목록
+ * @param options - 프롬프트, 스타일, 비율
+ * @returns 원본 프롬프트, 번역된 프롬프트, 비율과 해상도, 생성된 이미지와 seed 목록
  * @throws {Error} 응답 상태가 2xx가 아닐 때
  */
 export async function generateImage(options: GenerateOptions): Promise<GenerateResponse> {
   const res = await fetch("/api/generate", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt: buildPrompt(options.prompt, options.styleId) }),
+    body: JSON.stringify({
+      prompt: buildPrompt(options.prompt, options.styleId),
+      ratio: options.ratio,
+    }),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => null);
