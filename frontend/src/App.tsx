@@ -56,9 +56,11 @@ export default function App() {
     };
   }, []);
 
-  /** 입력값과 결과를 비우고 처음 상태로 돌아간다. */
+  /** 입력값, 생성 옵션, 결과를 비우고 처음 상태로 돌아간다. */
   function handleNewProject() {
     setPrompt("");
+    setStyleId(DEFAULT_STYLE_ID);
+    setRatio(DEFAULT_RATIO);
     setResult(null);
     setError(null);
     setSidebarOpen(false);
