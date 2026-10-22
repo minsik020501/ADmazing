@@ -24,15 +24,16 @@ class ImageRatio(StrEnum):
 
 DEFAULT_IMAGE_RATIO = ImageRatio.SQUARE
 
-# 비율 → (너비, 높이). SDXL 학습 해상도(버킷)를 그대로 써서 총 픽셀 수를 1024x1024 수준으로 맞춘다.
-# 버킷은 64의 배수라 비율이 정확히 일치하지는 않는다 (예: 16:9 → 1344x768 = 1.75:1)
+# 비율 → (너비, 높이). 비율은 이름과 정확히 같게 하고, 총 픽셀 수는 SDXL 학습 해상도와
+# 비슷한 약 1024x1024 수준으로 맞춘다 (픽셀 수가 크게 줄면 디테일이 떨어진다).
+# 모두 8의 배수 (SDXL VAE가 1/8로 줄이므로 8의 배수여야 한다)
 IMAGE_RESOLUTIONS: dict[ImageRatio, tuple[int, int]] = {
     ImageRatio.SQUARE: (1024, 1024),
-    ImageRatio.LANDSCAPE_4_3: (1152, 896),
-    ImageRatio.PORTRAIT_3_4: (896, 1152),
-    ImageRatio.LANDSCAPE_16_9: (1344, 768),
-    ImageRatio.PORTRAIT_9_16: (768, 1344),
-    ImageRatio.LANDSCAPE_3_2: (1216, 832),
-    ImageRatio.PORTRAIT_2_3: (832, 1216),
-    ImageRatio.PORTRAIT_4_5: (896, 1088),
+    ImageRatio.LANDSCAPE_4_3: (1152, 864),
+    ImageRatio.PORTRAIT_3_4: (864, 1152),
+    ImageRatio.LANDSCAPE_16_9: (1280, 720),
+    ImageRatio.PORTRAIT_9_16: (720, 1280),
+    ImageRatio.LANDSCAPE_3_2: (1248, 832),
+    ImageRatio.PORTRAIT_2_3: (832, 1248),
+    ImageRatio.PORTRAIT_4_5: (896, 1120),
 }
