@@ -20,8 +20,27 @@ export interface ExampleChipsProps {
   onSelect: (prompt: string) => void;
 }
 
+/** 확인 팝업에서 바꿀지 묻고 있는 예시 (칩 이름과 고른 문장) */
+interface PendingExample {
+  label: string;
+  prompt: string;
+}
+
 /**
- * 업종별 예시 프롬프트 칩 목록.
+ * 업종의 예시 문장 중 하나를 무작위로 고른다. 지금 입력창에 있는 문장은 다시 고르지 않는다.
+ *
+ * @param example - 누른 칩의 업종별 예시
+ * @param current - 지금 입력창에 있는 문구
+ * @returns 입력창에 넣을 예시 문장
+ */
+function pickPrompt(example: ExamplePrompt, current: string): string {
+  const candidates = example.prompts.filter((prompt) => prompt !== current);
+  const pool = candidates.length > 0 ? candidates : example.prompts;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+/**
+ * 업종별 예시 프롬프트 칩 목록. 누를 때마다 그 업종의 문장 중 하나를 무작위로 채운다.
  * 입력창이 비어 있으면 바로 채우고, 글이 있으면 확인 팝업에서 [바꾸기]를 눌러야 바꾼다.
  *
  * @param props - 현재 입력 문구와 예시 선택 처리 함수
@@ -29,17 +48,17 @@ export interface ExampleChipsProps {
  */
 export default function ExampleChips({ value, onSelect }: ExampleChipsProps) {
   const labelId = useId();
-  // 확인 팝업에서 바꿀지 묻고 있는 예시. null이면 팝업 닫힘
-  const [pending, setPending] = useState<ExamplePrompt | null>(null);
+  // null이면 팝업 닫힘
+  const [pending, setPending] = useState<PendingExample | null>(null);
 
-  /** 칩을 누르면 입력 상태에 따라 바로 채우거나 확인 팝업을 띄운다. */
+  /** 칩을 누르면 문장을 고르고, 입력 상태에 따라 바로 채우거나 확인 팝업을 띄운다. */
   function handleClick(example: ExamplePrompt) {
-    if (value === example.prompt) return;
+    const prompt = pickPrompt(example, value);
     if (value.trim() === "") {
-      onSelect(example.prompt);
+      onSelect(prompt);
       return;
     }
-    setPending(example);
+    setPending({ label: example.label, prompt });
   }
 
   /** 확인 팝업에서 [바꾸기]를 누르면 입력창을 예시 문장으로 바꾼다. */
@@ -56,7 +75,7 @@ export default function ExampleChips({ value, onSelect }: ExampleChipsProps) {
       <h3 id={labelId} className={styles.label}>
         2. 예시 프롬프트
       </h3>
-      <p className={styles.description}>누르면 입력창에 예시 문장이 채워져요</p>
+      <p className={styles.description}>누를 때마다 다른 예시 문장이 채워져요</p>
 
       <div className={styles.chips}>
         {EXAMPLE_PROMPTS.map((example) => (
