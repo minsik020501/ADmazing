@@ -1,0 +1,51 @@
+/**
+ * Modal 컴포넌트 스타일.
+ *
+ * 생성일자: 2026-10-22
+ * 생성자: bioyejin
+ * 수정일자: 2026-10-22
+ * 수정자: bioyejin
+ */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+  background: var(--color-overlay);
+}
+
+.dialog {
+  width: 100%;
+  max-width: 400px;
+  padding: var(--space-6);
+  /* 완전한 흰색보다 살짝 차분한 메인 배경색 */
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.5;
+}
+
+.body {
+  margin-top: var(--space-3);
+  font-size: var(--font-size-md);
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+}
