@@ -7,10 +7,11 @@
  * 수정자: bioyejin
  */
 
-import { FormEvent, useState } from "react";
+import { useState } from "react";
 import { Menu } from "lucide-react";
 import { generateImage, GenerateResponse } from "./api/client";
 import Button from "./components/common/Button";
+import PromptInput from "./components/input/PromptInput";
 import ServerStatusBadge from "./components/layout/ServerStatusBadge";
 import Sidebar from "./components/layout/Sidebar";
 import ThemeToggle from "./components/layout/ThemeToggle";
@@ -36,15 +37,8 @@ export default function App() {
     setSidebarOpen(false);
   }
 
-  /**
-   * 입력한 프롬프트로 이미지 생성을 요청하고 결과를 상태에 반영한다.
-   *
-   * @param e - 폼 제출 이벤트
-   */
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (!prompt.trim()) return;
-
+  /** 입력한 프롬프트로 이미지 생성을 요청하고 결과를 상태에 반영한다. */
+  async function handleGenerate() {
     setLoading(true);
     setError(null);
     try {
@@ -74,25 +68,20 @@ export default function App() {
           onClick={() => setSidebarOpen(true)}
         />
 
-        {/* 기존 입력 폼과 결과 화면. 입력 화면 단계에서 새 컴포넌트로 교체 예정 */}
         <main className="container">
           <h1>👾 ADmazing</h1>
           <p>만들고 싶은 광고 이미지를 설명해 주세요.</p>
 
-          <form onSubmit={handleSubmit}>
-            <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="예) 여름 해변에서 시원한 레몬 탄산음료를 들고 있는 모습, 밝고 청량한 분위기"
-              rows={4}
-            />
-            <button type="submit" disabled={loading}>
-              {loading ? "생성 중..." : "이미지 생성"}
-            </button>
-          </form>
+          <PromptInput
+            value={prompt}
+            onChange={setPrompt}
+            onSubmit={handleGenerate}
+            loading={loading}
+          />
 
           {error && <p className="error">{error}</p>}
 
+          {/* 임시 결과 표시. 결과 화면 단계에서 새 컴포넌트로 교체 예정 */}
           {result && (
             <section className="result">
               <p>
