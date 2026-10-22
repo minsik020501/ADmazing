@@ -50,12 +50,6 @@ select {
   padding: var(--space-8) var(--space-4);
 }
 
-.container h1 {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-accent);
-}
-
 .error {
   color: var(--color-danger);
   /* 검증 에러가 여러 개면 줄을 나눠 표시 */

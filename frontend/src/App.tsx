@@ -69,8 +69,10 @@ export default function App() {
         />
 
         <main className="container">
-          <h1>👾 ADmazing</h1>
-          <p>만들고 싶은 광고 이미지를 설명해 주세요.</p>
+          <header className={styles.hero}>
+            <h1 className={styles.title}>👾 ADmazing</h1>
+            <p className={styles.subtitle}>&gt; 새 광고 이미지 만들기</p>
+          </header>
 
           <PromptInput
             value={prompt}

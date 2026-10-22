@@ -1,5 +1,5 @@
 /**
- * App 레이아웃 스타일 (메인 영역 + 패널 열기 버튼).
+ * App 레이아웃 스타일 (메인 영역, 패널 열기 버튼, 타이틀, 상태 표시).
  *
  * 생성일자: 2026-10-20
  * 생성자: bioyejin
@@ -20,6 +20,26 @@
   position: absolute;
   top: var(--space-3);
   left: var(--space-3);
+}
+
+/* 메인 타이틀과 부제 */
+.hero {
+  margin-bottom: var(--space-8);
+  text-align: center;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+}
+
+.subtitle {
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-accent);
 }
 
 /* 오른쪽 아래 상태 표시(서버 상태 배지, 테마 전환 버튼) */
