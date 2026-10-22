@@ -11,6 +11,8 @@ import { useState } from "react";
 import { Menu } from "lucide-react";
 import { generateImage, GenerateResponse } from "./api/client";
 import Button from "./components/common/Button";
+import ExampleChips from "./components/input/ExampleChips";
+import GenerateButton from "./components/input/GenerateButton";
 import PromptInput from "./components/input/PromptInput";
 import ServerStatusBadge from "./components/layout/ServerStatusBadge";
 import Sidebar from "./components/layout/Sidebar";
@@ -28,6 +30,8 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const canGenerate = prompt.trim().length > 0 && !loading;
 
   /** 입력값과 결과를 비우고 처음 상태로 돌아간다. */
   function handleNewProject() {
@@ -80,6 +84,8 @@ export default function App() {
             onSubmit={handleGenerate}
             loading={loading}
           />
+          <ExampleChips value={prompt} onSelect={setPrompt} />
+          <GenerateButton disabled={!canGenerate} loading={loading} onClick={handleGenerate} />
 
           {error && <p className="error">{error}</p>}
 
