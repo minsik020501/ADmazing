@@ -17,6 +17,7 @@ _FIELD_MESSAGES = {
     "int_type": "'{field}' 값은 정수여야 합니다.",
     "int_parsing": "'{field}' 값은 정수여야 합니다.",
     "int_from_float": "'{field}' 값은 정수여야 합니다.",
+    "enum": "'{field}' 값은 {expected} 중 하나여야 합니다.",
 }
 
 # 필드가 아닌 요청 본문 전체에 대한 에러
@@ -49,10 +50,15 @@ def to_korean_errors(errors: list[dict]) -> list[dict]:
         else:
             template = _FIELD_MESSAGES.get(error["type"])
 
+        ctx = dict(error.get("ctx", {}))
+        if "expected" in ctx:
+            # enum의 expected는 "'1:1', '4:3' or '4:5'" 형식이라 or를 쉼표로 바꾼다
+            ctx["expected"] = ctx["expected"].replace(" or ", ", ")
+
         message = error["msg"]
         if template is not None:
             try:
-                message = template.format(field=field, **error.get("ctx", {}))
+                message = template.format(field=field, **ctx)
             except KeyError:
                 pass
         translated.append({**error, "msg": message})

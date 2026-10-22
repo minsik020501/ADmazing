@@ -9,6 +9,7 @@
 from pydantic import BaseModel, Field
 
 from app.core.config import settings
+from app.core.image_ratio import DEFAULT_IMAGE_RATIO, ImageRatio
 from app.utils.seed import MAX_SEED
 
 # 이미지마다 seed를 1씩 늘려 쓰므로 마지막 이미지의 seed도 MAX_SEED를 넘지 않게 한다
@@ -28,17 +29,7 @@ class GenerateRequest(BaseModel):
             "상한은 2^32-1 - (NUM_IMAGES_PER_REQUEST-1)"
         ),
     )
-    width: int | None = Field(
-        None,
-        ge=256,
-        le=1536,
-        multiple_of=8,
-        description="이미지 너비 (8의 배수). 없으면 DEFAULT_IMAGE_WIDTH 사용",
-    )
-    height: int | None = Field(
-        None,
-        ge=256,
-        le=1536,
-        multiple_of=8,
-        description="이미지 높이 (8의 배수). 없으면 DEFAULT_IMAGE_HEIGHT 사용",
+    ratio: ImageRatio = Field(
+        DEFAULT_IMAGE_RATIO,
+        description="이미지 비율 (가로:세로). 비율별 SDXL 해상도로 생성. 없으면 1:1",
     )
