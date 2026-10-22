@@ -11,6 +11,7 @@ from fastapi.concurrency import run_in_threadpool
 
 from app.api.deps import get_image_generator
 from app.core.config import settings
+from app.schemas.error_response import ErrorResponse
 from app.schemas.generate_request import GenerateRequest
 from app.schemas.generate_response import GenerateResponse
 from app.schemas.generated_image import GeneratedImage
@@ -23,7 +24,16 @@ from app.utils.seed import make_seeds
 router = APIRouter(tags=["generate"])
 
 
-@router.post("/generate", response_model=GenerateResponse)
+@router.post(
+    "/generate",
+    response_model=GenerateResponse,
+    responses={
+        status.HTTP_503_SERVICE_UNAVAILABLE: {
+            "model": ErrorResponse,
+            "description": "이미지 생성 중 GPU 메모리 부족",
+        },
+    },
+)
 async def generate(
     req: GenerateRequest,
     image_generator: ImageGenerator = Depends(get_image_generator),
