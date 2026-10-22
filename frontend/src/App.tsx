@@ -102,7 +102,12 @@ export default function App() {
             loading={loading}
           />
           <ExampleChips value={prompt} onSelect={setPrompt} />
-          <GenerateButton disabled={!canGenerate} loading={loading} onClick={handleGenerate} />
+          <GenerateButton
+            disabled={!canGenerate}
+            loading={loading}
+            onClick={handleGenerate}
+            health={serverStatus.kind === "ok" ? serverStatus.health : null}
+          />
 
           {error && <p className="error">{error}</p>}
 
