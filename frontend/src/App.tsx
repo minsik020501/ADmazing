@@ -11,7 +11,9 @@ import { FormEvent, useState } from "react";
 import { Menu } from "lucide-react";
 import { generateImage, GenerateResponse } from "./api/client";
 import Button from "./components/common/Button";
+import ServerStatusBadge from "./components/layout/ServerStatusBadge";
 import Sidebar from "./components/layout/Sidebar";
+import ThemeToggle from "./components/layout/ThemeToggle";
 import styles from "./App.module.css";
 
 /**
@@ -108,6 +110,12 @@ export default function App() {
             </section>
           )}
         </main>
+      </div>
+
+      {/* 오른쪽 아래 상태 표시. 평소에는 흐리게, 마우스를 올리면 또렷하게 */}
+      <div className={styles.statusBar}>
+        <ServerStatusBadge />
+        <ThemeToggle />
       </div>
     </>
   );

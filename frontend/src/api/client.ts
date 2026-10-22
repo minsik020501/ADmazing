@@ -23,6 +23,17 @@ export interface GenerateResponse {
   images: GeneratedImage[];
 }
 
+/** 서버 상태 조회 API 응답 */
+export interface HealthResponse {
+  status: "ok";
+  /** 이미지 생성 모드. 현재 서버는 mock, diffusers, sdxl 중 하나를 보낸다 */
+  image_generator: string;
+  model_path: string;
+  lora_path: string | null;
+  /** 요청 한 번에 생성되는 이미지 장수 */
+  num_images_per_request: number;
+}
+
 /**
  * 에러 응답의 detail을 화면에 보여줄 문구로 바꾼다.
  * 서버는 detail을 문자열(예: 503 GPU 메모리 부족)이나
@@ -59,6 +70,20 @@ export async function generateImage(prompt: string): Promise<GenerateResponse> {
   if (!res.ok) {
     const body = await res.json().catch(() => null);
     throw new Error(toErrorMessage(body?.detail, res.status));
+  }
+  return res.json();
+}
+
+/**
+ * 서버 상태와 이미지 생성 설정을 조회한다.
+ *
+ * @returns 서버 상태, 이미지 생성 모드, 요청당 이미지 장수 등
+ * @throws {Error} 응답 상태가 2xx가 아닐 때
+ */
+export async function fetchHealth(): Promise<HealthResponse> {
+  const res = await fetch("/api/health");
+  if (!res.ok) {
+    throw new Error(`요청 실패 (${res.status})`);
   }
   return res.json();
 }
