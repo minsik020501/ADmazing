@@ -9,6 +9,7 @@
 
 import { useId, type FormEvent, type KeyboardEvent } from "react";
 import Button from "../common/Button";
+import ExampleChips from "./ExampleChips";
 import styles from "./PromptInput.module.css";
 
 /** Mac에서는 Ctrl 대신 ⌘(Command) 키를 안내한다 */
@@ -25,7 +26,7 @@ export interface PromptInputProps {
 }
 
 /**
- * 번호 라벨, 입력창, 안내·예시 문구, 글자 수, 생성 버튼으로 된 프롬프트 입력 영역.
+ * 번호 라벨, 입력창, 안내·예시 문구, 글자 수, 예시 칩, 생성 버튼으로 된 프롬프트 입력 영역.
  * 입력창에서 Ctrl+Enter(Mac은 ⌘+Enter)로도 생성할 수 있다.
  *
  * @param props - 입력값, 변경·생성 처리 함수, 생성 중 여부
@@ -71,6 +72,8 @@ export default function PromptInput({ value, onChange, onSubmit, loading }: Prom
         </div>
         <span className={styles.count}>{value.length}자</span>
       </div>
+
+      <ExampleChips value={value} onSelect={onChange} />
 
       <div className={styles.actions}>
         <Button type="submit" variant="primary" disabled={!canSubmit} title={SHORTCUT_LABEL}>
