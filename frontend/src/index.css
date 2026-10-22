@@ -95,6 +95,8 @@ select {
 
 .error {
   color: var(--color-danger);
+  /* 검증 에러가 여러 개면 줄을 나눠 표시 */
+  white-space: pre-line;
 }
 
 .result-grid {
