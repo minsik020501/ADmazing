@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-10-16
  * 생성자: ven_choi
- * 수정일자: 2026-10-20
+ * 수정일자: 2026-10-22
  * 수정자: bioyejin
  */
 
@@ -96,10 +96,15 @@ export default function App() {
               <p>
                 <strong>번역된 프롬프트:</strong> {result.translated_prompt}
               </p>
-              <img
-                src={`data:image/png;base64,${result.image_base64}`}
-                alt={result.original_prompt}
-              />
+              <div className="result-grid">
+                {result.images.map((image, index) => (
+                  <img
+                    key={`${index}-${image.seed}`}
+                    src={`data:image/png;base64,${image.image_base64}`}
+                    alt={`${result.original_prompt} (${index + 1}/${result.images.length})`}
+                  />
+                ))}
+              </div>
             </section>
           )}
         </main>
