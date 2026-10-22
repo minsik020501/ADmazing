@@ -2,11 +2,12 @@
 
 생성일자: 2026-10-16
 생성자: ven_choi
-수정일자: 2026-10-16
+수정일자: 2026-10-22
 수정자: ven_choi
 """
 
 from app.core.config import settings
+from app.services.gpu_out_of_memory_error import GpuOutOfMemoryError
 from app.utils.image import to_base64
 
 
@@ -40,29 +41,39 @@ class DiffusersImageGenerator:
         prompt: str,
         width: int,
         height: int,
-        seed: int | None = None,
-    ) -> str:
-        """로드된 모델로 이미지를 생성한다.
+        seeds: list[int],
+    ) -> list[str]:
+        """로드된 모델로 seed 개수만큼 이미지를 한 번에(배치로) 생성한다.
 
         Args:
             prompt: 영어 프롬프트.
             width: 이미지 너비.
             height: 이미지 높이.
-            seed: 재현용 랜덤 시드. None이면 매번 다른 이미지를 생성한다.
+            seeds: 이미지마다 사용할 seed 목록. 목록 길이만큼 이미지를 생성한다.
 
         Returns:
-            str: PNG 이미지의 base64 문자열.
-        """
-        generator = None
-        if seed is not None:
-            generator = self._torch.Generator(device=self.device).manual_seed(seed)
+            list[str]: seeds 순서대로 생성한 PNG 이미지의 base64 문자열 목록.
 
-        image = self.pipe(
-            prompt=prompt,
-            num_inference_steps=settings.num_inference_steps,
-            guidance_scale=settings.guidance_scale,
-            width=width,
-            height=height,
-            generator=generator,
-        ).images[0]
-        return to_base64(image)
+        Raises:
+            GpuOutOfMemoryError: 생성 중 GPU 메모리가 부족할 때.
+        """
+        # 이미지마다 생성기를 따로 두어야 seed 하나로 해당 이미지를 재현할 수 있다
+        generators = [
+            self._torch.Generator(device=self.device).manual_seed(seed)
+            for seed in seeds
+        ]
+
+        try:
+            images = self.pipe(
+                prompt=prompt,
+                num_inference_steps=settings.num_inference_steps,
+                guidance_scale=settings.guidance_scale,
+                width=width,
+                height=height,
+                num_images_per_prompt=len(seeds),
+                generator=generators,
+            ).images
+        except self._torch.cuda.OutOfMemoryError as e:
+            self._torch.cuda.empty_cache()
+            raise GpuOutOfMemoryError from e
+        return [to_base64(image) for image in images]

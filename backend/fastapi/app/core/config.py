@@ -2,13 +2,14 @@
 
 생성일자: 2026-10-16
 생성자: ven_choi
-수정일자: 2026-10-20
+수정일자: 2026-10-22
 수정자: ven_choi
 """
 
 from pathlib import Path
 from typing import Literal
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -35,6 +36,10 @@ class Settings(BaseSettings):
     default_image_width: int = 512
     default_image_height: int = 512
     hf_token: str | None = None
+    # 한 번의 요청에서 생성할 이미지 장수
+    num_images_per_request: int = Field(4, ge=1)
+    # 생성 요청마다 측정 로그(JSONL)를 남길 파일 경로. 비워 두면 기록하지 않는다
+    generation_log_path: Path | None = None
 
     # IMAGE_GENERATOR=sdxl 일 때 사용 (경로는 api 컨테이너 기준)
     sdxl_device: Literal["auto", "cuda", "mps", "cpu"] = "auto"

@@ -30,6 +30,9 @@ dist/
 *.tsbuildinfo
 npm-debug.log*
 
+# logs
+logs/
+
 # model artifacts
 models/*
 !models/.gitkeep
