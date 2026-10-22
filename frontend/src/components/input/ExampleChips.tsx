@@ -20,6 +20,9 @@ export interface ExampleChipsProps {
   onSelect: (prompt: string) => void;
 }
 
+/** 모든 예시 문장. 입력창 내용이 손대지 않은 예시 문장인지 확인하는 데 쓴다 */
+const ALL_EXAMPLE_PROMPTS = new Set(EXAMPLE_PROMPTS.flatMap((example) => example.prompts));
+
 /** 확인 팝업에서 바꿀지 묻고 있는 예시 (칩 이름과 고른 문장) */
 interface PendingExample {
   label: string;
@@ -41,7 +44,8 @@ function pickPrompt(example: ExamplePrompt, current: string): string {
 
 /**
  * 업종별 예시 프롬프트 칩 목록. 누를 때마다 그 업종의 문장 중 하나를 무작위로 채운다.
- * 입력창이 비어 있으면 바로 채우고, 글이 있으면 확인 팝업에서 [바꾸기]를 눌러야 바꾼다.
+ * 입력창이 비어 있거나 예시 문장 그대로면 바로 채우고,
+ * 직접 쓰거나 고친 글이 있으면 확인 팝업에서 [바꾸기]를 눌러야 바꾼다.
  *
  * @param props - 현재 입력 문구와 예시 선택 처리 함수
  * @returns 번호 라벨, 설명, 칩 목록과 확인 팝업
@@ -54,7 +58,8 @@ export default function ExampleChips({ value, onSelect }: ExampleChipsProps) {
   /** 칩을 누르면 문장을 고르고, 입력 상태에 따라 바로 채우거나 확인 팝업을 띄운다. */
   function handleClick(example: ExamplePrompt) {
     const prompt = pickPrompt(example, value);
-    if (value.trim() === "") {
+    // 사용자가 직접 쓴 글이 아니면 지워져도 잃는 것이 없으므로 확인 없이 바꾼다
+    if (value.trim() === "" || ALL_EXAMPLE_PROMPTS.has(value)) {
       onSelect(prompt);
       return;
     }
