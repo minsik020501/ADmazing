@@ -7,17 +7,10 @@
  * 수정자: bioyejin
  */
 
-.form {
+.section {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-}
-
-/* 번호 라벨 (시안의 "1. Prompt") */
-.label {
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-primary-text);
 }
 
 .textarea {
@@ -64,10 +57,4 @@
 .count {
   flex-shrink: 0;
   white-space: nowrap;
-}
-
-.actions {
-  display: flex;
-  justify-content: center;
-  margin-top: var(--space-4);
 }

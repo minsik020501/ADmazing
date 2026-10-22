@@ -7,12 +7,11 @@
  * 수정자: bioyejin
  */
 
-import { useEffect, useState } from "react";
-import { fetchHealth, type HealthResponse } from "../../api/client";
+import type { HealthResponse } from "../../api/client";
 import styles from "./ServerStatusBadge.module.css";
 
-/** 조회 결과: 확인 중 / 응답 받음 / 연결 실패 */
-type ServerStatus =
+/** 서버 상태 조회 결과: 확인 중 / 응답 받음 / 연결 실패 */
+export type ServerStatus =
   | { kind: "loading" }
   | { kind: "ok"; health: HealthResponse }
   | { kind: "error" };
@@ -38,29 +37,18 @@ function toBadge(status: ServerStatus): { label: string; tone: Tone } {
   };
 }
 
+export interface ServerStatusBadgeProps {
+  /** App이 화면을 열 때 한 번 조회한 서버 상태 */
+  status: ServerStatus;
+}
+
 /**
- * 화면을 열 때 /api/health를 한 번 조회해 이미지 생성 모드와 장수를 보여주는 배지.
+ * 이미지 생성 모드와 요청당 장수를 보여주는 배지.
  *
+ * @param props - 서버 상태 조회 결과
  * @returns 점과 문구로 된 배지
  */
-export default function ServerStatusBadge() {
-  const [status, setStatus] = useState<ServerStatus>({ kind: "loading" });
-
-  useEffect(() => {
-    // 화면을 벗어난 뒤 늦게 도착한 응답은 무시한다
-    let ignore = false;
-    fetchHealth()
-      .then((health) => {
-        if (!ignore) setStatus({ kind: "ok", health });
-      })
-      .catch(() => {
-        if (!ignore) setStatus({ kind: "error" });
-      });
-    return () => {
-      ignore = true;
-    };
-  }, []);
-
+export default function ServerStatusBadge({ status }: ServerStatusBadgeProps) {
   const { label, tone } = toBadge(status);
 
   return (
