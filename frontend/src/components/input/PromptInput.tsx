@@ -9,6 +9,7 @@
 
 import { useId, type FormEvent, type KeyboardEvent } from "react";
 import Button from "../common/Button";
+import SectionLabel from "../common/SectionLabel";
 import ExampleChips from "./ExampleChips";
 import styles from "./PromptInput.module.css";
 
@@ -52,9 +53,7 @@ export default function PromptInput({ value, onChange, onSubmit, loading }: Prom
 
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
-      <label className={styles.label} htmlFor={inputId}>
-        1. 프롬프트
-      </label>
+      <SectionLabel number={1} title="프롬프트" htmlFor={inputId} />
       <textarea
         id={inputId}
         className={styles.textarea}

@@ -11,6 +11,7 @@ import { useCallback, useId, useState } from "react";
 import { EXAMPLE_PROMPTS, type ExamplePrompt } from "../../constants/examplePrompts";
 import Chip from "../common/Chip";
 import Modal from "../common/Modal";
+import SectionLabel from "../common/SectionLabel";
 import styles from "./ExampleChips.module.css";
 
 export interface ExampleChipsProps {
@@ -77,10 +78,12 @@ export default function ExampleChips({ value, onSelect }: ExampleChipsProps) {
 
   return (
     <section className={styles.section} aria-labelledby={labelId}>
-      <h3 id={labelId} className={styles.label}>
-        2. 예시 프롬프트
-      </h3>
-      <p className={styles.description}>누를 때마다 다른 예시 문장이 채워져요</p>
+      <SectionLabel
+        id={labelId}
+        number={2}
+        title="예시 프롬프트"
+        description="누를 때마다 다른 예시 문장이 채워져요"
+      />
 
       <div className={styles.chips}>
         {EXAMPLE_PROMPTS.map((example) => (
