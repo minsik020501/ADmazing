@@ -2,7 +2,7 @@
 
 생성일자: 2026-10-19
 생성자: ven_choi
-수정일자: 2026-10-20
+수정일자: 2026-10-22
 수정자: ven_choi
 """
 
@@ -20,3 +20,4 @@ class HealthResponse(BaseModel):
     )
     model_path: str = Field(..., description="Hugging Face 모델 이름 또는 산출물 경로")
     lora_path: str | None = Field(None, description="LoRA 산출물 경로 (없으면 null)")
+    num_images_per_request: int = Field(..., description="요청당 생성 이미지 장수")

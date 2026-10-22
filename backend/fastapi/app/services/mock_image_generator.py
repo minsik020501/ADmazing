@@ -2,7 +2,7 @@
 
 생성일자: 2026-10-16
 생성자: ven_choi
-수정일자: 2026-10-16
+수정일자: 2026-10-22
 수정자: ven_choi
 """
 
@@ -21,21 +21,25 @@ class MockImageGenerator:
         prompt: str,
         width: int,
         height: int,
-        seed: int | None = None,
-    ) -> str:
-        """프롬프트 텍스트가 적힌 더미 이미지를 생성한다.
+        seeds: list[int],
+    ) -> list[str]:
+        """프롬프트 텍스트가 적힌 더미 이미지를 seed 개수만큼 생성한다.
 
         Args:
             prompt: 영어 프롬프트.
             width: 이미지 너비.
             height: 이미지 높이.
-            seed: 사용하지 않음. 인터페이스 호환용.
+            seeds: 이미지마다 사용할 seed 목록. 이미지에 번호와 함께 적기만 한다.
 
         Returns:
-            str: PNG 이미지의 base64 문자열.
+            list[str]: PNG 이미지의 base64 문자열 목록.
         """
-        image = Image.new("RGB", (width, height), "#e0e0e0")
-        draw = ImageDraw.Draw(image)
-        text = "[MOCK]\n" + "\n".join(textwrap.wrap(prompt, width=50))
-        draw.multiline_text((16, 16), text, fill="#333333")
-        return to_base64(image)
+        wrapped = "\n".join(textwrap.wrap(prompt, width=50))
+        images = []
+        for index, seed in enumerate(seeds, start=1):
+            image = Image.new("RGB", (width, height), "#e0e0e0")
+            draw = ImageDraw.Draw(image)
+            text = f"[MOCK {index}/{len(seeds)}] seed={seed}\n{wrapped}"
+            draw.multiline_text((16, 16), text, fill="#333333")
+            images.append(to_base64(image))
+        return images
