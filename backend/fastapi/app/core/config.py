@@ -33,8 +33,6 @@ class Settings(BaseSettings):
     lora_path: str | None = None
     num_inference_steps: int = 4
     guidance_scale: float = 0.0
-    default_image_width: int = 512
-    default_image_height: int = 512
     hf_token: str | None = None
     # 한 번의 요청에서 생성할 이미지 장수
     num_images_per_request: int = Field(4, ge=1)
