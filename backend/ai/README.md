@@ -14,6 +14,19 @@ models/<name>/
 - 가중치는 git에 올리지 않습니다. 팀 공유는 공용 스토리지를 지정해 사용합니다.
 - 노트북 실험은 `notebooks/`에 둡니다. 아래 [노트북](#노트북) 규칙을 따릅니다.
 
+## 데이터셋
+
+학습 데이터는 `data/`에 둡니다 (git 제외). Pitt Ads 데이터셋은 아래 스크립트로 받습니다 (레포 루트에서 실행).
+
+```bash
+python backend/ai/download_dataset.py --annotations-only  # 주석·메타데이터만 (약 53MB)
+python backend/ai/download_dataset.py --subfolders 0      # 주석 + images/0 (약 5,600장)
+python backend/ai/download_dataset.py                     # 주석 + 전체 이미지 (64,832장, 약 12GB)
+```
+
+- 연구용 데이터셋이므로 상업적 사용에 주의합니다. ([원본](https://people.cs.pitt.edu/~kovashka/ads/))
+- 중단돼도 다시 실행하면 받은 파일은 건너뛰고 이어서 받습니다.
+
 ## 실행
 
 `--device`로 학습 디바이스를 선택합니다: `auto`(기본, cuda → mps → cpu 순), `cuda`, `mps`, `cpu`

@@ -37,3 +37,4 @@ logs/
 models/*
 !models/.gitkeep
 backend/ai/outputs/
+backend/ai/data/
