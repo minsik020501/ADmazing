@@ -50,7 +50,8 @@ class Settings(BaseSettings):
 
     # IMAGE_GENERATOR=zimage 일 때 사용 (경로는 api 컨테이너 기준)
     zimage_device: Literal["auto", "cuda", "mps", "cpu"] = "auto"
-    zimage_use_offload: bool = True
+    # 오프로드는 모델 전체(bf16 약 19GB)를 CPU 램에 두므로 램이 그보다 클 때만 켠다
+    zimage_use_offload: bool = False
     # 모델 카드 권장값: 9 step (실제 DiT forward는 8번)
     zimage_steps: int = 9
     zimage_model_dir: Path = Path("/models/z-image-turbo")
