@@ -6,9 +6,10 @@ services:
         INSTALL_ML: ${INSTALL_ML:-false}
     env_file: .env
     environment:
-      # .env의 SDXL 경로는 레포 루트 기준(실험 스크립트용)이라 컨테이너 경로로 덮어쓴다
+      # .env의 SDXL, Z-Image 경로는 레포 루트 기준(실험 스크립트용)이라 컨테이너 경로로 덮어쓴다
       SDXL_MODEL_DIR: /models/sdxl-base
       SDXL_VAE_DIR: /models/sdxl-vae-fp16-fix
+      ZIMAGE_MODEL_DIR: /models/z-image-turbo
     ports:
       - "11000:11000"
     volumes:

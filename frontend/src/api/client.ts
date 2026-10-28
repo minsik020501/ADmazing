@@ -3,8 +3,8 @@
  *
  * 생성일자: 2026-10-16
  * 생성자: ven_choi
- * 수정일자: 2026-10-22
- * 수정자: bioyejin
+ * 수정일자: 2026-10-28
+ * 수정자: ven_choi
  */
 
 import { STYLE_PRESETS } from "../constants/stylePresets";
@@ -33,7 +33,7 @@ export interface GenerateResponse {
 /** 서버 상태 조회 API 응답 */
 export interface HealthResponse {
   status: "ok";
-  /** 이미지 생성 모드. 현재 서버는 mock, diffusers, sdxl 중 하나를 보낸다 */
+  /** 이미지 생성 모드. 현재 서버는 mock, diffusers, sdxl, zimage 중 하나를 보낸다 */
   image_generator: string;
   model_path: string;
   lora_path: string | null;

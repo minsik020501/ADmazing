@@ -2,7 +2,7 @@
 
 생성일자: 2026-10-22
 생성자: ven_choi
-수정일자: 2026-10-22
+수정일자: 2026-10-28
 수정자: ven_choi
 """
 
@@ -69,6 +69,12 @@ def run_generation(
                     "sdxl_use_offload": (
                         settings.sdxl_use_offload
                         if settings.image_generator == "sdxl"
+                        else None
+                    ),
+                    # offload 설정은 zimage 생성기에서만 쓴다
+                    "zimage_use_offload": (
+                        settings.zimage_use_offload
+                        if settings.image_generator == "zimage"
                         else None
                     ),
                     "elapsed_seconds": round(elapsed, 2),
