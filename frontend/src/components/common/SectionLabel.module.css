@@ -1,0 +1,22 @@
+/**
+ * SectionLabel 컴포넌트 스타일.
+ *
+ * 생성일자: 2026-10-22
+ * 생성자: bioyejin
+ * 수정일자: 2026-10-22
+ * 수정자: bioyejin
+ */
+
+.title {
+  display: block;
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary-text);
+}
+
+.description {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+}

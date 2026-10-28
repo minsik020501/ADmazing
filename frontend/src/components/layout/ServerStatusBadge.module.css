@@ -1,0 +1,40 @@
+/**
+ * ServerStatusBadge 컴포넌트 스타일.
+ *
+ * 생성일자: 2026-10-22
+ * 생성자: bioyejin
+ * 수정일자: 2026-10-22
+ * 수정자: bioyejin
+ */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+
+/* 픽셀 느낌에 맞춘 작은 네모 점 */
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-sm);
+}
+
+.pending {
+  border: 1px solid var(--color-text-tertiary);
+}
+
+.muted {
+  background: var(--color-text-tertiary);
+}
+
+.success {
+  background: var(--color-success);
+}
+
+.danger {
+  background: var(--color-danger);
+}

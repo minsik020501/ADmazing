@@ -11,6 +11,7 @@ from fastapi.concurrency import run_in_threadpool
 
 from app.api.deps import get_image_generator
 from app.core.config import settings
+from app.core.image_ratio import IMAGE_RESOLUTIONS
 from app.schemas.error_response import ErrorResponse
 from app.schemas.generate_request import GenerateRequest
 from app.schemas.generate_response import GenerateResponse
@@ -41,25 +42,27 @@ async def generate(
     """한국어 프롬프트를 영어로 번역한 뒤 광고 이미지를 NUM_IMAGES_PER_REQUEST장 생성한다.
 
     Args:
-        req: 한국어 프롬프트, 이미지 크기, 시드를 담은 요청.
-            크기가 없으면 DEFAULT_IMAGE_WIDTH/HEIGHT를 사용한다.
+        req: 한국어 프롬프트, 이미지 비율, 시드를 담은 요청.
+            해상도는 비율에 맞는 IMAGE_RESOLUTIONS 값을 사용한다.
         image_generator: 의존성으로 주입되는 이미지 생성기.
 
     Returns:
-        GenerateResponse: 원본 프롬프트, 번역된 프롬프트, 이미지와 seed 목록.
+        GenerateResponse: 원본 프롬프트, 번역된 프롬프트, 비율과 해상도,
+            이미지와 seed 목록.
 
     Raises:
         HTTPException: 생성 중 GPU 메모리가 부족할 때 (503).
     """
     translated = await translate_to_english(req.prompt)
     seeds = make_seeds(req.seed, settings.num_images_per_request)
+    width, height = IMAGE_RESOLUTIONS[req.ratio]
     try:
         images = await run_in_threadpool(
             run_generation,
             image_generator,
             translated,
-            req.width or settings.default_image_width,
-            req.height or settings.default_image_height,
+            width,
+            height,
             seeds,
         )
     except GpuOutOfMemoryError:
@@ -71,6 +74,9 @@ async def generate(
     return GenerateResponse(
         original_prompt=req.prompt,
         translated_prompt=translated,
+        ratio=req.ratio,
+        width=width,
+        height=height,
         images=[
             GeneratedImage(image_base64=image, seed=seed)
             for image, seed in zip(images, seeds)

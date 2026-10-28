@@ -1,9 +1,9 @@
 /**
- * App 레이아웃 스타일 (메인 영역 + 패널 열기 버튼).
+ * App 레이아웃 스타일 (메인 영역, 패널 열기 버튼, 타이틀, 상태 표시).
  *
  * 생성일자: 2026-10-20
  * 생성자: bioyejin
- * 수정일자: 2026-10-20
+ * 수정일자: 2026-10-22
  * 수정자: bioyejin
  */
 
@@ -11,6 +11,8 @@
 .main {
   position: relative;
   height: 100%;
+  /* 맨 아래까지 스크롤해도 오른쪽 아래 상태 표시에 내용이 가려지지 않도록 */
+  padding-bottom: var(--space-10);
   overflow-y: auto;
 }
 
@@ -18,4 +20,42 @@
   position: absolute;
   top: var(--space-3);
   left: var(--space-3);
+}
+
+/* 메인 타이틀과 부제 */
+.hero {
+  margin-bottom: var(--space-8);
+  text-align: center;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+}
+
+.subtitle {
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-accent);
+}
+
+/* 오른쪽 아래 상태 표시(서버 상태 배지, 테마 전환 버튼) */
+.statusBar {
+  position: fixed;
+  right: var(--space-4);
+  bottom: var(--space-3);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  opacity: 0.6;
+  transition: opacity var(--transition-fast);
+}
+
+.statusBar:hover,
+.statusBar:focus-within {
+  opacity: 1;
 }

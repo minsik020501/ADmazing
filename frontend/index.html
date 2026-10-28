@@ -4,6 +4,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admazing</title>
+    <!-- 저장된 테마를 화면을 그리기 전에 적용해 새로고침 시 다른 테마가 잠깐 보이지 않게 함.
+         키 이름은 src/components/layout/ThemeToggle.tsx의 STORAGE_KEY와 같아야 함 -->
+    <script>
+      try {
+        var savedTheme = localStorage.getItem("admazing-theme");
+        if (savedTheme === "light" || savedTheme === "dark") {
+          document.documentElement.dataset.theme = savedTheme;
+        }
+      } catch (e) {}
+    </script>
     <!-- UI 글꼴 Mona12 (OFL 1.1). 버전을 고정해 폰트 업데이트로 화면이 바뀌지 않게 함 -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
     <link

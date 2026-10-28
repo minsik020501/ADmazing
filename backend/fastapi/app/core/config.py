@@ -2,7 +2,7 @@
 
 생성일자: 2026-10-16
 생성자: ven_choi
-수정일자: 2026-10-22
+수정일자: 2026-10-28
 수정자: ven_choi
 """
 
@@ -28,13 +28,11 @@ class Settings(BaseSettings):
     openai_model: str = "gpt-4o-mini"
     cors_origins: list[str] = ["http://localhost:12000"]
 
-    image_generator: Literal["mock", "diffusers", "sdxl"] = "mock"
+    image_generator: Literal["mock", "diffusers", "sdxl", "zimage"] = "mock"
     model_path: str = "stabilityai/sdxl-turbo"
     lora_path: str | None = None
     num_inference_steps: int = 4
     guidance_scale: float = 0.0
-    default_image_width: int = 512
-    default_image_height: int = 512
     hf_token: str | None = None
     # 한 번의 요청에서 생성할 이미지 장수
     num_images_per_request: int = Field(4, ge=1)
@@ -49,6 +47,13 @@ class Settings(BaseSettings):
     sdxl_negative_prompt: str = "blurry, low quality, text, watermark, deformed"
     sdxl_model_dir: Path = Path("/models/sdxl-base")
     sdxl_vae_dir: Path = Path("/models/sdxl-vae-fp16-fix")
+
+    # IMAGE_GENERATOR=zimage 일 때 사용 (경로는 api 컨테이너 기준)
+    zimage_device: Literal["auto", "cuda", "mps", "cpu"] = "auto"
+    zimage_use_offload: bool = True
+    # 모델 카드 권장값: 9 step (실제 DiT forward는 8번)
+    zimage_steps: int = 9
+    zimage_model_dir: Path = Path("/models/z-image-turbo")
 
 
 settings = Settings()
