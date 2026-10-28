@@ -5,7 +5,7 @@ api 컨테이너에는 backend/ai가 없으므로 직접 import하지 않는다.
 
 생성일자: 2026-10-20
 생성자: ven_choi
-수정일자: 2026-10-22
+수정일자: 2026-10-28
 수정자: ven_choi
 """
 
@@ -13,6 +13,7 @@ import threading
 
 from app.core.config import settings
 from app.services.gpu_out_of_memory_error import GpuOutOfMemoryError
+from app.utils.device import resolve_device
 from app.utils.image import to_base64
 
 
@@ -30,7 +31,7 @@ class SdxlImageGenerator:
         from diffusers import AutoencoderKL, StableDiffusionXLPipeline
 
         self._torch = torch
-        self.device = self._resolve_device(settings.sdxl_device)
+        self.device = resolve_device(settings.sdxl_device)
         # 파이프라인 하나를 여러 요청이 동시에 돌리지 않도록 한 번에 하나씩 처리한다
         self._lock = threading.Lock()
 
@@ -63,29 +64,6 @@ class SdxlImageGenerator:
                 self.pipe.enable_attention_slicing()
 
         self.pipe.vae.enable_tiling()
-
-    def _resolve_device(self, name: str) -> str:
-        """요청한 디바이스가 사용 가능한지 확인하고 실제 사용할 디바이스를 결정한다.
-
-        Args:
-            name: auto, cuda, mps, cpu 중 하나. auto면 cuda → mps → cpu 순으로 선택한다.
-
-        Returns:
-            str: 실제 사용할 디바이스 이름 (cuda, mps, cpu).
-
-        Raises:
-            RuntimeError: 요청한 디바이스를 현재 환경에서 사용할 수 없을 때.
-        """
-        available = {
-            "cuda": self._torch.cuda.is_available(),
-            "mps": self._torch.backends.mps.is_available(),
-            "cpu": True,
-        }
-        if name == "auto":
-            return next(device for device, ok in available.items() if ok)
-        if not available[name]:
-            raise RuntimeError(f"'{name}' 디바이스를 사용할 수 없습니다.")
-        return name
 
     def generate(
         self,
