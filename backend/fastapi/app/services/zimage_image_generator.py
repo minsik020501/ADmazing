@@ -41,17 +41,28 @@ class ZImageImageGenerator:
                 "레포 루트의 models/에 모델을 받았는지 확인하세요."
             )
 
-        # 모델 파일은 fp32지만 bf16으로 올려 메모리를 절반으로 줄인다 (모델 카드 권장).
+        # bf16으로 올려 fp32 대비 메모리를 절반으로 줄인다 (모델 카드 권장).
         # CPU는 bf16 연산이 느려서 float32로 올린다
         dtype = torch.float32 if self.device == "cpu" else torch.bfloat16
 
-        self.pipe = ZImagePipeline.from_pretrained(model_dir, torch_dtype=dtype)
+        use_offload = self.device == "cuda" and settings.zimage_use_offload
+        # cuda에서 오프로드가 아니면 GPU로 바로 불러온다. 모델 전체(bf16 약 19GB)를
+        # CPU 램에 먼저 올리지 않으므로 램이 모델보다 작은 서버에서도 로드된다.
+        # mps는 램과 메모리를 함께 써서 이득이 없고, 바로 불러오면 로딩이 멈춘다
+        device_map = "cuda" if self.device == "cuda" and not use_offload else None
 
-        if self.device == "cuda" and settings.zimage_use_offload:
-            # 계산은 GPU, 쓰지 않는 부품은 CPU 램에 보관 (.to("cuda")와 함께 쓰지 않는다)
+        self.pipe = ZImagePipeline.from_pretrained(
+            model_dir, torch_dtype=dtype, device_map=device_map
+        )
+
+        if use_offload:
+            # 계산은 GPU, 쓰지 않는 부품은 CPU 램에 보관 (램이 모델 전체보다 커야 한다)
             self.pipe.enable_model_cpu_offload()
-        else:
+        elif device_map is None:
             self.pipe.to(self.device)
+
+        # 배치의 이미지를 한 장씩 디코딩해 VAE 메모리 피크를 낮춘다
+        self.pipe.vae.enable_slicing()
 
     def generate(
         self,
