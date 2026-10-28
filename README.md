@@ -49,6 +49,20 @@ diffusers 모드에서는 코드 변경으로 서버가 재시작될 때마다 �
 docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
 ```
 
+GPU 서버에서는 `.env`에 아래 줄을 넣어 두면 `-f` 없이 `docker compose up --build`만 해도 GPU 설정이 포함됩니다. 빠뜨리면 api 컨테이너가 GPU를 보지 못해 CPU로 생성하려다 램 부족으로 종료될 수 있습니다.
+
+```bash
+COMPOSE_FILE=docker-compose.yml:docker-compose.gpu.yml
+SDXL_DEVICE=cuda      # GPU를 못 잡으면 CPU로 넘어가지 않고 바로 에러
+ZIMAGE_DEVICE=cuda
+```
+
+컨테이너가 GPU를 보는지 확인:
+
+```bash
+docker compose exec api python -c "import torch; print(torch.cuda.is_available())"
+```
+
 ### 학습한 모델 사용
 
 학습 산출물을 `models/<name>/`에 두고 `.env`에서 경로를 지정합니다. (컨테이너에는 `/models`로 마운트됨)
