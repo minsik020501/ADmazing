@@ -61,8 +61,10 @@ class ZImageImageGenerator:
         elif device_map is None:
             self.pipe.to(self.device)
 
-        # 배치의 이미지를 한 장씩 디코딩해 VAE 메모리 피크를 낮춘다
+        # VRAM 피크는 VAE 디코딩에서 생긴다 (L4 24GB에서 여유 1GB 미만).
+        # 배치를 한 장씩, 한 장은 타일로 나눠 디코딩해 피크를 낮춘다
         self.pipe.vae.enable_slicing()
+        self.pipe.vae.enable_tiling()
 
     def generate(
         self,
