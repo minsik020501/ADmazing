@@ -65,6 +65,10 @@ class ZImageImageGenerator:
         # 배치를 한 장씩, 한 장은 타일로 나눠 디코딩해 피크를 낮춘다
         self.pipe.vae.enable_slicing()
         self.pipe.vae.enable_tiling()
+        # 이 VAE는 기본 타일이 1024px라 1024×1024 이하는 나누지 않아 효과가 없다.
+        # 512px(latent 64) 타일로 줄여 모든 비율에서 타일 디코딩이 동작하게 한다
+        self.pipe.vae.tile_sample_min_size = 512
+        self.pipe.vae.tile_latent_min_size = 64
 
     def generate(
         self,
