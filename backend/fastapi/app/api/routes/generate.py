@@ -2,25 +2,19 @@
 
 생성일자: 2026-10-16
 생성자: ven_choi
-수정일자: 2026-10-22
+수정일자: 2026-11-02
 수정자: ven_choi
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.concurrency import run_in_threadpool
 
 from app.api.deps import get_image_generator
-from app.core.config import settings
-from app.core.image_ratio import IMAGE_RESOLUTIONS
 from app.schemas.error_response import ErrorResponse
 from app.schemas.generate_request import GenerateRequest
 from app.schemas.generate_response import GenerateResponse
-from app.schemas.generated_image import GeneratedImage
-from app.services.generation_runner import run_generation
+from app.services.ad_image_service import GPU_OUT_OF_MEMORY_MESSAGE, generate_ad_images
 from app.services.gpu_out_of_memory_error import GpuOutOfMemoryError
 from app.services.image_generator import ImageGenerator
-from app.services.translator import translate_to_english
-from app.utils.seed import make_seeds
 
 router = APIRouter(tags=["generate"])
 
@@ -41,6 +35,8 @@ async def generate(
 ):
     """한국어 프롬프트를 영어로 번역한 뒤 광고 이미지를 NUM_IMAGES_PER_REQUEST장 생성한다.
 
+    생성이 끝날 때까지 응답을 기다린다. 진행률과 취소가 필요하면 /api/jobs를 쓴다.
+
     Args:
         req: 한국어 프롬프트, 이미지 비율, 시드를 담은 요청.
             해상도는 비율에 맞는 IMAGE_RESOLUTIONS 값을 사용한다.
@@ -53,32 +49,10 @@ async def generate(
     Raises:
         HTTPException: 생성 중 GPU 메모리가 부족할 때 (503).
     """
-    translated = await translate_to_english(req.prompt)
-    seeds = make_seeds(req.seed, settings.num_images_per_request)
-    width, height = IMAGE_RESOLUTIONS[req.ratio]
     try:
-        images = await run_in_threadpool(
-            run_generation,
-            image_generator,
-            translated,
-            width,
-            height,
-            seeds,
-        )
+        return await generate_ad_images(req, image_generator)
     except GpuOutOfMemoryError:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="GPU 메모리가 부족해 이미지를 생성하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+            detail=GPU_OUT_OF_MEMORY_MESSAGE,
         )
-
-    return GenerateResponse(
-        original_prompt=req.prompt,
-        translated_prompt=translated,
-        ratio=req.ratio,
-        width=width,
-        height=height,
-        images=[
-            GeneratedImage(image_base64=image, seed=seed)
-            for image, seed in zip(images, seeds)
-        ],
-    )
