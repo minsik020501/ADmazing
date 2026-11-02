@@ -7,7 +7,7 @@
  *
  * 생성일자: 2026-10-20
  * 생성자: bioyejin
- * 수정일자: 2026-10-20
+ * 수정일자: 2026-11-02
  * 수정자: bioyejin
  */
 
@@ -41,6 +41,11 @@
 
   /* 레이아웃 */
   --sidebar-width: 264px;
+
+  /* 로딩 화면: 테마와 관계없이 같은 50% 어두운 레이어 위에 흰 글자 */
+  --color-loading-overlay: rgba(0, 0, 0, 0.5);
+  --color-text-on-overlay: #ffffff;
+  --color-progress-track: rgba(255, 255, 255, 0.25);
 }
 
 /* ---- 라이트 테마 (기본) ---- */

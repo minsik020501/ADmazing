@@ -3,13 +3,13 @@
  *
  * 생성일자: 2026-10-16
  * 생성자: ven_choi
- * 수정일자: 2026-10-22
+ * 수정일자: 2026-11-02
  * 수정자: bioyejin
  */
 
 import { useEffect, useState } from "react";
 import { Menu } from "lucide-react";
-import { fetchHealth, generateImage, GenerateResponse } from "./api/client";
+import { fetchHealth } from "./api/client";
 import Button from "./components/common/Button";
 import ExampleChips from "./components/input/ExampleChips";
 import GenerateButton from "./components/input/GenerateButton";
@@ -19,8 +19,10 @@ import StylePicker from "./components/input/StylePicker";
 import ServerStatusBadge, { type ServerStatus } from "./components/layout/ServerStatusBadge";
 import Sidebar from "./components/layout/Sidebar";
 import ThemeToggle from "./components/layout/ThemeToggle";
+import LoadingOverlay from "./components/loading/LoadingOverlay";
 import { DEFAULT_RATIO } from "./constants/imageRatios";
 import { DEFAULT_STYLE_ID } from "./constants/stylePresets";
+import useGeneration from "./hooks/useGeneration";
 import styles from "./App.module.css";
 
 /**
@@ -30,13 +32,12 @@ import styles from "./App.module.css";
  */
 export default function App() {
   const [prompt, setPrompt] = useState("");
-  const [result, setResult] = useState<GenerateResponse | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [serverStatus, setServerStatus] = useState<ServerStatus>({ kind: "loading" });
   const [styleId, setStyleId] = useState(DEFAULT_STYLE_ID);
   const [ratio, setRatio] = useState(DEFAULT_RATIO);
+  const generation = useGeneration();
+  const { result, error, running: loading } = generation;
 
   const canGenerate = prompt.trim().length > 0 && !loading;
 
@@ -61,22 +62,13 @@ export default function App() {
     setPrompt("");
     setStyleId(DEFAULT_STYLE_ID);
     setRatio(DEFAULT_RATIO);
-    setResult(null);
-    setError(null);
+    generation.reset();
     setSidebarOpen(false);
   }
 
-  /** 입력한 프롬프트로 이미지 생성을 요청하고 결과를 상태에 반영한다. */
-  async function handleGenerate() {
-    setLoading(true);
-    setError(null);
-    try {
-      setResult(await generateImage({ prompt, styleId, ratio }));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setLoading(false);
-    }
+  /** 입력한 프롬프트와 옵션으로 이미지 생성을 시작한다. 진행 상황은 로딩 화면에 표시된다. */
+  function handleGenerate() {
+    generation.start({ prompt, styleId, ratio });
   }
 
   return (
@@ -112,6 +104,7 @@ export default function App() {
           <ExampleChips value={prompt} onSelect={setPrompt} />
           <StylePicker value={styleId} onChange={setStyleId} />
           <RatioPicker value={ratio} onChange={setRatio} />
+          {generation.cancelled && <p className={styles.notice}>생성을 취소했어요</p>}
           <GenerateButton
             disabled={!canGenerate}
             loading={loading}
@@ -146,6 +139,8 @@ export default function App() {
         <ServerStatusBadge status={serverStatus} />
         <ThemeToggle />
       </div>
+
+      {loading && <LoadingOverlay progress={generation.progress} onCancel={generation.cancel} />}
     </>
   );
 }
