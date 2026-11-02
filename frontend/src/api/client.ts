@@ -188,26 +188,6 @@ export async function cancelGenerationJob(jobId: string, keepalive = false): Pro
 }
 
 /**
- * 화면에서 고른 옵션으로 광고 이미지 생성을 요청한다.
- *
- * @param options - 프롬프트, 스타일, 비율
- * @returns 원본 프롬프트, 번역된 프롬프트, 비율과 해상도, 생성된 이미지와 seed 목록
- * @throws {Error} 응답 상태가 2xx가 아닐 때
- */
-export async function generateImage(options: GenerateOptions): Promise<GenerateResponse> {
-  const res = await fetch("/api/generate", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: toRequestBody(options),
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => null);
-    throw new Error(toErrorMessage(body?.detail, res.status));
-  }
-  return res.json();
-}
-
-/**
  * 서버 상태와 이미지 생성 설정을 조회한다.
  *
  * @returns 서버 상태, 이미지 생성 모드, 요청당 이미지 장수 등
