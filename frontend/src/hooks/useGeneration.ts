@@ -29,8 +29,12 @@ export interface Generation {
   error: string | null;
   /** 마지막 생성을 사용자가 취소했으면 true */
   cancelled: boolean;
+  /** 마지막으로 생성을 시작할 때 쓴 옵션. 결과 화면의 옵션 요약과 다시 생성에 쓴다 */
+  options: GenerateOptions | null;
   /** 생성을 시작한다. 이전 결과, 에러, 취소 표시는 지운다 */
   start: (options: GenerateOptions) => Promise<void>;
+  /** 마지막으로 생성할 때 쓴 옵션 그대로 다시 생성한다 (seed는 서버가 새로 정함) */
+  regenerate: () => void;
   /** 생성 중이면 바로 멈추고 서버에도 취소를 요청한다 */
   cancel: () => void;
   /** 생성 중이면 멈추고 결과, 에러, 취소 표시를 모두 지운다 */
@@ -49,6 +53,7 @@ export default function useGeneration(): Generation {
   const [result, setResult] = useState<GenerateResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [cancelled, setCancelled] = useState(false);
+  const [options, setOptions] = useState<GenerateOptions | null>(null);
 
   // 생성할 때마다 1씩 늘려, 취소되었거나 지난 생성에서 늦게 도착한 응답을 무시한다
   const runIdRef = useRef(0);
@@ -79,17 +84,18 @@ export default function useGeneration(): Generation {
   }, [stop]);
 
   const start = useCallback(
-    async (options: GenerateOptions) => {
+    async (nextOptions: GenerateOptions) => {
       abort();
       const runId = runIdRef.current;
       setRunning(true);
       setResult(null);
       setError(null);
       setCancelled(false);
+      setOptions(nextOptions);
 
       let jobId: string;
       try {
-        jobId = await createGenerationJob(options);
+        jobId = await createGenerationJob(nextOptions);
       } catch (err) {
         if (runIdRef.current !== runId) return;
         stop();
@@ -130,6 +136,10 @@ export default function useGeneration(): Generation {
     [abort, stop],
   );
 
+  const regenerate = useCallback(() => {
+    if (options) start(options);
+  }, [options, start]);
+
   const cancel = useCallback(() => {
     abort();
     setCancelled(true);
@@ -140,6 +150,7 @@ export default function useGeneration(): Generation {
     setResult(null);
     setError(null);
     setCancelled(false);
+    setOptions(null);
   }, [abort]);
 
   // 생성 중에 탭을 닫으면 서버에 취소를 요청한다. 화면을 벗어나면 구독도 닫는다
@@ -159,5 +170,16 @@ export default function useGeneration(): Generation {
     };
   }, []);
 
-  return { running, progress, result, error, cancelled, start, cancel, reset };
+  return {
+    running,
+    progress,
+    result,
+    error,
+    cancelled,
+    options,
+    start,
+    regenerate,
+    cancel,
+    reset,
+  };
 }
