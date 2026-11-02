@@ -46,6 +46,11 @@
   --color-loading-overlay: rgba(0, 0, 0, 0.5);
   --color-text-on-overlay: #ffffff;
   --color-progress-track: rgba(255, 255, 255, 0.25);
+
+  /* 이미지 크게 보기: 이미지가 잘 보이도록 로딩 화면보다 조금 더 어두운 65% 레이어 위에 흰 글자 */
+  --color-viewer-overlay: rgba(0, 0, 0, 0.65);
+  --color-text-on-overlay-muted: rgba(255, 255, 255, 0.6);
+  --color-overlay-button-hover: rgba(255, 255, 255, 0.12);
 }
 
 /* ---- 라이트 테마 (기본) ---- */
