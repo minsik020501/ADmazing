@@ -1,0 +1,64 @@
+/**
+ * ResultSection 컴포넌트 스타일.
+ *
+ * 생성일자: 2026-11-02
+ * 생성자: bioyejin
+ * 수정일자: 2026-11-02
+ * 수정자: bioyejin
+ */
+
+/* 입력 영역과 구분선으로 나눈다 */
+.section {
+  margin-top: var(--space-10);
+  padding-top: var(--space-8);
+  border-top: 1px solid var(--color-border);
+}
+
+.prompt {
+  margin: 0;
+  color: var(--color-text);
+  /* 긴 영어 프롬프트가 칸을 넘지 않게 */
+  overflow-wrap: anywhere;
+}
+
+.summary {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-tertiary);
+}
+
+/* 모든 이미지를 같은 크기로 2개씩 (4장이면 2×2) */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-8);
+}
+
+.imageButton {
+  display: block;
+  padding: 0;
+  overflow: hidden;
+  cursor: zoom-in;
+  background: none;
+  border: none;
+  border-radius: var(--radius-lg);
+  transition: opacity var(--transition-fast);
+}
+
+.imageButton:hover {
+  opacity: 0.85;
+}
+
+/* img의 width·height 속성(서버 해상도)으로 비율을 정해, 이미지를 읽기 전에도 자리를 잡아 둔다 */
+.image {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* [다시 생성하기]는 가운데. [텍스트 삽입하기]가 추가되면 양쪽 배치로 바꿀 예정 */
+.actions {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-6);
+}
