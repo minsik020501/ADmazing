@@ -2,12 +2,15 @@
 
 생성일자: 2026-10-16
 생성자: ven_choi
-수정일자: 2026-10-22
+수정일자: 2026-11-02
 수정자: ven_choi
 """
 
 from app.core.config import settings
+from app.services.generation_cancelled_error import GenerationCancelledError
 from app.services.gpu_out_of_memory_error import GpuOutOfMemoryError
+from app.services.image_generator import StepCallback
+from app.utils.diffusers_callback import to_step_end_callback
 from app.utils.image import to_base64
 
 
@@ -42,6 +45,7 @@ class DiffusersImageGenerator:
         width: int,
         height: int,
         seeds: list[int],
+        on_step: StepCallback | None = None,
     ) -> list[str]:
         """로드된 모델로 seed 개수만큼 이미지를 한 번에(배치로) 생성한다.
 
@@ -50,12 +54,14 @@ class DiffusersImageGenerator:
             width: 이미지 너비.
             height: 이미지 높이.
             seeds: 이미지마다 사용할 seed 목록. 목록 길이만큼 이미지를 생성한다.
+            on_step: 디노이징 step이 끝날 때마다 호출할 콜백.
 
         Returns:
             list[str]: seeds 순서대로 생성한 PNG 이미지의 base64 문자열 목록.
 
         Raises:
             GpuOutOfMemoryError: 생성 중 GPU 메모리가 부족할 때.
+            GenerationCancelledError: on_step에서 취소되었을 때.
         """
         # 이미지마다 생성기를 따로 두어야 seed 하나로 해당 이미지를 재현할 수 있다
         generators = [
@@ -72,7 +78,12 @@ class DiffusersImageGenerator:
                 height=height,
                 num_images_per_prompt=len(seeds),
                 generator=generators,
+                callback_on_step_end=to_step_end_callback(on_step),
             ).images
+        except GenerationCancelledError:
+            # 콜백에서 멈추면 파이프라인이 끝에서 하는 offload 정리를 건너뛰므로 직접 정리한다
+            self.pipe.maybe_free_model_hooks()
+            raise
         except self._torch.cuda.OutOfMemoryError as e:
             self._torch.cuda.empty_cache()
             raise GpuOutOfMemoryError from e
