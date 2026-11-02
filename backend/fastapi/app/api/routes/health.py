@@ -2,7 +2,7 @@
 
 생성일자: 2026-10-16
 생성자: ven_choi
-수정일자: 2026-10-22
+수정일자: 2026-10-28
 수정자: ven_choi
 """
 
@@ -22,6 +22,15 @@ def health():
         HealthResponse: 서버 상태, 이미지 생성 모드, 모델 경로, LoRA 경로,
             요청당 생성 이미지 장수.
     """
+    if settings.image_generator == "zimage":
+        # Z-Image는 MODEL_PATH, LORA_PATH 대신 ZIMAGE_MODEL_DIR을 쓴다
+        return HealthResponse(
+            status="ok",
+            image_generator="zimage",
+            model_path=str(settings.zimage_model_dir),
+            lora_path=None,
+            num_images_per_request=settings.num_images_per_request,
+        )
     if settings.image_generator == "sdxl":
         # SDXL은 MODEL_PATH, LORA_PATH 대신 SDXL_MODEL_DIR을 쓴다
         return HealthResponse(

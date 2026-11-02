@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-10-20
  * 생성자: bioyejin
- * 수정일자: 2026-10-22
+ * 수정일자: 2026-11-02
  * 수정자: bioyejin
  */
 
@@ -40,6 +40,14 @@
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-bold);
   color: var(--color-accent);
+}
+
+/* 생성을 취소했을 때 생성 버튼 바로 위에 보여주는 안내 문구 */
+.notice {
+  /* 아래 생성 버튼 영역의 위 여백(24px)을 12px만큼 당겨 버튼과 붙어 보이게 한다 */
+  margin: var(--space-6) 0 calc(-1 * var(--space-3));
+  text-align: center;
+  color: var(--color-danger);
 }
 
 /* 오른쪽 아래 상태 표시(서버 상태 배지, 테마 전환 버튼) */

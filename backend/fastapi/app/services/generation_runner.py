@@ -2,7 +2,7 @@
 
 생성일자: 2026-10-22
 생성자: ven_choi
-수정일자: 2026-10-22
+수정일자: 2026-11-02
 수정자: ven_choi
 """
 
@@ -12,12 +12,16 @@ import time
 from datetime import datetime
 
 from app.core.config import settings
+from app.services.generation_cancelled_error import GenerationCancelledError
+from app.services.generation_job import GenerationJob
 from app.services.gpu_out_of_memory_error import GpuOutOfMemoryError
-from app.services.image_generator import ImageGenerator
+from app.services.image_generator import ImageGenerator, StepCallback
 from app.utils.gpu import get_peak_vram_mb, reset_peak_vram
 
 # VRAM 최대 사용량이 다른 요청과 섞이지 않도록 생성은 한 번에 하나씩 실행한다
 _lock = threading.Lock()
+# 생성 차례를 기다리는 작업이 취소 요청을 확인하는 간격
+_LOCK_POLL_SECONDS = 0.5
 
 
 def run_generation(
@@ -26,6 +30,7 @@ def run_generation(
     width: int,
     height: int,
     seeds: list[int],
+    job: GenerationJob | None = None,
 ) -> list[str]:
     """이미지를 생성하고 소요 시간과 VRAM 최대 사용량을 로그 파일에 기록한다.
 
@@ -35,47 +40,103 @@ def run_generation(
         width: 이미지 너비.
         height: 이미지 높이.
         seeds: 이미지마다 사용할 seed 목록.
+        job: 진행 상황을 기록하고 취소를 확인할 작업. 없으면 기록하지 않는다.
 
     Returns:
         list[str]: seeds 순서대로 생성한 PNG 이미지의 base64 문자열 목록.
 
     Raises:
         GpuOutOfMemoryError: 생성 중 GPU 메모리가 부족할 때.
+        GenerationCancelledError: job이 대기 중이거나 생성 중에 취소되었을 때.
     """
-    with _lock:
-        requested_at = datetime.now().astimezone()
-        reset_peak_vram()
-        started = time.perf_counter()
-        status = "error"
-        try:
-            images = image_generator.generate(prompt, width, height, seeds)
-            status = "success"
-            return images
-        except GpuOutOfMemoryError:
-            status = "out_of_memory"
-            raise
-        finally:
-            elapsed = time.perf_counter() - started
-            vram_allocated_mb, vram_reserved_mb = get_peak_vram_mb()
-            _write_log(
-                {
-                    "requested_at": requested_at.isoformat(timespec="seconds"),
-                    "status": status,
-                    "image_generator": settings.image_generator,
-                    "num_images": len(seeds),
-                    "width": width,
-                    "height": height,
-                    # offload 설정은 sdxl 생성기에서만 쓴다
-                    "sdxl_use_offload": (
-                        settings.sdxl_use_offload
-                        if settings.image_generator == "sdxl"
-                        else None
-                    ),
-                    "elapsed_seconds": round(elapsed, 2),
-                    "vram_peak_allocated_mb": vram_allocated_mb,
-                    "vram_peak_reserved_mb": vram_reserved_mb,
-                }
-            )
+    if job is None:
+        _lock.acquire()
+    else:
+        # 앞선 생성을 기다리는 동안에도 취소 요청을 확인한다
+        while not _lock.acquire(timeout=_LOCK_POLL_SECONDS):
+            job.raise_if_cancelled()
+    try:
+        if job is not None:
+            job.start_generating()
+        return _generate_with_log(
+            image_generator,
+            prompt,
+            width,
+            height,
+            seeds,
+            job.report_step if job is not None else None,
+        )
+    finally:
+        _lock.release()
+
+
+def _generate_with_log(
+    image_generator: ImageGenerator,
+    prompt: str,
+    width: int,
+    height: int,
+    seeds: list[int],
+    on_step: StepCallback | None,
+) -> list[str]:
+    """이미지를 생성하고 결과와 관계없이 측정 로그를 남긴다. _lock을 잡은 상태에서 호출한다.
+
+    Args:
+        image_generator: 이미지 생성기.
+        prompt: 영어 프롬프트.
+        width: 이미지 너비.
+        height: 이미지 높이.
+        seeds: 이미지마다 사용할 seed 목록.
+        on_step: 디노이징 step이 끝날 때마다 호출할 콜백.
+
+    Returns:
+        list[str]: seeds 순서대로 생성한 PNG 이미지의 base64 문자열 목록.
+
+    Raises:
+        GpuOutOfMemoryError: 생성 중 GPU 메모리가 부족할 때.
+        GenerationCancelledError: on_step에서 취소되었을 때.
+    """
+    requested_at = datetime.now().astimezone()
+    reset_peak_vram()
+    started = time.perf_counter()
+    status = "error"
+    try:
+        images = image_generator.generate(prompt, width, height, seeds, on_step)
+        status = "success"
+        return images
+    except GpuOutOfMemoryError:
+        status = "out_of_memory"
+        raise
+    except GenerationCancelledError:
+        status = "cancelled"
+        raise
+    finally:
+        elapsed = time.perf_counter() - started
+        vram_allocated_mb, vram_reserved_mb = get_peak_vram_mb()
+        _write_log(
+            {
+                "requested_at": requested_at.isoformat(timespec="seconds"),
+                "status": status,
+                "image_generator": settings.image_generator,
+                "num_images": len(seeds),
+                "width": width,
+                "height": height,
+                # offload 설정은 sdxl 생성기에서만 쓴다
+                "sdxl_use_offload": (
+                    settings.sdxl_use_offload
+                    if settings.image_generator == "sdxl"
+                    else None
+                ),
+                # offload 설정은 zimage 생성기에서만 쓴다
+                "zimage_use_offload": (
+                    settings.zimage_use_offload
+                    if settings.image_generator == "zimage"
+                    else None
+                ),
+                "elapsed_seconds": round(elapsed, 2),
+                "vram_peak_allocated_mb": vram_allocated_mb,
+                "vram_peak_reserved_mb": vram_reserved_mb,
+            }
+        )
 
 
 def _write_log(record: dict) -> None:

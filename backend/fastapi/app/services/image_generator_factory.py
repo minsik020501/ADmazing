@@ -2,7 +2,7 @@
 
 생성일자: 2026-10-16
 생성자: ven_choi
-수정일자: 2026-10-20
+수정일자: 2026-10-28
 수정자: ven_choi
 """
 
@@ -16,8 +16,13 @@ def create_image_generator() -> ImageGenerator:
 
     Returns:
         ImageGenerator: mock이면 MockImageGenerator, diffusers면 DiffusersImageGenerator,
-            sdxl이면 SdxlImageGenerator.
+            sdxl이면 SdxlImageGenerator, zimage면 ZImageImageGenerator.
     """
+    if settings.image_generator == "zimage":
+        # torch가 설치되지 않은 mock 환경에서도 import 되도록 지연 import
+        from app.services.zimage_image_generator import ZImageImageGenerator
+
+        return ZImageImageGenerator()
     if settings.image_generator == "sdxl":
         # torch가 설치되지 않은 mock 환경에서도 import 되도록 지연 import
         from app.services.sdxl_image_generator import SdxlImageGenerator

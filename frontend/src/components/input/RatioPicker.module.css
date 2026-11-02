@@ -1,0 +1,52 @@
+/**
+ * RatioPicker 컴포넌트 스타일.
+ *
+ * 생성일자: 2026-10-22
+ * 생성자: bioyejin
+ * 수정일자: 2026-10-22
+ * 수정자: bioyejin
+ */
+
+.section {
+  margin-top: var(--space-6);
+}
+
+/* 4개씩 2줄. 좁은 화면에서는 2개씩 4줄 */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+@media (max-width: 599px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* 아이콘 크기가 비율마다 달라도 글자 위치가 맞도록 같은 크기의 자리를 둔다 */
+.iconBox {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+}
+
+/* 비율 모양 아이콘 (가로·세로 크기는 컴포넌트에서 비율대로 지정) */
+.icon {
+  border: 1px solid currentColor;
+  border-radius: 1px;
+}
+
+.ratio {
+  font-weight: var(--font-weight-bold);
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-text-tertiary);
+}

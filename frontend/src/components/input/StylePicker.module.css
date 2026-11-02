@@ -1,0 +1,20 @@
+/**
+ * StylePicker 컴포넌트 스타일.
+ *
+ * 생성일자: 2026-10-22
+ * 생성자: bioyejin
+ * 수정일자: 2026-10-22
+ * 수정자: bioyejin
+ */
+
+.section {
+  margin-top: var(--space-6);
+}
+
+/* 좁은 화면에서는 여러 줄로 넘어간다 */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}

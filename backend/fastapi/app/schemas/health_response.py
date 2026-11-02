@@ -2,7 +2,7 @@
 
 생성일자: 2026-10-19
 생성자: ven_choi
-수정일자: 2026-10-22
+수정일자: 2026-10-28
 수정자: ven_choi
 """
 
@@ -15,7 +15,7 @@ class HealthResponse(BaseModel):
     """헬스 체크 API 응답 본문."""
 
     status: Literal["ok"] = Field(..., description="서버 상태")
-    image_generator: Literal["mock", "diffusers", "sdxl"] = Field(
+    image_generator: Literal["mock", "diffusers", "sdxl", "zimage"] = Field(
         ..., description="이미지 생성 모드"
     )
     model_path: str = Field(..., description="Hugging Face 모델 이름 또는 산출물 경로")
