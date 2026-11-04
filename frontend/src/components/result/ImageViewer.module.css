@@ -1,0 +1,107 @@
+/**
+ * ImageViewer 컴포넌트 스타일.
+ *
+ * 생성일자: 2026-11-02
+ * 생성자: bioyejin
+ * 수정일자: 2026-11-02
+ * 수정자: bioyejin
+ */
+
+/* 화면 전체를 덮는 어두운 반투명 레이어. 테마와 관계없이 같은 색 */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-10) var(--space-4);
+  background: var(--color-viewer-overlay);
+  color: var(--color-text-on-overlay);
+}
+
+/* 이미지와 그 아래 순서·seed 줄 */
+.figure {
+  display: flex;
+  flex-direction: column;
+  max-width: 100%;
+  margin: 0;
+}
+
+/* 좌우 버튼의 위치 기준 (이미지와 같은 크기) */
+.imageWrap {
+  position: relative;
+}
+
+/* 화면보다 크지 않게 줄이고, 비율은 그대로 */
+.image {
+  display: block;
+  max-width: min(80vw, 1024px);
+  max-height: 78vh;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+}
+
+/* 순서는 이미지 가운데 아래, seed는 오른쪽 아래 구석 */
+.caption {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: baseline;
+  margin-top: var(--space-4);
+  font-size: var(--font-size-sm);
+}
+
+.counter {
+  grid-column: 2;
+  /* 12px(기본)과 24px(lg)의 중간. 12의 배수가 아니라 픽셀 글꼴이 살짝 흐릴 수 있음 */
+  font-size: 18px;
+}
+
+.seed {
+  grid-column: 3;
+  justify-self: end;
+  color: var(--color-text-on-overlay-muted);
+}
+
+/* 레이어 위의 버튼(닫기, 이전, 다음). 어두운 배경 위라 테마와 관계없이 흰 아이콘 */
+.iconButton {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  color: var(--color-text-on-overlay);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  transition: background-color var(--transition-fast);
+}
+
+.iconButton:hover {
+  background: var(--color-overlay-button-hover);
+}
+
+.close {
+  top: var(--space-2);
+  right: var(--space-2);
+}
+
+/*
+ * 화면 끝과 이미지 사이 가운데: 그 간격은 (화면 폭 - 이미지 폭) / 2 이므로
+ * 이미지 끝에서 그 절반, 즉 (화면 폭 - 이미지 폭) / 4 만큼 바깥이 버튼의 가운데가 된다.
+ * left/right의 100%는 이미지 폭(.imageWrap)
+ */
+.prev {
+  top: 50%;
+  left: calc((100% - 100vw) / 4);
+  transform: translate(-50%, -50%);
+}
+
+.next {
+  top: 50%;
+  right: calc((100% - 100vw) / 4);
+  transform: translate(50%, -50%);
+}

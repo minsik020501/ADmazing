@@ -7,7 +7,7 @@
  * 수정자: bioyejin
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Menu } from "lucide-react";
 import { fetchHealth } from "./api/client";
 import Button from "./components/common/Button";
@@ -20,6 +20,7 @@ import ServerStatusBadge, { type ServerStatus } from "./components/layout/Server
 import Sidebar from "./components/layout/Sidebar";
 import ThemeToggle from "./components/layout/ThemeToggle";
 import LoadingOverlay from "./components/loading/LoadingOverlay";
+import ResultSection from "./components/result/ResultSection";
 import { DEFAULT_RATIO } from "./constants/imageRatios";
 import { DEFAULT_STYLE_ID } from "./constants/stylePresets";
 import useGeneration from "./hooks/useGeneration";
@@ -39,7 +40,17 @@ export default function App() {
   const generation = useGeneration();
   const { result, error, running: loading } = generation;
 
+  // 스크롤되는 메인 영역 (생성이 끝나면 결과가 보이도록 맨 아래로 스크롤)
+  const mainRef = useRef<HTMLDivElement>(null);
+
   const canGenerate = prompt.trim().length > 0 && !loading;
+
+  // 생성이 끝나면 입력 아래에 붙은 결과 영역 전체가 보이도록 맨 아래까지 스크롤한다.
+  // 이미지는 width·height 속성으로 자리를 미리 잡아 두어, 읽기 전에도 전체 높이가 정해져 있다
+  useEffect(() => {
+    const main = mainRef.current;
+    if (result && main) main.scrollTo({ top: main.scrollHeight, behavior: "smooth" });
+  }, [result]);
 
   // 화면을 열 때 서버 상태를 한 번 조회해 배지 등 여러 곳에서 함께 쓴다
   useEffect(() => {
@@ -79,7 +90,7 @@ export default function App() {
         onNewProject={handleNewProject}
       />
 
-      <div className={styles.main}>
+      <div ref={mainRef} className={styles.main}>
         <Button
           variant="ghost"
           size="sm"
@@ -114,22 +125,12 @@ export default function App() {
 
           {error && <p className="error">{error}</p>}
 
-          {/* 임시 결과 표시. 결과 화면 단계에서 새 컴포넌트로 교체 예정 */}
-          {result && (
-            <section className="result">
-              <p>
-                <strong>번역된 프롬프트:</strong> {result.translated_prompt}
-              </p>
-              <div className="result-grid">
-                {result.images.map((image, index) => (
-                  <img
-                    key={`${index}-${image.seed}`}
-                    src={`data:image/png;base64,${image.image_base64}`}
-                    alt={`${result.original_prompt} (${index + 1}/${result.images.length})`}
-                  />
-                ))}
-              </div>
-            </section>
+          {result && generation.options && (
+            <ResultSection
+              result={result}
+              options={generation.options}
+              onRegenerate={generation.regenerate}
+            />
           )}
         </main>
       </div>
