@@ -2,7 +2,7 @@
 
 생성일자: 2026-10-16
 생성자: ven_choi
-수정일자: 2026-10-28
+수정일자: 2026-11-04
 수정자: ven_choi
 """
 
@@ -55,6 +55,9 @@ class Settings(BaseSettings):
     # 모델 카드 권장값: 9 step (실제 DiT forward는 8번)
     zimage_steps: int = 9
     zimage_model_dir: Path = Path("/models/z-image-turbo")
+    # none: 원본 bf16. int8, fp8: transformer·text_encoder를 8bit로 줄인 모델(cuda 전용).
+    # 양자화 모델은 model-prep(app/cli/prepare_zimage.py)이 <zimage_model_dir>-<종류>에 만든다
+    zimage_quant: Literal["none", "int8", "fp8"] = "none"
 
 
 settings = Settings()
