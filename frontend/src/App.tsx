@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-10-16
  * 생성자: ven_choi
- * 수정일자: 2026-11-02
+ * 수정일자: 2026-11-04
  * 수정자: bioyejin
  */
 
@@ -11,6 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import { Menu } from "lucide-react";
 import { fetchHealth } from "./api/client";
 import Button from "./components/common/Button";
+import EditorPage from "./components/editor/EditorPage";
 import ExampleChips from "./components/input/ExampleChips";
 import GenerateButton from "./components/input/GenerateButton";
 import PromptInput from "./components/input/PromptInput";
@@ -39,6 +40,9 @@ export default function App() {
   const [ratio, setRatio] = useState(DEFAULT_RATIO);
   const generation = useGeneration();
   const { result, error, running: loading } = generation;
+  // 에디터 화면을 보고 있으면 true. 결과로 돌아가도 편집 중이던 이미지 순서는 기억한다
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editorIndex, setEditorIndex] = useState(0);
 
   // 스크롤되는 메인 영역 (생성이 끝나면 결과가 보이도록 맨 아래로 스크롤)
   const mainRef = useRef<HTMLDivElement>(null);
@@ -46,8 +50,10 @@ export default function App() {
   const canGenerate = prompt.trim().length > 0 && !loading;
 
   // 생성이 끝나면 입력 아래에 붙은 결과 영역 전체가 보이도록 맨 아래까지 스크롤한다.
-  // 이미지는 width·height 속성으로 자리를 미리 잡아 두어, 읽기 전에도 전체 높이가 정해져 있다
+  // 이미지는 width·height 속성으로 자리를 미리 잡아 두어, 읽기 전에도 전체 높이가 정해져 있다.
+  // 결과가 바뀌면(다시 생성, 새로 만들기) 에디터는 첫 번째 이미지부터 다시 시작한다
   useEffect(() => {
+    setEditorIndex(0);
     const main = mainRef.current;
     if (result && main) main.scrollTo({ top: main.scrollHeight, behavior: "smooth" });
   }, [result]);
@@ -74,13 +80,38 @@ export default function App() {
     setStyleId(DEFAULT_STYLE_ID);
     setRatio(DEFAULT_RATIO);
     generation.reset();
+    setEditorOpen(false);
     setSidebarOpen(false);
+  }
+
+  /** 에디터 화면을 연다. 화면이 바뀌므로 맨 위부터 보여준다. */
+  function handleOpenEditor() {
+    setEditorOpen(true);
+    mainRef.current?.scrollTo({ top: 0 });
+  }
+
+  /** 에디터에서 결과 영역으로 돌아간다. 결과가 바로 보이도록 맨 아래로 스크롤한다. */
+  function handleCloseEditor() {
+    setEditorOpen(false);
+    // 입력·결과 화면이 다시 그려진 뒤에 스크롤해야 전체 높이를 알 수 있다
+    requestAnimationFrame(() => {
+      const main = mainRef.current;
+      if (main) main.scrollTo({ top: main.scrollHeight });
+    });
   }
 
   /** 입력한 프롬프트와 옵션으로 이미지 생성을 시작한다. 진행 상황은 로딩 화면에 표시된다. */
   function handleGenerate() {
     generation.start({ prompt, styleId, ratio });
   }
+
+  // 입력·결과 화면과 에디터 화면 맨 위에 똑같이 보이는 타이틀
+  const hero = (
+    <header className={styles.hero}>
+      <h1 className={styles.title}>👾 ADmazing</h1>
+      <p className={styles.subtitle}>&gt; 새 광고 이미지 만들기</p>
+    </header>
+  );
 
   return (
     <>
@@ -100,39 +131,49 @@ export default function App() {
           onClick={() => setSidebarOpen(true)}
         />
 
-        <main className="container">
-          <header className={styles.hero}>
-            <h1 className={styles.title}>👾 ADmazing</h1>
-            <p className={styles.subtitle}>&gt; 새 광고 이미지 만들기</p>
-          </header>
-
-          <PromptInput
-            value={prompt}
-            onChange={setPrompt}
-            onSubmit={handleGenerate}
-            loading={loading}
-          />
-          <ExampleChips value={prompt} onSelect={setPrompt} />
-          <StylePicker value={styleId} onChange={setStyleId} />
-          <RatioPicker value={ratio} onChange={setRatio} />
-          {generation.cancelled && <p className={styles.notice}>생성을 취소했어요</p>}
-          <GenerateButton
-            disabled={!canGenerate}
-            loading={loading}
-            onClick={handleGenerate}
-            health={serverStatus.kind === "ok" ? serverStatus.health : null}
-          />
-
-          {error && <p className="error">{error}</p>}
-
-          {result && generation.options && (
-            <ResultSection
+        {editorOpen && result ? (
+          <main className={styles.editorView}>
+            {hero}
+            <EditorPage
               result={result}
-              options={generation.options}
-              onRegenerate={generation.regenerate}
+              index={editorIndex}
+              onIndexChange={setEditorIndex}
+              onBack={handleCloseEditor}
             />
-          )}
-        </main>
+          </main>
+        ) : (
+          <main className="container">
+            {hero}
+
+            <PromptInput
+              value={prompt}
+              onChange={setPrompt}
+              onSubmit={handleGenerate}
+              loading={loading}
+            />
+            <ExampleChips value={prompt} onSelect={setPrompt} />
+            <StylePicker value={styleId} onChange={setStyleId} />
+            <RatioPicker value={ratio} onChange={setRatio} />
+            {generation.cancelled && <p className={styles.notice}>생성을 취소했어요</p>}
+            <GenerateButton
+              disabled={!canGenerate}
+              loading={loading}
+              onClick={handleGenerate}
+              health={serverStatus.kind === "ok" ? serverStatus.health : null}
+            />
+
+            {error && <p className="error">{error}</p>}
+
+            {result && generation.options && (
+              <ResultSection
+                result={result}
+                options={generation.options}
+                onRegenerate={generation.regenerate}
+                onOpenEditor={handleOpenEditor}
+              />
+            )}
+          </main>
+        )}
       </div>
 
       {/* 오른쪽 아래 상태 표시. 평소에는 흐리게, 마우스를 올리면 또렷하게 */}

@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-10-20
  * 생성자: bioyejin
- * 수정일자: 2026-11-02
+ * 수정일자: 2026-11-04
  * 수정자: bioyejin
  */
 
@@ -20,6 +20,11 @@
   position: absolute;
   top: var(--space-3);
   left: var(--space-3);
+}
+
+/* 에디터 화면. 타이틀이 입력 화면(.container)과 같은 높이에 오도록 위 여백을 맞춘다 */
+.editorView {
+  padding-top: var(--space-8);
 }
 
 /* 메인 타이틀과 부제 */
