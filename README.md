@@ -57,6 +57,16 @@ SDXL_DEVICE=cuda      # GPU를 못 잡으면 CPU로 넘어가지 않고 바로 �
 ZIMAGE_DEVICE=cuda
 ```
 
+#### Z-Image 양자화 (선택)
+
+GPU 서버에서 `.env`에 `ZIMAGE_QUANT=fp8`(또는 `int8`)을 넣으면 transformer·text_encoder 가중치를 8bit로 줄여 올립니다. `fp8`은 SM 8.9 이상 GPU(L4 등)에서만 동작합니다.
+
+`docker compose up` 시 api보다 먼저 `model-prep` 서비스가 실행되어, `models/z-image-turbo-<종류>/`가 없으면 `models/z-image-turbo/`에서 변환해 저장합니다. 첫 실행에만 변환 시간이 걸리고, 이후에는 바로 끝납니다. torch·torchao·diffusers·transformers 버전이 바뀌면 다시 변환합니다.
+
+```bash
+docker compose logs model-prep     # 변환 진행 상황 확인
+```
+
 컨테이너가 GPU를 보는지 확인:
 
 ```bash
