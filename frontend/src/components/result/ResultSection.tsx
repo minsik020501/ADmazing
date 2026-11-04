@@ -3,12 +3,12 @@
  *
  * 생성일자: 2026-11-02
  * 생성자: bioyejin
- * 수정일자: 2026-11-02
+ * 수정일자: 2026-11-04
  * 수정자: bioyejin
  */
 
 import { useState } from "react";
-import { RotateCw } from "lucide-react";
+import { RotateCw, Type } from "lucide-react";
 import type { GenerateOptions, GenerateResponse } from "../../api/client";
 import { IMAGE_RATIOS } from "../../constants/imageRatios";
 import { DEFAULT_STYLE_ID, STYLE_PRESETS } from "../../constants/stylePresets";
@@ -40,16 +40,23 @@ export interface ResultSectionProps {
   options: GenerateOptions;
   /** 팝업에서 다시 생성을 확인했을 때 호출 */
   onRegenerate: () => void;
+  /** [텍스트 삽입하기]를 누를 때 호출 */
+  onOpenEditor: () => void;
 }
 
 /**
- * 번역된 프롬프트, 옵션 요약, 같은 크기의 이미지 격자, [다시 생성하기] 버튼을 보여준다.
+ * 번역된 프롬프트, 옵션 요약, 같은 크기의 이미지 격자, [다시 생성하기]·[텍스트 삽입하기] 버튼을 보여준다.
  * 이미지를 누르면 크게 보기 레이어가, [다시 생성하기]를 누르면 확인 팝업이 뜬다.
  *
- * @param props - 생성 결과, 생성할 때 쓴 옵션, 다시 생성 처리 함수
+ * @param props - 생성 결과, 생성할 때 쓴 옵션, 다시 생성·에디터 열기 처리 함수
  * @returns 생성 결과 영역
  */
-export default function ResultSection({ result, options, onRegenerate }: ResultSectionProps) {
+export default function ResultSection({
+  result,
+  options,
+  onRegenerate,
+  onOpenEditor,
+}: ResultSectionProps) {
   // 크게 보고 있는 이미지 순서. null이면 닫힘
   const [viewIndex, setViewIndex] = useState<number | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -85,6 +92,9 @@ export default function ResultSection({ result, options, onRegenerate }: ResultS
       <div className={styles.actions}>
         <Button icon={<RotateCw size={14} />} onClick={() => setConfirmOpen(true)}>
           다시 생성하기
+        </Button>
+        <Button variant="primary" icon={<Type size={14} />} onClick={onOpenEditor}>
+          텍스트 삽입하기
         </Button>
       </div>
 
