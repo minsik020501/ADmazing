@@ -37,3 +37,8 @@ logs/
 models/*
 !models/.gitkeep
 backend/ai/outputs/
+# 폰트 파일 (scripts/prepare_fonts.py, docker compose font-prep이 준비)
+# 원본 캐시, 직접 받은 폰트, 변환 결과 모두 라이선스상 재배포하지 않도록 git에서 제외
+fonts/src/
+fonts/manual/
+frontend/public/fonts/
