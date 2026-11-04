@@ -82,7 +82,7 @@ docker compose logs font-prep      # 준비 결과 확인
 ```
 
 - 웹폰트 주소가 없는 폰트는 manifest에 `manual`로 적고, 배포처에서 직접 받아 `fonts/manual/<id>/`에 넣습니다.
-- 폰트를 추가·변경하면 manifest를 고친 뒤 로컬에서 `python scripts/prepare_fonts.py`를 실행해 `frontend/src/styles/fonts.css`를 갱신하고 커밋합니다 (`pip install -r scripts/requirements.txt` 필요).
+- 폰트를 추가·변경하면 manifest를 고친 뒤 로컬에서 `python scripts/prepare_fonts.py`를 실행해 `frontend/src/styles/fonts.css`(@font-face)와 `frontend/src/constants/fonts.json`(화면용 폰트 목록)을 갱신하고 커밋합니다 (`pip install -r scripts/requirements.txt` 필요).
 
 ### 학습한 모델 사용
 
