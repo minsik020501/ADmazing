@@ -45,7 +45,7 @@ services:
   # 폰트 파일은 git에 올리지 않고 font-files 볼륨에 두며, 받기에 실패해도 frontend는 뜬다
   font-prep:
     build: ./scripts
-    command: ["python", "scripts/prepare_fonts.py", "--no-css", "--keep-going"]
+    command: ["python", "scripts/prepare_fonts.py", "--no-generate", "--keep-going"]
     environment:
       FONT_SOURCE_DIR: /cache
       FONT_OUTPUT_DIR: /out

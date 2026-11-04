@@ -6,10 +6,12 @@
   - allow_convert가 true면 woff2로 변환한다 (글자를 빼는 서브셋 없이 형식만 바꿈)
   - false(수정 금지 라이선스)면 배포처 파일을 그대로 복사한다
   - 가변 폰트(variable)는 지정한 굵기마다 고정 굵기로 만든 뒤 woff2로 저장한다
-- frontend/src/styles/fonts.css는 manifest만 보고 만든다 (받은 파일과 상관없이 항상 같은 결과).
+- 프론트엔드용 파일 두 개를 manifest만 보고 만든다 (받은 파일과 상관없이 항상 같은 결과).
   내용이 바뀔 때만 다시 쓰므로, manifest를 고친 뒤 로컬에서 실행해 커밋한다
+  - frontend/src/styles/fonts.css: @font-face
+  - frontend/src/constants/fonts.json: 화면에서 쓸 폰트 목록 (이름, 분류, 느낌, 굵기, 라이선스)
 
-docker compose에서는 font-prep 서비스가 --no-css --keep-going으로 실행해 볼륨에 준비한다.
+docker compose에서는 font-prep 서비스가 --no-generate --keep-going으로 실행해 볼륨에 준비한다.
 
 실행 (레포 루트에서):
     pip install -r scripts/requirements.txt
@@ -41,6 +43,7 @@ OUTPUT_DIR = Path(
     os.environ.get("FONT_OUTPUT_DIR", ROOT / "frontend" / "public" / "fonts")
 )
 CSS_PATH = ROOT / "frontend" / "src" / "styles" / "fonts.css"
+FONT_LIST_PATH = ROOT / "frontend" / "src" / "constants" / "fonts.json"
 # 브라우저에서 읽는 경로 (Vite는 public/을 루트로 제공)
 PUBLIC_URL = "/fonts"
 
@@ -65,7 +68,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--force", action="store_true", help="결과를 모두 다시 만든다")
     parser.add_argument("--only", nargs="+", help="준비할 폰트 id (기본: 전체)")
     parser.add_argument(
-        "--no-css", action="store_true", help="fonts.css를 갱신하지 않는다"
+        "--no-generate",
+        action="store_true",
+        help="fonts.css, fonts.json을 갱신하지 않는다",
     )
     parser.add_argument(
         "--keep-going",
@@ -94,8 +99,9 @@ def main() -> int:
             print(f"[실패] {font['id']}: {error}", file=sys.stderr)
             failed.append(font["id"])
 
-    if not args.no_css:
+    if not args.no_generate:
         write_css(fonts)
+        write_font_list(fonts)
     print_summary(fonts)
 
     for font in missing:
@@ -278,6 +284,42 @@ def write_css(fonts: list[dict]) -> None:
     )
     CSS_PATH.write_text(header + "\n" + body_text)
     print(f"[CSS] {CSS_PATH.relative_to(ROOT)}")
+
+
+def write_font_list(fonts: list[dict]) -> None:
+    """화면에서 쓸 폰트 목록 JSON을 만든다. 내용이 같으면 파일을 건드리지 않는다.
+
+    원본 URL, 변환 허용 여부 같은 준비용 정보는 넣지 않는다.
+    """
+    data = {
+        "_generated": "scripts/prepare_fonts.py가 fonts/manifest.json으로 만든 파일. "
+        "직접 수정하지 않는다",
+        "fonts": [
+            {
+                "id": font["id"],
+                "name": font["name"],
+                "family": font["family"],
+                "category": font["category"],
+                "mood": font["mood"],
+                "weights": [weight for weight, _ in output_files(font)],
+                "license": font["license"],
+                "licenseUrl": font["license_url"],
+            }
+            for font in fonts
+        ],
+    }
+    text = json.dumps(data, ensure_ascii=False, indent=2) + "\n"
+    # Prettier와 같은 결과가 되도록 숫자 배열은 한 줄로 쓴다
+    text = re.sub(
+        r"\[\s*([\d,\s]+?)\s*\]",
+        lambda match: "[" + ", ".join(re.findall(r"\d+", match.group(1))) + "]",
+        text,
+    )
+    if FONT_LIST_PATH.exists() and FONT_LIST_PATH.read_text() == text:
+        print("[폰트 목록] 변경 없음")
+        return
+    FONT_LIST_PATH.write_text(text)
+    print(f"[폰트 목록] {FONT_LIST_PATH.relative_to(ROOT)}")
 
 
 def print_summary(fonts: list[dict]) -> None:
