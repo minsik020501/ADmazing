@@ -1,15 +1,33 @@
+x-api-build: &api-build
+  context: ./backend/fastapi
+  args:
+    INSTALL_ML: ${INSTALL_ML:-false}
+
+x-api-environment: &api-environment
+  # .env의 SDXL, Z-Image 경로는 레포 루트 기준(실험 스크립트용)이라 컨테이너 경로로 덮어쓴다
+  SDXL_MODEL_DIR: /models/sdxl-base
+  SDXL_VAE_DIR: /models/sdxl-vae-fp16-fix
+  ZIMAGE_MODEL_DIR: /models/z-image-turbo
+
 services:
-  api:
-    build:
-      context: ./backend/fastapi
-      args:
-        INSTALL_ML: ${INSTALL_ML:-false}
+  # api보다 먼저 한 번 실행된다. ZIMAGE_QUANT 양자화 모델이 없으면 원본에서 변환해 저장하고,
+  # 이미 있거나 양자화를 쓰지 않으면 바로 끝난다 (app/cli/prepare_zimage.py)
+  model-prep:
+    build: *api-build
+    image: admazing-api
     env_file: .env
-    environment:
-      # .env의 SDXL, Z-Image 경로는 레포 루트 기준(실험 스크립트용)이라 컨테이너 경로로 덮어쓴다
-      SDXL_MODEL_DIR: /models/sdxl-base
-      SDXL_VAE_DIR: /models/sdxl-vae-fp16-fix
-      ZIMAGE_MODEL_DIR: /models/z-image-turbo
+    environment: *api-environment
+    command: ["python", "-m", "app.cli.prepare_zimage"]
+    volumes:
+      - ./backend/fastapi/app:/app/app
+      # 변환 결과를 써야 하므로 api와 달리 쓰기 가능으로 마운트한다
+      - ./models:/models
+
+  api:
+    build: *api-build
+    image: admazing-api
+    env_file: .env
+    environment: *api-environment
     ports:
       - "11000:11000"
     volumes:
@@ -18,6 +36,9 @@ services:
       # GENERATION_LOG_PATH 측정 로그
       - ./logs:/app/logs
       - hf-cache:/root/.cache/huggingface
+    depends_on:
+      model-prep:
+        condition: service_completed_successfully
 
   frontend:
     build: ./frontend
