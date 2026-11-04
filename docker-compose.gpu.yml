@@ -1,14 +1,20 @@
-# NVIDIA GPU 서버에서 api 컨테이너가 GPU를 쓰도록 하는 설정
+# NVIDIA GPU 서버에서 api, model-prep 컨테이너가 GPU를 쓰도록 하는 설정
 # 호스트에 NVIDIA 드라이버와 NVIDIA Container Toolkit이 설치되어 있어야 한다
 #
 # 사용:
 #   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up --build
+x-gpu: &gpu
+  resources:
+    reservations:
+      devices:
+        - driver: nvidia
+          count: all
+          capabilities: [gpu]
+
 services:
   api:
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
+    deploy: *gpu
+
+  # 양자화 변환도 GPU에서 한다 (부품을 하나씩 GPU로 올려 변환)
+  model-prep:
+    deploy: *gpu
