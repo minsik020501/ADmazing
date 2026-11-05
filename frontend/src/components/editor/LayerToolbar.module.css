@@ -1,0 +1,43 @@
+/**
+ * LayerToolbar 컴포넌트 스타일.
+ *
+ * 생성일자: 2026-11-05
+ * 생성자: bioyejin
+ * 수정일자: 2026-11-05
+ * 수정자: bioyejin
+ */
+
+/* 크기는 LayerToolbar.tsx의 LAYER_TOOLBAR_WIDTH·HEIGHT와 맞춘다 */
+.toolbar {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 92px;
+  height: 32px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  color: var(--color-text);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-fast);
+}
+
+.button:hover {
+  background: var(--color-surface-muted);
+}
