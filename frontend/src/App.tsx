@@ -25,6 +25,7 @@ import ResultSection from "./components/result/ResultSection";
 import { DEFAULT_RATIO } from "./constants/imageRatios";
 import { DEFAULT_STYLE_ID } from "./constants/stylePresets";
 import useGeneration from "./hooks/useGeneration";
+import useTextLayers from "./hooks/useTextLayers";
 import styles from "./App.module.css";
 
 /**
@@ -43,6 +44,8 @@ export default function App() {
   // 에디터 화면을 보고 있으면 true. 결과로 돌아가도 편집 중이던 이미지 순서는 기억한다
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorIndex, setEditorIndex] = useState(0);
+  // 이미지별 문구 상자. 에디터를 나갔다 와도 남고, 생성 결과가 바뀌면 비운다
+  const textLayers = useTextLayers(result);
 
   // 스크롤되는 메인 영역 (생성이 끝나면 결과가 보이도록 맨 아래로 스크롤)
   const mainRef = useRef<HTMLDivElement>(null);
@@ -139,6 +142,7 @@ export default function App() {
               index={editorIndex}
               onIndexChange={setEditorIndex}
               onBack={handleCloseEditor}
+              textLayers={textLayers}
             />
           </main>
         ) : (
