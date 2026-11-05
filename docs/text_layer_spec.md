@@ -14,7 +14,7 @@
 
 - `x`, `y`: 문구 상자 **가운데**의 위치. 왼쪽 위가 (0, 0), 오른쪽 아래가 (1, 1)
 - `width`: 이미지 **가로** 대비 비율
-- `fontSize`, 외곽선 두께, 그림자 흐림·거리: 이미지 **세로** 대비 비율
+- `fontSize`, 외곽선 두께, 그림자 흐림·거리, 배경 상자 여백: 이미지 **세로** 대비 비율
   - 예) 1024px 높이 이미지에서 `fontSize: 0.08` → 약 82px
 
 ## 문구 상자 (TextLayer)
@@ -29,15 +29,17 @@
 | `rotation` | number | -180~180 (도) | `0` | 시계 방향이 + |
 | `curve` | number | -100~100 | `0` | 구부리기. 0이면 직선 (한 줄 문구에만 적용 예정) |
 | `fontId` | string | 글꼴 목록의 `id` | `"pretendard"` | 예: `gmarket-sans`, `black-han-sans`. 모르는 id는 기본 글꼴로 바뀜 |
-| `fontSize` | number | 0.01~0.4 | `0.08` | 글자 크기 (이미지 세로 대비) |
+| `fontSize` | number | 0.01~0.4 | `0.056` | 글자 크기 (이미지 세로 대비) |
 | `bold` | boolean | | `false` | 글꼴에 준비된 가장 두꺼운 굵기로 그림 |
 | `italic` | boolean | | `false` | |
 | `strike` | boolean | | `false` | 취소선 |
 | `align` | string | `left` \| `center` \| `right` | `"center"` | 여러 줄일 때 줄 맞춤 |
+| `lineHeight` | number | 0.8~2.5 | `1.2` | 줄 간격 (글자 크기 대비) |
 | `color` | string | `#RRGGBB` | `"#FFFFFF"` | 글자색 |
-| `opacity` | number | 0~1 | `1` | 1이면 불투명 |
+| `opacity` | number | 0~1 | `1` | 1이면 불투명. 글자와 배경 상자에 함께 적용 |
 | `stroke` | object \| null | 아래 참고 | `null` | 외곽선. 없으면 `null` |
 | `shadow` | object \| null | 아래 참고 | `null` | 그림자. 없으면 `null` |
+| `background` | object \| null | 아래 참고 | `null` | 글자 뒤 배경 상자. 없으면 `null` |
 
 `id`는 에디터가 붙이므로 보내지 않아도 됩니다(보내도 새로 만듭니다).
 
@@ -47,6 +49,8 @@
 |---|---|---|---|
 | `color` | string | `#RRGGBB` | `"#000000"` |
 | `width` | number | 0~0.05 (이미지 세로 대비) | `0.004` |
+| `opacity` | number | 0~1 | `1` |
+| `join` | string | `round`(둥글게) \| `miter`(각지게) | `"round"` |
 
 ### shadow (그림자)
 
@@ -57,6 +61,15 @@
 | `offsetX` | number | -0.1~0.1 (오른쪽이 +) | `0.003` |
 | `offsetY` | number | -0.1~0.1 (아래가 +) | `0.003` |
 | `opacity` | number | 0~1 | `0.5` |
+
+### background (배경 상자)
+
+| 필드 | 타입 | 범위 | 기본값 |
+|---|---|---|---|
+| `color` | string | `#RRGGBB` | `"#000000"` |
+| `opacity` | number | 0~1 | `0.5` |
+| `padding` | number | 0~0.1 (이미지 세로 대비) | `0.015` |
+| `radius` | number | 0~0.1 (이미지 세로 대비) | `0` |
 
 ### 예시
 
@@ -75,10 +88,12 @@
   "italic": false,
   "strike": false,
   "align": "center",
+  "lineHeight": 1.2,
   "color": "#FFFFFF",
   "opacity": 1,
-  "stroke": { "color": "#000000", "width": 0.004 },
-  "shadow": null
+  "stroke": { "color": "#000000", "width": 0.004, "opacity": 1, "join": "round" },
+  "shadow": null,
+  "background": null
 }
 ```
 
@@ -117,6 +132,6 @@
 
 ## 모델에 알려줄 것
 
-- 글꼴은 `frontend/src/constants/fonts.json`의 `id` 중에서만 고릅니다. 같은 파일의 `category`(headline, body, serif, rounded, handwriting)와 `mood`(느낌)를 고를 때 참고합니다.
+- 글꼴은 `frontend/src/constants/fonts.json`의 `id` 중에서만 고릅니다. 같은 파일의 `category`(signature, headline, body, serif, rounded, handwriting)와 `mood`(느낌)를 고를 때 참고합니다.
 - 제품을 가리지 않도록 `x`, `y`, `fontSize`를 정합니다. 상자가 이미지 밖으로 나가지 않게 가운데 위치와 크기를 함께 고려합니다.
-- 밝은 배경에는 어두운 글자, 어두운 배경에는 밝은 글자를 쓰고, 배경이 복잡하면 `stroke`나 `shadow`를 씁니다.
+- 밝은 배경에는 어두운 글자, 어두운 배경에는 밝은 글자를 쓰고, 배경이 복잡하면 `stroke`, `shadow`, `background`를 씁니다.

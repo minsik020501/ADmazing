@@ -20,7 +20,7 @@ export const DEFAULT_LAYER_TEXT = "텍스트를 입력하세요";
 export const DEFAULT_FONT_ID = "pretendard";
 
 /** 새 문구 상자의 글자 크기 (이미지 세로 대비 비율) */
-export const DEFAULT_FONT_SIZE = 0.08;
+export const DEFAULT_FONT_SIZE = 0.056;
 
 /** 문구 상자 값의 허용 범위. 화면 조작과 모델 결과 검사에 같이 쓴다 */
 export const LAYER_LIMITS = {
@@ -37,6 +37,12 @@ export const LAYER_LIMITS = {
   /** 그림자 흐림·거리 (이미지 세로 대비 비율) */
   shadowBlur: { min: 0, max: 0.1 },
   shadowOffset: { min: -0.1, max: 0.1 },
+  /** 줄 간격 (글자 크기 대비) */
+  lineHeight: { min: 0.8, max: 2.5 },
+  /** 배경 상자 여백 (이미지 세로 대비 비율) */
+  backgroundPadding: { min: 0, max: 0.1 },
+  /** 배경 상자 모서리 둥글기 (이미지 세로 대비 비율) */
+  backgroundRadius: { min: 0, max: 0.1 },
   /** 문구 길이 */
   textLength: { max: 200 },
   /** 이미지 한 장의 문구 상자 개수 */
@@ -55,8 +61,47 @@ export const TEXT_COLOR_PRESETS = [
   { value: "#8E24AA", label: "보라" },
 ] as const;
 
-/** 문구 줄 간격 (글자 크기 대비). 캔버스와 직접 입력 칸이 같은 값을 써야 위치가 맞는다 */
-export const TEXT_LINE_HEIGHT = 1.2;
+/** 효과 슬라이더의 최댓값 (원본 이미지 px) */
+export const EFFECT_MAX_PX = {
+  strokeWidth: 40,
+  shadowDistance: 30,
+  shadowBlur: 50,
+  backgroundPadding: 50,
+} as const;
+
+/** 크기 [−] [+] 버튼을 한 번 누를 때 바뀌는 글자 크기 (원본 이미지 px) */
+export const FONT_SIZE_BUTTON_STEP_PX = 2;
+
+/** 줄 간격 [−] [+] 버튼을 한 번 누를 때 바뀌는 값 */
+export const LINE_HEIGHT_BUTTON_STEP = 0.1;
+
+/** 새 문구 상자의 줄 간격 (글자 크기 대비) */
+export const DEFAULT_LINE_HEIGHT = 1.2;
+
+/** 외곽선을 켤 때와, 모델 결과에 값이 빠졌을 때 쓰는 기본값 */
+export const DEFAULT_STROKE = {
+  color: "#000000",
+  width: 0.004,
+  opacity: 1,
+  join: "round",
+} as const;
+
+/** 그림자를 켤 때와, 모델 결과에 값이 빠졌을 때 쓰는 기본값 */
+export const DEFAULT_SHADOW = {
+  color: "#000000",
+  blur: 0.01,
+  offsetX: 0.003,
+  offsetY: 0.003,
+  opacity: 0.5,
+} as const;
+
+/** 배경 상자를 켤 때와, 모델 결과에 값이 빠졌을 때 쓰는 기본값 */
+export const DEFAULT_BACKGROUND = {
+  color: "#000000",
+  opacity: 0.5,
+  padding: 0.015,
+  radius: 0,
+} as const;
 
 /** 편집 영역의 최대 높이 (화면 높이 대비 비율) */
 export const STAGE_MAX_HEIGHT_RATIO = 0.7;

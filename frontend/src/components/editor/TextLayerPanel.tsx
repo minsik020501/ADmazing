@@ -7,18 +7,42 @@
  * 수정자: bioyejin
  */
 
-import { useEffect, useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
-import { LAYER_LIMITS, TEXT_COLOR_PRESETS } from "../../constants/editor";
+import { useEffect, useState, type ReactNode } from "react";
+import {
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
+  Bold,
+  Italic,
+  Plus,
+  Strikethrough,
+  Trash2,
+} from "lucide-react";
+import {
+  FONT_SIZE_BUTTON_STEP_PX,
+  LAYER_LIMITS,
+  LINE_HEIGHT_BUTTON_STEP,
+} from "../../constants/editor";
 import Button from "../common/Button";
+import ColorField from "./ColorField";
 import FontPicker from "./FontPicker";
-import type { TextLayer } from "./textLayer";
+import NumberField from "./NumberField";
+import SliderField from "./SliderField";
+import TextEffectFields from "./TextEffectFields";
+import type { TextAlign, TextLayer } from "./textLayer";
 import styles from "./TextLayerPanel.module.css";
+
+const ALIGN_OPTIONS: { value: TextAlign; label: string; icon: ReactNode }[] = [
+  { value: "left", label: "왼쪽 정렬", icon: <AlignLeft size={16} /> },
+  { value: "center", label: "가운데 정렬", icon: <AlignCenter size={16} /> },
+  { value: "right", label: "오른쪽 정렬", icon: <AlignRight size={16} /> },
+];
 
 export interface TextLayerPanelProps {
   /** 선택한 문구 상자. 없으면 null */
   selectedLayer: TextLayer | null;
-  /** 원본 이미지 세로(px). 글자 크기를 px로 보여주는 데 쓴다 */
+  /** 원본 이미지 크기(px). 글자 크기와 위치를 px로 보여주는 데 쓴다 */
+  imageWidth: number;
   imageHeight: number;
   /** 상자를 더 넣을 수 없는 이유 등 패널 아래에 보여줄 안내. 없으면 null */
   notice: string | null;
@@ -30,63 +54,92 @@ export interface TextLayerPanelProps {
   onFontPreview: (fontId: string | null) => void;
 }
 
-interface FontSizeInputProps {
-  id: string;
-  /** 지금 글자 크기(px) */
-  value: number;
-  min: number;
-  max: number;
-  /** 입력을 마쳤을 때 호출. 범위 안으로 맞춘 값을 돌려준다 */
-  onCommit: (px: number) => number;
+interface TextInputProps {
+  /** 지금 문구 */
+  value: string;
+  onChange: (text: string) => void;
 }
 
 /**
- * 글자 크기 숫자 입력 칸. 입력하는 도중(예: "56"을 치려고 "5"만 친 상태)에 범위로 바뀌지 않도록
- * 칸 밖으로 나가거나 Enter를 누를 때 반영한다.
+ * 문구 입력 칸과 글자 수. 다 지워도 상자가 사라지지 않도록 빈 문구는 캔버스에 반영하지 않고,
+ * 칸을 벗어나면 마지막 문구로 되돌린다.
  *
- * @param props - 지금 값, 범위, 반영 처리 함수
- * @returns 숫자 입력 칸
+ * @param props - 지금 문구, 변경 처리 함수
+ * @returns 문구 입력 묶음
  */
-function FontSizeInput({ id, value, min, max, onCommit }: FontSizeInputProps) {
-  const [draft, setDraft] = useState(String(value));
+function TextInput({ value, onChange }: TextInputProps) {
+  const [draft, setDraft] = useState(value);
+  const { max } = LAYER_LIMITS.textLength;
 
-  // 슬라이더 등 다른 곳에서 크기가 바뀌면 따라간다
+  // 캔버스에서 직접 입력하면 따라간다
   useEffect(() => {
-    setDraft(String(value));
+    setDraft(value);
   }, [value]);
 
-  /** 입력한 값을 반영한다. 숫자가 아니면 원래 값으로 되돌린다. */
-  function commit() {
-    const px = Number(draft);
-    setDraft(String(draft.trim() !== "" && Number.isFinite(px) ? onCommit(px) : value));
-  }
-
   return (
-    <input
-      id={id}
-      type="number"
-      className={styles.number}
-      min={min}
-      max={max}
-      value={draft}
-      onChange={(e) => setDraft(e.target.value)}
-      onBlur={commit}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") commit();
-      }}
-    />
+    <div className={styles.field}>
+      <div className={styles.labelRow}>
+        <label className={styles.label} htmlFor="text-layer-text">
+          문구
+        </label>
+        <span className={styles.count}>
+          {draft.length}/{max}
+        </span>
+      </div>
+      <textarea
+        id="text-layer-text"
+        className={styles.textarea}
+        rows={2}
+        maxLength={max}
+        value={draft}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          if (e.target.value.trim() !== "") onChange(e.target.value);
+        }}
+        onBlur={() => setDraft(value)}
+      />
+    </div>
+  );
+}
+
+interface ToggleButtonProps {
+  label: string;
+  pressed: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}
+
+/**
+ * 글자 모양·정렬 토글 버튼.
+ *
+ * @param props - 이름, 눌림 여부, 클릭 처리 함수, 아이콘
+ * @returns 토글 버튼
+ */
+function ToggleButton({ label, pressed, onClick, children }: ToggleButtonProps) {
+  return (
+    <button
+      type="button"
+      className={styles.toggle}
+      title={label}
+      aria-label={label}
+      aria-pressed={pressed}
+      onClick={onClick}
+    >
+      {children}
+    </button>
   );
 }
 
 /**
- * [+ 텍스트 상자 추가] 버튼과, 선택한 문구 상자의 글꼴·크기·색 조절과 [삭제] 버튼을 보여준다.
- * 글자 크기는 원본 이미지 기준 px로 보여주고, 저장은 이미지 세로 대비 비율로 한다.
+ * [+ 텍스트 상자 추가] 버튼과, 선택한 문구 상자의 문구·글꼴·크기·모양·색·효과·위치 조절,
+ * [삭제] 버튼을 보여준다. 크기와 위치는 원본 이미지 기준 px로 보여주고, 저장은 비율로 한다.
  *
- * @param props - 선택한 문구 상자, 이미지 세로, 안내 문구, 추가·삭제·변경 처리 함수
+ * @param props - 선택한 문구 상자, 이미지 크기, 안내 문구, 추가·삭제·변경 처리 함수
  * @returns 문구 패널
  */
 export default function TextLayerPanel({
   selectedLayer,
+  imageWidth,
   imageHeight,
   notice,
   onAdd,
@@ -94,21 +147,7 @@ export default function TextLayerPanel({
   onChange,
   onFontPreview,
 }: TextLayerPanelProps) {
-  const minSize = Math.ceil(LAYER_LIMITS.fontSize.min * imageHeight);
-  const maxSize = Math.floor(LAYER_LIMITS.fontSize.max * imageHeight);
-
-  /**
-   * px 글자 크기를 범위 안으로 맞춰 비율로 저장한다.
-   *
-   * @param id - 문구 상자 id
-   * @param px - 원본 이미지 기준 글자 크기
-   * @returns 범위 안으로 맞춘 글자 크기(px)
-   */
-  function changeFontSize(id: string, px: number): number {
-    const clamped = Math.round(Math.min(maxSize, Math.max(minSize, px)));
-    onChange(id, { fontSize: clamped / imageHeight });
-    return clamped;
-  }
+  const limits = LAYER_LIMITS;
 
   return (
     <section className={styles.section} aria-label="텍스트 편집기">
@@ -118,6 +157,12 @@ export default function TextLayerPanel({
 
       {selectedLayer ? (
         <>
+          <TextInput
+            key={`text-${selectedLayer.id}`}
+            value={selectedLayer.text}
+            onChange={(text) => onChange(selectedLayer.id, { text })}
+          />
+
           <div className={styles.field}>
             <span className={styles.label}>글꼴</span>
             <FontPicker
@@ -127,69 +172,143 @@ export default function TextLayerPanel({
             />
           </div>
 
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="text-layer-font-size">
-              크기
-            </label>
-            <div className={styles.sizeRow}>
-              <input
-                type="range"
-                className={styles.range}
-                min={minSize}
-                max={maxSize}
-                value={Math.round(selectedLayer.fontSize * imageHeight)}
-                aria-label="글자 크기 조절"
-                onChange={(e) => changeFontSize(selectedLayer.id, Number(e.target.value))}
-              />
-              <FontSizeInput
+          <div className={styles.pair}>
+            <div className={styles.field}>
+              <span className={styles.label}>글자 모양</span>
+              <div className={styles.toggles}>
+                <ToggleButton
+                  label="굵게"
+                  pressed={selectedLayer.bold}
+                  onClick={() => onChange(selectedLayer.id, { bold: !selectedLayer.bold })}
+                >
+                  <Bold size={16} />
+                </ToggleButton>
+                <ToggleButton
+                  label="기울임"
+                  pressed={selectedLayer.italic}
+                  onClick={() => onChange(selectedLayer.id, { italic: !selectedLayer.italic })}
+                >
+                  <Italic size={16} />
+                </ToggleButton>
+                <ToggleButton
+                  label="취소선"
+                  pressed={selectedLayer.strike}
+                  onClick={() => onChange(selectedLayer.id, { strike: !selectedLayer.strike })}
+                >
+                  <Strikethrough size={16} />
+                </ToggleButton>
+              </div>
+            </div>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="text-layer-font-size">
+                크기
+              </label>
+              <NumberField
                 id="text-layer-font-size"
+                label="글자 크기"
+                buttonStep={FONT_SIZE_BUTTON_STEP_PX}
                 value={Math.round(selectedLayer.fontSize * imageHeight)}
-                min={minSize}
-                max={maxSize}
-                onCommit={(px) => changeFontSize(selectedLayer.id, px)}
+                min={Math.ceil(limits.fontSize.min * imageHeight)}
+                max={Math.floor(limits.fontSize.max * imageHeight)}
+                onChange={(px) => onChange(selectedLayer.id, { fontSize: px / imageHeight })}
               />
-              <span className={styles.unit}>px</span>
+            </div>
+          </div>
+
+          <div className={styles.pair}>
+            <div className={styles.field}>
+              <span className={styles.label}>정렬</span>
+              <div className={styles.toggles}>
+                {ALIGN_OPTIONS.map(({ value, label, icon }) => (
+                  <ToggleButton
+                    key={value}
+                    label={label}
+                    pressed={selectedLayer.align === value}
+                    onClick={() => onChange(selectedLayer.id, { align: value })}
+                  >
+                    {icon}
+                  </ToggleButton>
+                ))}
+              </div>
+            </div>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="text-layer-line-height">
+                줄 간격
+              </label>
+              <NumberField
+                id="text-layer-line-height"
+                label="줄 간격"
+                step={LINE_HEIGHT_BUTTON_STEP}
+                buttonStep={LINE_HEIGHT_BUTTON_STEP}
+                value={Number(selectedLayer.lineHeight.toFixed(2))}
+                min={limits.lineHeight.min}
+                max={limits.lineHeight.max}
+                onChange={(lineHeight) => onChange(selectedLayer.id, { lineHeight })}
+              />
             </div>
           </div>
 
           <div className={styles.field}>
             <span className={styles.label}>색</span>
-            <div className={styles.colors} role="group" aria-label="글자색">
-              {TEXT_COLOR_PRESETS.map((preset) => (
-                <button
-                  key={preset.value}
-                  type="button"
-                  className={styles.swatch}
-                  style={{ background: preset.value }}
-                  aria-label={preset.label}
-                  aria-pressed={selectedLayer.color === preset.value}
-                  onClick={() => onChange(selectedLayer.id, { color: preset.value })}
+            <ColorField
+              label="글자색"
+              value={selectedLayer.color}
+              opacity={selectedLayer.opacity}
+              onChange={(color) => onChange(selectedLayer.id, { color })}
+              onOpacityChange={(opacity) => onChange(selectedLayer.id, { opacity })}
+            />
+          </div>
+
+          <TextEffectFields
+            key={`effects-${selectedLayer.id}`}
+            layer={selectedLayer}
+            imageHeight={imageHeight}
+            onChange={(changes) => onChange(selectedLayer.id, changes)}
+          />
+
+          <div className={styles.field}>
+            <span className={styles.label}>위치</span>
+            <div className={styles.position}>
+              <label className={styles.axis}>
+                X
+                <NumberField
+                  value={Math.round(selectedLayer.x * imageWidth)}
+                  min={0}
+                  max={imageWidth}
+                  onChange={(px) => onChange(selectedLayer.id, { x: px / imageWidth })}
                 />
-              ))}
-              {/* 무지개색 원을 눌러 브라우저 색상 선택기(스포이드 포함)를 연다 */}
-              <label className={styles.colorPicker} title="다른 색 고르기">
-                <input
-                  type="color"
-                  className={styles.colorInput}
-                  value={selectedLayer.color.toLowerCase()}
-                  aria-label="다른 색 고르기"
-                  onChange={(e) =>
-                    onChange(selectedLayer.id, { color: e.target.value.toUpperCase() })
-                  }
+              </label>
+              <label className={styles.axis}>
+                Y
+                <NumberField
+                  value={Math.round(selectedLayer.y * imageHeight)}
+                  min={0}
+                  max={imageHeight}
+                  onChange={(px) => onChange(selectedLayer.id, { y: px / imageHeight })}
                 />
               </label>
             </div>
           </div>
 
-          <Button icon={<Trash2 size={14} />} onClick={() => onDelete(selectedLayer.id)}>
+          <SliderField
+            label="회전"
+            unit="°"
+            value={Math.round(selectedLayer.rotation)}
+            min={limits.rotation.min}
+            max={limits.rotation.max}
+            onChange={(rotation) => onChange(selectedLayer.id, { rotation })}
+          />
+
+          <Button
+            className={styles.deleteButton}
+            icon={<Trash2 size={14} />}
+            onClick={() => onDelete(selectedLayer.id)}
+          >
             선택한 상자 삭제
           </Button>
         </>
       ) : (
-        <p className={styles.hint}>
-          상자를 누르면 글꼴·크기·색을 바꿀 수 있어요. 두 번 누르면 문구를 고치고, 끌어서 옮길 수
-          있어요
-        </p>
+        <p className={styles.hint}>상자를 누르면 문구와 모양을 바꿀 수 있어요</p>
       )}
 
       {notice && <p className={styles.notice}>{notice}</p>}

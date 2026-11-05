@@ -7,14 +7,20 @@
  *
  * 생성일자: 2026-11-04
  * 생성자: ven_choi
- * 수정일자: 2026-11-04
- * 수정자: ven_choi
+ * 수정일자: 2026-11-05
+ * 수정자: bioyejin
  */
 
 import fontList from "./fonts.json";
 
 /** 폰트 분류 */
-export type AdFontCategory = "headline" | "body" | "serif" | "rounded" | "handwriting";
+export type AdFontCategory =
+  | "signature"
+  | "headline"
+  | "body"
+  | "serif"
+  | "rounded"
+  | "handwriting";
 
 /** 광고 문구에 쓸 수 있는 폰트 하나 */
 export interface AdFont {
@@ -35,6 +41,7 @@ export interface AdFont {
 
 /** 분류별 화면 표시 이름 (화면에 보여 줄 순서) */
 export const FONT_CATEGORY_LABELS: Record<AdFontCategory, string> = {
+  signature: "시그니처",
   headline: "임팩트 헤드라인",
   body: "본문·서브카피",
   serif: "고급·감성 명조",

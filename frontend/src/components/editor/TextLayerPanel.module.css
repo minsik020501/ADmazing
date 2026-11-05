@@ -10,10 +10,10 @@
 .section {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
-/* 글꼴·크기·색 한 묶음 (위에 이름, 아래에 조절) */
+/* 항목 한 묶음 (위에 이름, 아래에 조절) */
 .field {
   display: flex;
   flex-direction: column;
@@ -26,79 +26,79 @@
   color: var(--color-text);
 }
 
-.sizeRow {
+.labelRow {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  justify-content: space-between;
 }
 
-.range {
-  flex: 1;
-  min-width: 0;
-  accent-color: var(--color-primary);
+.count {
+  color: var(--color-text-tertiary);
 }
 
-.number {
-  width: 64px;
-  height: 32px;
-  padding: 0 var(--space-2);
+.textarea {
+  display: block;
+  width: 100%;
+  padding: var(--space-2);
+  color: var(--color-text);
+  resize: none;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
 }
 
-.unit {
-  color: var(--color-text-tertiary);
+/* 두 항목을 왼쪽부터 나란히 둔다 (토글 폭이 같아 위아래 줄의 오른쪽 항목도 맞는다) */
+.pair {
+  display: flex;
+  gap: calc(var(--space-8) * 2);
 }
 
-.colors {
+.toggles {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+}
+
+.position {
+  display: flex;
   gap: var(--space-2);
 }
 
-/* 색 빠른 선택. 흰색도 보이도록 테두리를 두고, 고른 색은 바깥 테두리로 표시 */
-.swatch {
-  width: 24px;
-  height: 24px;
+.axis {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-text-secondary);
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
   padding: 0;
+  color: var(--color-text);
   cursor: pointer;
-  border: 1px solid var(--color-border-strong);
-  border-radius: 50%;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  transition: background-color var(--transition-fast);
 }
 
-.swatch[aria-pressed="true"] {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+.toggle:hover {
+  background: var(--color-surface-muted);
 }
 
-/* 그 밖의 색 고르기. 무지개색 원으로 색상 선택기임을 알린다 */
-.colorPicker {
-  position: relative;
-  width: 24px;
-  height: 24px;
-  overflow: hidden;
-  cursor: pointer;
-  background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red);
-  border: 1px solid var(--color-border-strong);
-  border-radius: 50%;
+.toggle[aria-pressed="true"] {
+  color: var(--color-primary-text);
+  background: var(--color-primary-weak);
+  border-color: var(--color-primary);
 }
 
-/* 실제 입력은 투명하게 원 전체를 덮어, 눌렀을 때 브라우저 색상 선택기가 열린다 */
-.colorInput {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  padding: 0;
-  cursor: pointer;
-  border: none;
-  opacity: 0;
-}
-
-.colorPicker:focus-within {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+/* 빨간 글자. 마우스를 올려도 색을 유지한다 */
+.section .deleteButton {
+  color: var(--color-danger);
 }
 
 .hint {

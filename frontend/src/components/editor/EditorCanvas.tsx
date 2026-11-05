@@ -17,7 +17,7 @@ import {
   useState,
 } from "react";
 import type Konva from "konva";
-import { Image as KonvaImage, Layer, Stage, Transformer } from "react-konva";
+import { Image as KonvaImage, Layer, Line, Stage, Transformer } from "react-konva";
 import {
   LAYER_LIMITS,
   STAGE_MAX_HEIGHT_RATIO,
@@ -28,7 +28,7 @@ import useFontsLoaded from "../../hooks/useFontsLoaded";
 import InlineTextEditor from "./InlineTextEditor";
 import LayerToolbar, { LAYER_TOOLBAR_HEIGHT, LAYER_TOOLBAR_WIDTH } from "./LayerToolbar";
 import { resolveLayerFont, toCssFont, type TextLayer } from "./textLayer";
-import TextLayerNode, { type TextLayerSize } from "./TextLayerNode";
+import TextLayerNode, { TEXT_LAYER_NODE_NAME, type TextLayerSize } from "./TextLayerNode";
 import styles from "./EditorCanvas.module.css";
 
 // 글꼴을 미리 받을 때 쓰는 글자 크기 (크기와 상관없이 같은 파일을 받으므로 아무 값이나 됨)
@@ -36,8 +36,17 @@ const FONT_LOAD_SIZE_PX = 32;
 // 선택 테두리가 상자에서 떨어진 거리, 모서리 핸들 크기 (화면 px)
 const SELECTION_PADDING_PX = 6;
 const ANCHOR_SIZE_PX = 10;
-// 상자 위 도구줄과 선택 테두리 사이 간격 (화면 px)
-const TOOLBAR_GAP_PX = 8;
+// 회전 핸들이 선택 테두리에서 떨어진 거리 (화면 px)
+const ROTATE_ANCHOR_OFFSET_PX = 24;
+// 회전할 때 이 각도 가까이에서 살짝 붙는다
+const ROTATION_SNAPS = [-180, -135, -90, -45, 0, 45, 90, 135, 180];
+const ROTATION_SNAP_TOLERANCE = 4;
+// 상자 위 도구줄과 선택 테두리 사이 간격. 회전 핸들을 가리지 않게 띄운다 (화면 px)
+const TOOLBAR_GAP_PX = 44;
+// 가운데 안내선의 두께와 점선 길이 (화면 px), 불투명도
+const GUIDE_WIDTH_PX = 1;
+const GUIDE_DASH_PX = 6;
+const GUIDE_OPACITY = 0.75;
 // 핸들을 끌어 상자를 이보다 작게 줄이지 못하게 한다 (화면 px)
 const MIN_BOX_SIZE_PX = 16;
 // 줄 단위로 알려주는 휠 입력(deltaMode 1)을 px로 바꿀 때 쓰는 한 줄 높이
@@ -79,6 +88,28 @@ export interface EditorCanvasProps {
   onZoomChange: (zoom: number) => void;
   /** 실제로 적용된 배율이 바뀔 때 호출 (도구줄의 % 표시용) */
   onScaleChange: (scale: number) => void;
+}
+
+/**
+ * 값을 범위 안으로 맞춘다.
+ *
+ * @param value - 값
+ * @param limit - 최솟값과 최댓값
+ * @returns 범위 안의 값
+ */
+function clamp(value: number, { min, max }: { min: number; max: number }): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+/**
+ * 각도를 -180~180 범위로 맞추고 계산 오차를 없앤다.
+ *
+ * @param degrees - 각도
+ * @returns 소수 첫째 자리까지의 각도
+ */
+function normalizeRotation(degrees: number): number {
+  const positive = ((degrees % 360) + 360) % 360;
+  return Math.round((positive > 180 ? positive - 360 : positive) * 10) / 10;
 }
 
 /**
@@ -139,11 +170,13 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function 
   const stageRef = useRef<Konva.Stage>(null);
   const transformerRef = useRef<Konva.Transformer>(null);
   // 문구 상자 id → 그려진 Konva 노드 (선택 테두리를 붙일 대상)
-  const nodesRef = useRef(new Map<string, Konva.Text>());
+  const nodesRef = useRef(new Map<string, Konva.Group>());
   const [sizes, setSizes] = useState<Record<string, TextLayerSize>>({});
   const [available, setAvailable] = useState({ width: 0, height: 0 });
-  // 끌거나 크기를 바꾸는 동안은 상자 위 도구줄을 숨긴다
+  // 끌거나 크기·각도를 바꾸는 동안은 상자 위 도구줄을 숨긴다
   const [interacting, setInteracting] = useState(false);
+  // 상자를 끄는 동안 이미지 가운데선에 붙어 있으면 그 선을 보여준다
+  const [centerGuides, setCenterGuides] = useState({ vertical: false, horizontal: false });
   // 빈 곳을 끌어 캔버스를 옮기는 중이면 true
   const [panning, setPanning] = useState(false);
   // 휠 이벤트가 렌더보다 빠르게 와도 이어서 계산하도록 지금 배율을 따로 기억한다
@@ -245,6 +278,8 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function 
     if (!transformer) return;
     const node = selectedId && selectedId !== editingId ? nodesRef.current.get(selectedId) : null;
     transformer.nodes(node ? [node] : []);
+    // 묶음 안의 글자·배경 크기가 바뀐 것은 테두리가 스스로 알지 못해 직접 다시 맞춘다
+    transformer.forceUpdate();
     transformer.getLayer()?.batchDraw();
   }, [selectedId, editingId, layers, fontsVersion]);
 
@@ -307,7 +342,7 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function 
     window.addEventListener("mouseup", handleUp);
   }
 
-  const handleRegister = useCallback((id: string, node: Konva.Text | null) => {
+  const handleRegister = useCallback((id: string, node: Konva.Group | null) => {
     if (node) nodesRef.current.set(id, node);
     else nodesRef.current.delete(id);
   }, []);
@@ -321,24 +356,45 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function 
     });
   }, []);
 
+  // 붙은 상태가 그대로면 상태를 바꾸지 않아, 끄는 동안 캔버스를 불필요하게 다시 그리지 않는다
+  const handleCenterSnap = useCallback((vertical: boolean, horizontal: boolean) => {
+    setCenterGuides((prev) =>
+      prev.vertical === vertical && prev.horizontal === horizontal
+        ? prev
+        : { vertical, horizontal },
+    );
+  }, []);
+
   const handleMove = useCallback(
     (id: string, x: number, y: number) => onChange(id, { x, y }),
     [onChange],
   );
 
-  const handleResize = useCallback(
-    (id: string, ratio: number, x: number, y: number) => {
+  // 크기를 바꾸면 외곽선·그림자·배경 여백도 같은 배율로 맞춰 모양을 유지한다
+  const handleTransform = useCallback(
+    (id: string, ratio: number, x: number, y: number, rotation: number) => {
       const layer = layers.find((item) => item.id === id);
       if (!layer) return;
-      const { fontSize, width } = LAYER_LIMITS;
+      const limits = LAYER_LIMITS;
+      const { stroke, shadow, background } = layer;
       onChange(id, {
         x: Math.min(1, Math.max(0, x)),
         y: Math.min(1, Math.max(0, y)),
-        fontSize: Math.min(fontSize.max, Math.max(fontSize.min, layer.fontSize * ratio)),
-        width:
-          layer.width === null
-            ? null
-            : Math.min(width.max, Math.max(width.min, layer.width * ratio)),
+        rotation: normalizeRotation(rotation),
+        fontSize: clamp(layer.fontSize * ratio, limits.fontSize),
+        width: layer.width === null ? null : clamp(layer.width * ratio, limits.width),
+        stroke: stroke && { ...stroke, width: clamp(stroke.width * ratio, limits.strokeWidth) },
+        shadow: shadow && {
+          ...shadow,
+          blur: clamp(shadow.blur * ratio, limits.shadowBlur),
+          offsetX: clamp(shadow.offsetX * ratio, limits.shadowOffset),
+          offsetY: clamp(shadow.offsetY * ratio, limits.shadowOffset),
+        },
+        background: background && {
+          ...background,
+          padding: clamp(background.padding * ratio, limits.backgroundPadding),
+          radius: clamp(background.radius * ratio, limits.backgroundRadius),
+        },
       });
     },
     [layers, onChange],
@@ -350,6 +406,15 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function 
     getComputedStyle(document.documentElement).getPropertyValue("--color-primary").trim() ||
     "#4f4be8";
 
+  // 캔버스 좌표는 원본 px이므로, 배율로 나눠 화면에서 항상 같은 두께·길이로 보이게 한다
+  const guideStyle = {
+    stroke: selectionColor,
+    strokeWidth: GUIDE_WIDTH_PX / scale,
+    dash: [GUIDE_DASH_PX / scale, GUIDE_DASH_PX / scale],
+    opacity: GUIDE_OPACITY,
+    listening: false,
+  };
+
   // 선택한 상자 위 도구줄 위치. 입력·끌기 중에는 숨기고, 위에 자리가 없으면 상자 아래에 둔다
   const selectedLayer = layers.find((layer) => layer.id === selectedId);
   const selectedSize = selectedId ? sizes[selectedId] : undefined;
@@ -357,7 +422,15 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function 
   if (selectedLayer && selectedSize && !editingId && !interacting) {
     const centerX = selectedLayer.x * imageWidth * scale;
     const centerY = selectedLayer.y * imageHeight * scale;
-    const halfHeight = (selectedSize.height * scale) / 2 + SELECTION_PADDING_PX + TOOLBAR_GAP_PX;
+    // 회전한 상자가 위아래로 차지하는 높이의 절반 (배경 상자 여백 포함)
+    const padding = (selectedLayer.background?.padding ?? 0) * imageHeight;
+    const radians = (selectedLayer.rotation * Math.PI) / 180;
+    const boxWidth = (selectedSize.width + padding * 2) * scale;
+    const boxHeight = (selectedSize.height + padding * 2) * scale;
+    const halfHeight =
+      (Math.abs(boxWidth * Math.sin(radians)) + Math.abs(boxHeight * Math.cos(radians))) / 2 +
+      SELECTION_PADDING_PX +
+      TOOLBAR_GAP_PX;
     const above = centerY - halfHeight - LAYER_TOOLBAR_HEIGHT;
     toolbarPosition = {
       left: Math.max(
@@ -393,7 +466,8 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function 
             onMouseMove={(e) => {
               const container = e.target.getStage()?.container();
               if (container) {
-                container.style.cursor = e.target.getClassName() === "Text" ? "move" : "";
+                const onLayer = e.target.findAncestor(`.${TEXT_LAYER_NODE_NAME}`);
+                container.style.cursor = onLayer ? "move" : "";
               }
             }}
             onTouchStart={(e) => {
@@ -424,13 +498,22 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function 
                   onSelect={onSelect}
                   onStartEdit={onStartEdit}
                   onMove={handleMove}
-                  onResize={handleResize}
+                  onTransform={handleTransform}
+                  onCenterSnap={handleCenterSnap}
                   onInteract={setInteracting}
                 />
               ))}
+              {centerGuides.vertical && (
+                <Line points={[imageWidth / 2, 0, imageWidth / 2, imageHeight]} {...guideStyle} />
+              )}
+              {centerGuides.horizontal && (
+                <Line points={[0, imageHeight / 2, imageWidth, imageHeight / 2]} {...guideStyle} />
+              )}
               <Transformer
                 ref={transformerRef}
-                rotateEnabled={false}
+                rotateAnchorOffset={ROTATE_ANCHOR_OFFSET_PX}
+                rotationSnaps={ROTATION_SNAPS}
+                rotationSnapTolerance={ROTATION_SNAP_TOLERANCE}
                 flipEnabled={false}
                 keepRatio
                 enabledAnchors={CORNER_ANCHORS}
