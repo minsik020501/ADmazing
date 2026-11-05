@@ -15,6 +15,9 @@ import { resolveLayerFont, withAlpha, type TextLayer } from "./textLayer";
 /** 문구 상자 묶음(Group)의 이름. 캔버스에서 누른 곳이 문구 상자인지 알아보는 데 쓴다 */
 export const TEXT_LAYER_NODE_NAME = "text-layer";
 
+// 끌 때 상자 가운데가 이미지 가운데선에 이만큼 가까워지면 달라붙는다 (화면 px)
+const CENTER_SNAP_PX = 8;
+
 /** 글자가 캔버스에서 차지하는 크기 (원본 이미지 px, 배경 상자 여백 제외) */
 export interface TextLayerSize {
   width: number;
@@ -38,6 +41,8 @@ export interface TextLayerNodeProps {
   onMove: (id: string, x: number, y: number) => void;
   /** 핸들로 크기·각도를 바꾼 뒤 배율, 새 위치(비율), 각도를 알린다 */
   onTransform: (id: string, ratio: number, x: number, y: number, rotation: number) => void;
+  /** 끄는 동안 이미지 세로·가로 가운데선에 붙었는지 알린다 (안내선 표시용) */
+  onCenterSnap: (vertical: boolean, horizontal: boolean) => void;
   /** 끌기·크기 조절·회전을 시작하면 true, 끝나면 false (그동안 상자 위 도구줄을 숨긴다) */
   onInteract: (active: boolean) => void;
 }
@@ -45,8 +50,8 @@ export interface TextLayerNodeProps {
 /**
  * 문구 상자 하나를 그린다. 묶음(Group)이 상자 가운데에 놓여 위치·회전·투명도를 맡고,
  * 그 안의 배경 상자와 글자는 묶음 가운데를 기준으로 맞춘다.
- * 클릭하면 선택, 더블클릭하면 직접 입력, 끌면 이동한다. 가운데가 이미지 밖으로 나가지 않는다.
- * 끌기로 생긴 위치와 핸들로 생긴 배율·각도는 끝날 때 데이터에 옮겨 담는다.
+ * 클릭하면 선택, 더블클릭하면 직접 입력, 끌면 이동한다. 가운데가 이미지 밖으로 나가지 않고,
+ * 이미지 가운데선 가까이에서는 달라붙는다. 끌기로 생긴 위치와 핸들로 생긴 배율·각도는 끝날 때 데이터에 옮겨 담는다.
  *
  * @param props - 문구 상자, 이미지 크기, 입력 중 여부와 처리 함수
  * @returns Konva Group 노드
@@ -62,6 +67,7 @@ export default function TextLayerNode({
   onStartEdit,
   onMove,
   onTransform,
+  onCenterSnap,
   onInteract,
 }: TextLayerNodeProps) {
   const groupRef = useRef<Konva.Group>(null);
@@ -109,10 +115,18 @@ export default function TextLayerNode({
       onDragStart={() => onInteract(true)}
       onDragMove={(e) => {
         const node = e.target;
-        node.x(Math.min(imageWidth, Math.max(0, node.x())));
-        node.y(Math.min(imageHeight, Math.max(0, node.y())));
+        const x = Math.min(imageWidth, Math.max(0, node.x()));
+        const y = Math.min(imageHeight, Math.max(0, node.y()));
+        // 배율이 달라도 화면에서 같은 거리로 붙도록 화면 px를 원본 px로 바꾼다
+        const threshold = CENTER_SNAP_PX / (node.getStage()?.scaleX() || 1);
+        const onVertical = Math.abs(x - imageWidth / 2) < threshold;
+        const onHorizontal = Math.abs(y - imageHeight / 2) < threshold;
+        node.x(onVertical ? imageWidth / 2 : x);
+        node.y(onHorizontal ? imageHeight / 2 : y);
+        onCenterSnap(onVertical, onHorizontal);
       }}
       onDragEnd={(e) => {
+        onCenterSnap(false, false);
         onMove(id, e.target.x() / imageWidth, e.target.y() / imageHeight);
         onInteract(false);
       }}

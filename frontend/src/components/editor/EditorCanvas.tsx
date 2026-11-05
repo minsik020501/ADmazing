@@ -17,7 +17,7 @@ import {
   useState,
 } from "react";
 import type Konva from "konva";
-import { Image as KonvaImage, Layer, Stage, Transformer } from "react-konva";
+import { Image as KonvaImage, Layer, Line, Stage, Transformer } from "react-konva";
 import {
   LAYER_LIMITS,
   STAGE_MAX_HEIGHT_RATIO,
@@ -43,6 +43,10 @@ const ROTATION_SNAPS = [-180, -135, -90, -45, 0, 45, 90, 135, 180];
 const ROTATION_SNAP_TOLERANCE = 4;
 // 상자 위 도구줄과 선택 테두리 사이 간격. 회전 핸들을 가리지 않게 띄운다 (화면 px)
 const TOOLBAR_GAP_PX = 44;
+// 가운데 안내선의 두께와 점선 길이 (화면 px), 불투명도
+const GUIDE_WIDTH_PX = 1;
+const GUIDE_DASH_PX = 6;
+const GUIDE_OPACITY = 0.75;
 // 핸들을 끌어 상자를 이보다 작게 줄이지 못하게 한다 (화면 px)
 const MIN_BOX_SIZE_PX = 16;
 // 줄 단위로 알려주는 휠 입력(deltaMode 1)을 px로 바꿀 때 쓰는 한 줄 높이
@@ -171,6 +175,8 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function 
   const [available, setAvailable] = useState({ width: 0, height: 0 });
   // 끌거나 크기·각도를 바꾸는 동안은 상자 위 도구줄을 숨긴다
   const [interacting, setInteracting] = useState(false);
+  // 상자를 끄는 동안 이미지 가운데선에 붙어 있으면 그 선을 보여준다
+  const [centerGuides, setCenterGuides] = useState({ vertical: false, horizontal: false });
   // 빈 곳을 끌어 캔버스를 옮기는 중이면 true
   const [panning, setPanning] = useState(false);
   // 휠 이벤트가 렌더보다 빠르게 와도 이어서 계산하도록 지금 배율을 따로 기억한다
@@ -350,6 +356,15 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function 
     });
   }, []);
 
+  // 붙은 상태가 그대로면 상태를 바꾸지 않아, 끄는 동안 캔버스를 불필요하게 다시 그리지 않는다
+  const handleCenterSnap = useCallback((vertical: boolean, horizontal: boolean) => {
+    setCenterGuides((prev) =>
+      prev.vertical === vertical && prev.horizontal === horizontal
+        ? prev
+        : { vertical, horizontal },
+    );
+  }, []);
+
   const handleMove = useCallback(
     (id: string, x: number, y: number) => onChange(id, { x, y }),
     [onChange],
@@ -390,6 +405,15 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function 
   const selectionColor =
     getComputedStyle(document.documentElement).getPropertyValue("--color-primary").trim() ||
     "#4f4be8";
+
+  // 캔버스 좌표는 원본 px이므로, 배율로 나눠 화면에서 항상 같은 두께·길이로 보이게 한다
+  const guideStyle = {
+    stroke: selectionColor,
+    strokeWidth: GUIDE_WIDTH_PX / scale,
+    dash: [GUIDE_DASH_PX / scale, GUIDE_DASH_PX / scale],
+    opacity: GUIDE_OPACITY,
+    listening: false,
+  };
 
   // 선택한 상자 위 도구줄 위치. 입력·끌기 중에는 숨기고, 위에 자리가 없으면 상자 아래에 둔다
   const selectedLayer = layers.find((layer) => layer.id === selectedId);
@@ -475,9 +499,16 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function 
                   onStartEdit={onStartEdit}
                   onMove={handleMove}
                   onTransform={handleTransform}
+                  onCenterSnap={handleCenterSnap}
                   onInteract={setInteracting}
                 />
               ))}
+              {centerGuides.vertical && (
+                <Line points={[imageWidth / 2, 0, imageWidth / 2, imageHeight]} {...guideStyle} />
+              )}
+              {centerGuides.horizontal && (
+                <Line points={[0, imageHeight / 2, imageWidth, imageHeight / 2]} {...guideStyle} />
+              )}
               <Transformer
                 ref={transformerRef}
                 rotateAnchorOffset={ROTATE_ANCHOR_OFFSET_PX}
