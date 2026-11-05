@@ -333,6 +333,7 @@ export default function EditorPage({
         <EditorSidePanel>
           <TextLayerPanel
             selectedLayer={selectedLayer}
+            imageWidth={result.width}
             imageHeight={result.height}
             notice={notice}
             onAdd={handleAdd}
