@@ -132,6 +132,6 @@
 
 ## 모델에 알려줄 것
 
-- 글꼴은 `frontend/src/constants/fonts.json`의 `id` 중에서만 고릅니다. 같은 파일의 `category`(headline, body, serif, rounded, handwriting)와 `mood`(느낌)를 고를 때 참고합니다.
+- 글꼴은 `frontend/src/constants/fonts.json`의 `id` 중에서만 고릅니다. 같은 파일의 `category`(signature, headline, body, serif, rounded, handwriting)와 `mood`(느낌)를 고를 때 참고합니다.
 - 제품을 가리지 않도록 `x`, `y`, `fontSize`를 정합니다. 상자가 이미지 밖으로 나가지 않게 가운데 위치와 크기를 함께 고려합니다.
 - 밝은 배경에는 어두운 글자, 어두운 배경에는 밝은 글자를 쓰고, 배경이 복잡하면 `stroke`, `shadow`, `background`를 씁니다.

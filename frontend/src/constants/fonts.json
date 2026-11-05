@@ -2,6 +2,16 @@
   "_generated": "scripts/prepare_fonts.py가 fonts/manifest.json으로 만든 파일. 직접 수정하지 않는다",
   "fonts": [
     {
+      "id": "mona12",
+      "name": "Mona12",
+      "family": "Mona12Ad",
+      "category": "signature",
+      "mood": "ADmazing 시그니처, 픽셀 감성의 레트로 글꼴",
+      "weights": [400, 700],
+      "license": "OFL",
+      "licenseUrl": "https://github.com/MonadABXY/mona-font/blob/2026.10.09/OFL.txt"
+    },
+    {
       "id": "gmarket-sans",
       "name": "G마켓 산스",
       "family": "GmarketSans",
