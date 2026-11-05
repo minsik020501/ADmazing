@@ -50,7 +50,7 @@
 /* 두 항목을 왼쪽부터 나란히 둔다 (토글 폭이 같아 위아래 줄의 오른쪽 항목도 맞는다) */
 .pair {
   display: flex;
-  gap: var(--space-4);
+  gap: calc(var(--space-6) * 2);
 }
 
 .toggles {
