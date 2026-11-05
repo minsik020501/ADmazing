@@ -3,15 +3,29 @@
  *
  * 생성일자: 2026-11-04
  * 생성자: bioyejin
- * 수정일자: 2026-11-04
+ * 수정일자: 2026-11-05
  * 수정자: bioyejin
  */
 
 import { useEffect, useRef } from "react";
-import { DEFAULT_LAYER_TEXT, TEXT_LINE_HEIGHT } from "../../constants/editor";
-import { resolveLayerFont, type TextLayer } from "./textLayer";
+import { DEFAULT_LAYER_TEXT } from "../../constants/editor";
+import { resolveLayerFont, withAlpha, type TextLayer } from "./textLayer";
 import type { TextLayerSize } from "./TextLayerNode";
 import styles from "./InlineTextEditor.module.css";
+
+/**
+ * 그림자 값을 CSS text-shadow 값으로 바꾼다.
+ *
+ * @param shadow - 그림자 값 (없으면 null)
+ * @param heightPx - 화면에 보이는 이미지 세로(px)
+ * @returns CSS 값. 그림자가 없으면 "none"
+ */
+function toCssTextShadow(shadow: TextLayer["shadow"], heightPx: number): string {
+  if (!shadow) return "none";
+  const { offsetX, offsetY, blur, color, opacity } = shadow;
+  const offset = `${offsetX * heightPx}px ${offsetY * heightPx}px`;
+  return `${offset} ${blur * heightPx}px ${withAlpha(color, opacity)}`;
+}
 
 export interface InlineTextEditorProps {
   layer: TextLayer;
@@ -61,7 +75,7 @@ export default function InlineTextEditor({
   const width = autoWidth
     ? (size?.width ?? 0) * scale + fontSizePx * 0.5
     : (layer.width ?? 0) * imageWidth * scale;
-  const height = Math.max(size?.height ?? 0, layer.fontSize * imageHeight * TEXT_LINE_HEIGHT);
+  const height = Math.max(size?.height ?? 0, layer.fontSize * imageHeight * layer.lineHeight);
 
   return (
     <textarea
@@ -82,9 +96,15 @@ export default function InlineTextEditor({
         fontStyle: font.italic ? "italic" : "normal",
         textDecoration: layer.strike ? "line-through" : "none",
         textAlign: layer.align,
-        lineHeight: TEXT_LINE_HEIGHT,
+        lineHeight: layer.lineHeight,
         color: layer.color,
         opacity: layer.opacity,
+        // 캔버스처럼 외곽선을 글자 뒤에 그린다
+        WebkitTextStroke: layer.stroke
+          ? `${layer.stroke.width * imageHeight * scale}px ${withAlpha(layer.stroke.color, layer.stroke.opacity)}`
+          : undefined,
+        paintOrder: "stroke fill",
+        textShadow: toCssTextShadow(layer.shadow, imageHeight * scale),
       }}
       onChange={(e) => onChange(e.target.value)}
       onBlur={onDone}

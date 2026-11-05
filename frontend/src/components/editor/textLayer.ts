@@ -7,14 +7,18 @@
  *
  * 생성일자: 2026-11-04
  * 생성자: bioyejin
- * 수정일자: 2026-11-04
+ * 수정일자: 2026-11-05
  * 수정자: bioyejin
  */
 
 import {
+  DEFAULT_BACKGROUND,
   DEFAULT_FONT_ID,
   DEFAULT_FONT_SIZE,
   DEFAULT_LAYER_TEXT,
+  DEFAULT_LINE_HEIGHT,
+  DEFAULT_SHADOW,
+  DEFAULT_STROKE,
   LAYER_LIMITS,
 } from "../../constants/editor";
 import { AD_FONTS, toFontFamily, type AdFont } from "../../constants/fonts";
@@ -22,11 +26,17 @@ import { AD_FONTS, toFontFamily, type AdFont } from "../../constants/fonts";
 /** 여러 줄 문구의 줄 맞춤 */
 export type TextAlign = "left" | "center" | "right";
 
+/** 외곽선 모서리 모양 */
+export type StrokeJoin = "round" | "miter";
+
 /** 글자 외곽선 */
 export interface TextStroke {
   color: string;
   /** 두께 (이미지 세로 대비 비율) */
   width: number;
+  /** 0~1 */
+  opacity: number;
+  join: StrokeJoin;
 }
 
 /** 글자 그림자 */
@@ -41,9 +51,20 @@ export interface TextShadow {
   opacity: number;
 }
 
+/** 글자 뒤에 깔리는 배경 상자 */
+export interface TextBackground {
+  color: string;
+  /** 0~1 */
+  opacity: number;
+  /** 글자와 상자 테두리 사이 여백 (이미지 세로 대비 비율) */
+  padding: number;
+  /** 모서리 둥글기 (이미지 세로 대비 비율) */
+  radius: number;
+}
+
 /**
  * 문구 상자 하나. 위치·크기는 픽셀이 아니라 이미지 대비 비율이라 해상도·화면 크기와 상관없다.
- * 볼드·외곽선·회전 같은 값은 화면 기능이 아직 없어도 형식에는 미리 둔다.
+ * 구부리기처럼 화면 기능이 아직 없는 값도 형식에는 미리 둔다.
  */
 export interface TextLayer {
   id: string;
@@ -67,15 +88,19 @@ export interface TextLayer {
   italic: boolean;
   strike: boolean;
   align: TextAlign;
+  /** 줄 간격 (글자 크기 대비) */
+  lineHeight: number;
   /** 글자색 (#RRGGBB) */
   color: string;
   /** 투명도 (0~1, 1이면 불투명) */
   opacity: number;
   stroke: TextStroke | null;
   shadow: TextShadow | null;
+  background: TextBackground | null;
 }
 
-const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
+/** #RRGGBB 형식 */
+export const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 const ALIGNS: TextAlign[] = ["left", "center", "right"];
 const MAX_ROLE_LENGTH = 30;
 
@@ -114,10 +139,12 @@ export function createTextLayer(overrides: Partial<Omit<TextLayer, "id">> = {}):
     italic: false,
     strike: false,
     align: "center",
+    lineHeight: DEFAULT_LINE_HEIGHT,
     color: "#FFFFFF",
     opacity: 1,
     stroke: null,
     shadow: null,
+    background: null,
     ...overrides,
     id: createLayerId(),
   };
@@ -190,6 +217,20 @@ export function toCssFont(font: ResolvedFont, sizePx: number): string {
   return `${font.italic ? "italic " : ""}${font.weight} ${sizePx}px ${font.family}`;
 }
 
+/**
+ * 색에 투명도를 붙인다.
+ *
+ * @param color - 색 (#RRGGBB)
+ * @param opacity - 0~1
+ * @returns #RRGGBBAA 형식의 색
+ */
+export function withAlpha(color: string, opacity: number): string {
+  const alpha = Math.round(opacity * 255)
+    .toString(16)
+    .padStart(2, "0");
+  return `${color}${alpha}`;
+}
+
 /** 숫자면 범위 안으로 맞추고, 숫자가 아니면 기본값을 쓴다. */
 function toNumber(value: unknown, fallback: number, min: number, max: number): number {
   if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
@@ -210,7 +251,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function toStroke(value: unknown): TextStroke | null {
   if (!isRecord(value)) return null;
   const { min, max } = LAYER_LIMITS.strokeWidth;
-  return { color: toColor(value.color, "#000000"), width: toNumber(value.width, 0.004, min, max) };
+  return {
+    color: toColor(value.color, DEFAULT_STROKE.color),
+    width: toNumber(value.width, DEFAULT_STROKE.width, min, max),
+    opacity: toNumber(value.opacity, DEFAULT_STROKE.opacity, 0, 1),
+    join: value.join === "miter" || value.join === "round" ? value.join : DEFAULT_STROKE.join,
+  };
 }
 
 /** 그림자 값을 검사한다. 없거나 형식이 틀리면 null. */
@@ -219,11 +265,24 @@ function toShadow(value: unknown): TextShadow | null {
   const blur = LAYER_LIMITS.shadowBlur;
   const offset = LAYER_LIMITS.shadowOffset;
   return {
-    color: toColor(value.color, "#000000"),
-    blur: toNumber(value.blur, 0.01, blur.min, blur.max),
-    offsetX: toNumber(value.offsetX, 0.003, offset.min, offset.max),
-    offsetY: toNumber(value.offsetY, 0.003, offset.min, offset.max),
-    opacity: toNumber(value.opacity, 0.5, 0, 1),
+    color: toColor(value.color, DEFAULT_SHADOW.color),
+    blur: toNumber(value.blur, DEFAULT_SHADOW.blur, blur.min, blur.max),
+    offsetX: toNumber(value.offsetX, DEFAULT_SHADOW.offsetX, offset.min, offset.max),
+    offsetY: toNumber(value.offsetY, DEFAULT_SHADOW.offsetY, offset.min, offset.max),
+    opacity: toNumber(value.opacity, DEFAULT_SHADOW.opacity, 0, 1),
+  };
+}
+
+/** 배경 상자 값을 검사한다. 없거나 형식이 틀리면 null. */
+function toBackground(value: unknown): TextBackground | null {
+  if (!isRecord(value)) return null;
+  const padding = LAYER_LIMITS.backgroundPadding;
+  const radius = LAYER_LIMITS.backgroundRadius;
+  return {
+    color: toColor(value.color, DEFAULT_BACKGROUND.color),
+    opacity: toNumber(value.opacity, DEFAULT_BACKGROUND.opacity, 0, 1),
+    padding: toNumber(value.padding, DEFAULT_BACKGROUND.padding, padding.min, padding.max),
+    radius: toNumber(value.radius, DEFAULT_BACKGROUND.radius, radius.min, radius.max),
   };
 }
 
@@ -263,10 +322,17 @@ export function normalizeTextLayer(raw: unknown): TextLayer | null {
     italic: raw.italic === true,
     strike: raw.strike === true,
     align: ALIGNS.includes(raw.align as TextAlign) ? (raw.align as TextAlign) : defaults.align,
+    lineHeight: toNumber(
+      raw.lineHeight,
+      defaults.lineHeight,
+      limits.lineHeight.min,
+      limits.lineHeight.max,
+    ),
     color: toColor(raw.color, defaults.color),
     opacity: toNumber(raw.opacity, 1, 0, 1),
     stroke: toStroke(raw.stroke),
     shadow: toShadow(raw.shadow),
+    background: toBackground(raw.background),
   };
 }
 
