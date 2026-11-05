@@ -1,0 +1,52 @@
+/**
+ * EditorSidePanel 컴포넌트 스타일.
+ *
+ * 생성일자: 2026-11-05
+ * 생성자: bioyejin
+ * 수정일자: 2026-11-05
+ * 수정자: bioyejin
+ */
+
+.panel {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tab {
+  flex: 1;
+  height: 44px;
+  padding: 0 var(--space-3);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  /* 아래쪽 패널 경계선과 겹치게 해서 고른 탭의 밑줄이 경계선 위에 보이게 한다 */
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color var(--transition-fast);
+}
+
+.tab:hover {
+  color: var(--color-text);
+}
+
+.active {
+  color: var(--color-primary-text);
+  border-bottom-color: var(--color-primary);
+}
+
+.content {
+  padding: var(--space-4);
+}
+
+.hint {
+  margin: 0;
+  color: var(--color-text-tertiary);
+}

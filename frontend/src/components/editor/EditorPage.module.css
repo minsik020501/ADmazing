@@ -3,11 +3,11 @@
  *
  * 생성일자: 2026-11-04
  * 생성자: bioyejin
- * 수정일자: 2026-11-04
+ * 수정일자: 2026-11-05
  * 수정자: bioyejin
  */
 
-/* 입력 화면(720px)보다 넓게 써서 편집 영역 양옆에 패널 폭만큼 자리를 둔다 */
+/* 입력 화면(720px)보다 넓게 써서 캔버스 옆에 패널을 둔다 */
 .page {
   display: flex;
   flex-direction: column;
@@ -18,9 +18,18 @@
   padding: 0 var(--space-4) var(--space-8);
 }
 
+/* 왼쪽 돌아가기, 오른쪽 리셋·미리보기·저장하기 */
 .toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.toolbarActions {
+  display: flex;
+  gap: var(--space-2);
 }
 
 /* 파란 글자. 마우스를 올려도 색을 유지한다 */
@@ -28,100 +37,100 @@
   color: var(--color-primary-text);
 }
 
-/*
- * 넓은 화면: (빈 칸) | 편집 영역 | 패널. 왼쪽에 패널과 같은 폭의 빈 칸을 둬서 편집 영역이 화면 가운데에 온다.
- * 중간 화면: 편집 영역 | 패널 (빈 칸까지 두면 편집 영역이 너무 좁아짐).
- * 좁은 화면: 패널이 편집 영역 아래로 내려간다
- */
+/* 넓은 화면: 캔버스 카드 | 패널. 좁은 화면에서는 패널이 아래로 내려간다 */
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) var(--sidebar-width);
+  grid-template-columns: minmax(0, 1fr) 360px;
   gap: var(--space-4);
   align-items: start;
 }
 
-@media (min-width: 1100px) {
-  .workspace {
-    grid-template-columns: var(--sidebar-width) minmax(0, 1fr) var(--sidebar-width);
-  }
-
-  .stage {
-    grid-column: 2;
-  }
-
-  .panel {
-    grid-column: 3;
-  }
-}
-
-@media (max-width: 767px) {
+@media (max-width: 899px) {
   .workspace {
     grid-template-columns: minmax(0, 1fr);
   }
 }
 
-/* 이미지가 놓이는 바탕. 세로로 긴 이미지는 좌우가 비므로 바탕색으로 구분한다 */
-.stage {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-4);
-  background: var(--color-surface-muted);
-  border-radius: var(--radius-lg);
-}
-
-/* 화면 높이 안에 들어오게 줄이고, 비율은 width·height 속성대로 유지 */
-.image {
-  display: block;
-  max-width: 100%;
-  max-height: 70vh;
-  width: auto;
-  height: auto;
-  border-radius: var(--radius-sm);
-}
-
-.panel {
+/* 위에서부터 확대·축소 줄, 캔버스, 썸네일 줄 */
+.card {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-}
-
-.panelSection {
-  padding: var(--space-4);
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-3);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
 }
 
-.panelTitle {
-  margin: 0;
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-bold);
-  color: var(--color-text);
-}
-
-.panelHint {
-  margin: var(--space-2) 0 0;
-  color: var(--color-text-tertiary);
-}
-
-/* 저장 버튼과 그 아래 안내 문구 (입력 화면의 [이미지 생성] 영역과 같은 모양) */
-.saveArea {
+.canvasTools {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: var(--space-2);
-  margin-top: var(--space-2);
-}
-
-.actions {
-  display: flex;
-  justify-content: center;
+  justify-content: space-between;
   gap: var(--space-3);
 }
 
-.hint {
+.zoom {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* 눌러서 화면에 맞추는 % 표시 */
+.zoomValue {
+  min-width: 48px;
+  height: 32px;
+  padding: 0 var(--space-1);
+  color: var(--color-text);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+}
+
+.zoomValue:hover {
+  background: var(--color-surface-muted);
+}
+
+.resolution {
+  color: var(--color-text-tertiary);
+}
+
+/* 캔버스가 놓이는 바탕. 세로로 긴 이미지는 좌우가 비므로 바탕색으로 구분한다 */
+.stage {
+  min-width: 0;
+  padding: var(--space-3);
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-md);
+}
+
+/* 미리보기 이미지. 레이어 안에 들어오게 줄이고 비율은 유지 */
+.previewImage {
+  display: block;
+  max-width: min(80vw, 1024px);
+  max-height: 78vh;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+}
+
+/* 저장 화면: 버튼을 위아래로 놓고 그 아래 안내 문구 */
+.saveMenu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 240px;
+  max-width: 100%;
+}
+
+.saveHint {
   margin: 0;
   font-size: var(--font-size-sm);
-  color: var(--color-text-tertiary);
+  color: var(--color-text-on-overlay-muted);
+  text-align: center;
+}
+
+.saveError {
+  margin: 0;
+  color: var(--color-text-on-overlay);
+  text-align: center;
 }
