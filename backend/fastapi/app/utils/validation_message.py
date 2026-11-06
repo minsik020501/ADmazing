@@ -16,6 +16,8 @@ _FIELD_MESSAGES = {
     "string_too_long": "'{field}' 값은 최대 {max_length}자까지 입력할 수 있습니다.",
     "too_long": "'{field}' 값은 최대 {max_length}개까지 넣을 수 있습니다.",
     "list_type": "'{field}' 값은 목록이어야 합니다.",
+    "too_short": "'{field}' 값은 최소 {min_length}개 이상 넣어야 합니다.",
+    "literal_error": "'{field}' 값은 {expected} 중 하나여야 합니다.",
     "value_error": "'{field}' 값이 올바르지 않습니다. {error}",
     "string_type": "'{field}' 값은 문자열이어야 합니다.",
     "int_type": "'{field}' 값은 정수여야 합니다.",
