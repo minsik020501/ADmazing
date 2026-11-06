@@ -2,7 +2,7 @@
 
 생성일자: 2026-10-16
 생성자: ven_choi
-수정일자: 2026-11-02
+수정일자: 2026-11-06
 수정자: ven_choi
 """
 
@@ -14,16 +14,19 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api.routes import generate, health, jobs
+from app.api.routes import copy_recommend, generate, health, jobs, layout_recommend
 from app.core.config import settings
+from app.services.copy_recommender_factory import create_copy_recommender
 from app.services.generation_job_store import GenerationJobStore
 from app.services.image_generator_factory import create_image_generator
+from app.services.layout_recommender_factory import create_layout_recommender
 from app.utils.validation_message import to_korean_errors
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """서버 시작 시 이미지 생성기를 한 번만 로드하고 작업 저장소를 만든다.
+    """서버 시작 시 이미지 생성기와 영역 찾기 모델을 한 번만 로드하고
+    문구 추천기, 문구 배치 추천기, 작업 저장소를 만든다.
 
     Args:
         app: FastAPI 애플리케이션 인스턴스.
@@ -32,6 +35,8 @@ async def lifespan(app: FastAPI):
         None: 서버가 실행되는 동안 제어를 넘긴다.
     """
     app.state.image_generator = create_image_generator()
+    app.state.copy_recommender = create_copy_recommender()
+    app.state.layout_recommender = create_layout_recommender()
     app.state.job_store = GenerationJobStore()
     yield
 
@@ -70,3 +75,5 @@ app.add_middleware(
 app.include_router(health.router, prefix="/api")
 app.include_router(generate.router, prefix="/api")
 app.include_router(jobs.router, prefix="/api")
+app.include_router(copy_recommend.router, prefix="/api")
+app.include_router(layout_recommend.router, prefix="/api")

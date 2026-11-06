@@ -2,7 +2,7 @@
 
 생성일자: 2026-10-22
 생성자: ven_choi
-수정일자: 2026-10-22
+수정일자: 2026-11-06
 수정자: ven_choi
 """
 
@@ -13,6 +13,12 @@ _FIELD_MESSAGES = {
     "greater_than_equal": "'{field}' 값은 {ge} 이상이어야 합니다.",
     "multiple_of": "'{field}' 값은 {multiple_of}의 배수여야 합니다.",
     "string_too_short": "'{field}' 값은 최소 {min_length}자 이상이어야 합니다.",
+    "string_too_long": "'{field}' 값은 최대 {max_length}자까지 입력할 수 있습니다.",
+    "too_long": "'{field}' 값은 최대 {max_length}개까지 넣을 수 있습니다.",
+    "list_type": "'{field}' 값은 목록이어야 합니다.",
+    "too_short": "'{field}' 값은 최소 {min_length}개 이상 넣어야 합니다.",
+    "literal_error": "'{field}' 값은 {expected} 중 하나여야 합니다.",
+    "value_error": "'{field}' 값이 올바르지 않습니다. {error}",
     "string_type": "'{field}' 값은 문자열이어야 합니다.",
     "int_type": "'{field}' 값은 정수여야 합니다.",
     "int_parsing": "'{field}' 값은 정수여야 합니다.",
@@ -43,8 +49,14 @@ def to_korean_errors(errors: list[dict]) -> list[dict]:
     for error in errors:
         loc = error.get("loc", ())
         # loc는 ("body", "seed")처럼 위치 다음에 필드 이름이 온다.
-        # JSON 파싱 에러는 ("body", 1)처럼 필드 이름 대신 오류 위치(숫자)가 온다
-        field = loc[-1] if len(loc) > 1 and isinstance(loc[-1], str) else None
+        # JSON 파싱 에러는 ("body", 1)처럼 필드 이름 대신 오류 위치(숫자)가 온다.
+        # 목록 항목 에러는 ("body", "user_copies", "title", 0)처럼 끝에 순번이 붙으므로
+        # 그 앞의 필드 이름을 쓴다
+        field = None
+        if len(loc) > 1 and isinstance(loc[-1], str):
+            field = loc[-1]
+        elif len(loc) > 2 and isinstance(loc[-2], str):
+            field = loc[-2]
         if field is None:
             template = _BODY_MESSAGES.get(error["type"])
         else:

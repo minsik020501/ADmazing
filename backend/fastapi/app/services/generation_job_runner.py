@@ -2,7 +2,7 @@
 
 생성일자: 2026-11-02
 생성자: ven_choi
-수정일자: 2026-11-02
+수정일자: 2026-11-06
 수정자: ven_choi
 """
 
@@ -11,6 +11,7 @@ import logging
 
 from app.schemas.generate_request import GenerateRequest
 from app.services.ad_image_service import GPU_OUT_OF_MEMORY_MESSAGE, generate_ad_images
+from app.services.copy_recommender import CopyRecommender
 from app.services.generation_cancelled_error import GenerationCancelledError
 from app.services.generation_job import GenerationJob
 from app.services.gpu_out_of_memory_error import GpuOutOfMemoryError
@@ -26,6 +27,7 @@ def start_job(
     job: GenerationJob,
     req: GenerateRequest,
     image_generator: ImageGenerator,
+    copy_recommender: CopyRecommender,
 ) -> None:
     """작업을 백그라운드 태스크로 실행한다. 응답을 기다리지 않고 바로 반환한다.
 
@@ -33,8 +35,9 @@ def start_job(
         job: 진행 상황을 기록할 작업.
         req: 이미지 생성 요청.
         image_generator: 이미지 생성기.
+        copy_recommender: 문구 추천기.
     """
-    task = asyncio.create_task(_run_job(job, req, image_generator))
+    task = asyncio.create_task(_run_job(job, req, image_generator, copy_recommender))
     _running_tasks.add(task)
     task.add_done_callback(_running_tasks.discard)
 
@@ -43,16 +46,20 @@ async def _run_job(
     job: GenerationJob,
     req: GenerateRequest,
     image_generator: ImageGenerator,
+    copy_recommender: CopyRecommender,
 ) -> None:
-    """이미지를 생성하고 결과, 에러, 취소 여부를 작업에 기록한다.
+    """이미지를 생성하고 문구를 추천한 뒤 결과, 에러, 취소 여부를 작업에 기록한다.
 
     Args:
         job: 진행 상황을 기록할 작업.
         req: 이미지 생성 요청.
         image_generator: 이미지 생성기.
+        copy_recommender: 문구 추천기.
     """
     try:
-        job.complete(await generate_ad_images(req, image_generator, job))
+        job.complete(
+            await generate_ad_images(req, image_generator, copy_recommender, job)
+        )
     except GenerationCancelledError:
         job.mark_cancelled()
     except GpuOutOfMemoryError:

@@ -2,13 +2,12 @@
 
 생성일자: 2026-10-16
 생성자: ven_choi
-수정일자: 2026-11-04
+수정일자: 2026-11-06
 수정자: ven_choi
 """
 
-from openai import AsyncOpenAI
-
 from app.core.config import settings
+from app.services.openai_client import openai_client
 
 # 이미지 모델은 지시문을 따르지 않고, 프롬프트에 나온 단어를 그림으로 옮긴다.
 # "no text"처럼 부정문으로 써도 text라는 단어 때문에 오히려 글자가 생기므로
@@ -33,8 +32,6 @@ SYSTEM_PROMPT = (
     "Respond with the English prompt only, without quotes or explanations."
 )
 
-_client = AsyncOpenAI(api_key=settings.openai_api_key)
-
 
 async def translate_to_english(text: str) -> str:
     """한국어 광고 이미지 설명을 이미지 생성용 영어 프롬프트로 번역한다.
@@ -45,7 +42,7 @@ async def translate_to_english(text: str) -> str:
     Returns:
         str: 번역된 영어 프롬프트.
     """
-    response = await _client.chat.completions.create(
+    response = await openai_client.chat.completions.create(
         model=settings.openai_model,
         messages=[
             {"role": "system", "content": SYSTEM_PROMPT},

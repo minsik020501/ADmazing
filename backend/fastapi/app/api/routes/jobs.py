@@ -2,7 +2,7 @@
 
 생성일자: 2026-11-02
 생성자: ven_choi
-수정일자: 2026-11-02
+수정일자: 2026-11-06
 수정자: ven_choi
 """
 
@@ -13,11 +13,12 @@ from collections.abc import AsyncIterator
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import StreamingResponse
 
-from app.api.deps import get_image_generator, get_job_store
+from app.api.deps import get_copy_recommender, get_image_generator, get_job_store
 from app.schemas.error_response import ErrorResponse
 from app.schemas.generate_request import GenerateRequest
 from app.schemas.generation_job_created import GenerationJobCreated
 from app.schemas.generation_job_status import GenerationJobStatus
+from app.services.copy_recommender import CopyRecommender
 from app.services.generation_job import GenerationJob
 from app.services.generation_job_runner import start_job
 from app.services.generation_job_store import GenerationJobStore
@@ -68,6 +69,7 @@ def _get_job_or_404(job_id: str, job_store: GenerationJobStore) -> GenerationJob
 async def create_job(
     req: GenerateRequest,
     image_generator: ImageGenerator = Depends(get_image_generator),
+    copy_recommender: CopyRecommender = Depends(get_copy_recommender),
     job_store: GenerationJobStore = Depends(get_job_store),
 ):
     """이미지 생성 작업을 등록하고 바로 작업 id를 반환한다.
@@ -75,15 +77,16 @@ async def create_job(
     진행 상황은 GET /jobs/{job_id}/events(SSE)로 받고, DELETE /jobs/{job_id}로 취소한다.
 
     Args:
-        req: 한국어 프롬프트, 이미지 비율, 시드를 담은 요청.
+        req: 한국어 프롬프트, 이미지 비율, 시드, 사용자 문장을 담은 요청.
         image_generator: 의존성으로 주입되는 이미지 생성기.
+        copy_recommender: 의존성으로 주입되는 문구 추천기.
         job_store: 의존성으로 주입되는 작업 저장소.
 
     Returns:
         GenerationJobCreated: 등록된 작업 id.
     """
     job = job_store.create()
-    start_job(job, req, image_generator)
+    start_job(job, req, image_generator, copy_recommender)
     return GenerationJobCreated(job_id=job.job_id)
 
 
@@ -189,6 +192,7 @@ async def cancel_job(
     """작업 취소를 요청한다. 이미 끝난 작업이면 아무 일도 하지 않는다.
 
     생성 중이면 다음 step이 끝날 때 멈추고, 이미지 디코딩 중이면 디코딩이 끝난 뒤 취소된다.
+    문구 추천 중이면 OpenAI 응답을 기다리지 않고 바로 취소된다.
 
     Args:
         job_id: 작업 id.
