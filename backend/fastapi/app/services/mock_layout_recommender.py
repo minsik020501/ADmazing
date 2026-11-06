@@ -230,3 +230,14 @@ class MockLayoutRecommender:
             for label, layers in _TEMPLATES
         ]
         return json.dumps({"proposals": proposals}, ensure_ascii=False)
+
+    def detect_subjects(self, image: Image.Image) -> str:
+        """이미지를 보지 않으므로 찾은 영역이 없다고 돌려준다.
+
+        Args:
+            image: 사용하지 않는다.
+
+        Returns:
+            str: 빈 목록 "[]". 제품 가림 보정을 하지 않는다.
+        """
+        return "[]"

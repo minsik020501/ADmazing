@@ -1,4 +1,4 @@
-"""문구 배치 추천 흐름(지시문 → 모델 생성 → JSON 읽기·재시도 → 가드레일) 서비스.
+"""문구 배치 추천 흐름(영역 찾기 → 지시문 → 모델 생성 → JSON 읽기·재시도 → 가드레일) 서비스.
 
 생성일자: 2026-11-06
 생성자: ven_choi
@@ -19,7 +19,11 @@ from app.schemas.layout_recommend_request import LayoutRecommendRequest
 from app.schemas.layout_recommend_response import LayoutRecommendResponse
 from app.services.gpu_lock import gpu_lock
 from app.services.layout_guardrails import build_proposals
-from app.services.layout_output_parser import parse_proposals
+from app.services.layout_output_parser import (
+    parse_proposals,
+    parse_subjects,
+    union_box,
+)
 from app.services.layout_prompt import build_user_prompt
 from app.services.layout_recommendation_error import LayoutRecommendationError
 from app.services.layout_recommender import LayoutRecommender
@@ -62,7 +66,9 @@ def run_layout_recommendation(
     copies: list[LayoutCopy],
     num_proposals: int,
 ) -> tuple[list[LayoutProposal], str, list[str]]:
-    """모델로 추천안을 생성하고 가드레일을 거친다. Step 3 비교 스크립트도 이 함수를 쓴다.
+    """가리면 안 되는 영역을 찾고, 추천안을 생성하고, 가드레일을 거친다.
+
+    Step 3 비교 스크립트도 이 함수를 쓴다.
 
     Args:
         recommender: 문구 배치 추천기.
@@ -78,10 +84,14 @@ def run_layout_recommendation(
         LayoutRecommendationError: 재시도 후에도 쓸 수 있는 추천안이 없을 때.
         GpuOutOfMemoryError: 생성 중 GPU 메모리가 부족할 때.
     """
+    # 먼저 가리면 안 되는 영역(제품, 얼굴)을 찾아 배치 지시문에 넣고 가드레일에도 쓴다
+    with gpu_lock:
+        subjects = parse_subjects(recommender.detect_subjects(image))
+    subject = union_box([box for _, box in subjects])
     user_prompt = build_user_prompt(
-        copies, load_fonts(), image.width, image.height, num_proposals
+        copies, load_fonts(), image.width, image.height, num_proposals, subjects
     )
-    notes: list[str] = []
+    notes: list[str] = [] if subjects else ["no subject found, not avoided"]
     output = ""
     for sample in _ATTEMPTS:
         waited = time.perf_counter()
@@ -99,7 +109,9 @@ def run_layout_recommendation(
             notes.append(f"retry: {error}")
             logger.warning("문구 배치 출력을 읽지 못했습니다: %s", error)
             continue
-        proposals, fixes = build_proposals(raw_proposals, copies, image, num_proposals)
+        proposals, fixes = build_proposals(
+            raw_proposals, copies, image, num_proposals, subject
+        )
         if proposals:
             if fixes:
                 logger.info("문구 배치 가드레일 보정 %d건: %s", len(fixes), fixes)

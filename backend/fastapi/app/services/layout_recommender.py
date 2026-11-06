@@ -38,3 +38,19 @@ class LayoutRecommender(Protocol):
             GpuOutOfMemoryError: 생성 중 GPU 메모리가 부족할 때.
         """
         ...
+
+    def detect_subjects(self, image: Image.Image) -> str:
+        """가리면 안 되는 영역(제품, 사람 얼굴)을 찾는 출력 문자열을 생성한다.
+
+        GPU 잠금을 잡은 상태에서 호출한다. 지시문은 layout_prompt.SUBJECT_PROMPT다.
+
+        Args:
+            image: 배치를 추천받을 이미지 (원본 크기).
+
+        Returns:
+            str: [{"label", "bbox_2d"}] 형태의 JSON 문자열 (0~1000 좌표).
+
+        Raises:
+            GpuOutOfMemoryError: 생성 중 GPU 메모리가 부족할 때.
+        """
+        ...

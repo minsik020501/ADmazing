@@ -14,7 +14,7 @@ from PIL import Image
 from app.core.config import settings
 from app.schemas.layout_copy import LayoutCopy
 from app.services.gpu_out_of_memory_error import GpuOutOfMemoryError
-from app.services.layout_prompt import SYSTEM_PROMPT
+from app.services.layout_prompt import SUBJECT_PROMPT, SYSTEM_PROMPT
 from app.utils.device import resolve_device
 
 logger = logging.getLogger(__name__)
@@ -22,6 +22,8 @@ logger = logging.getLogger(__name__)
 # 양자화하지 않을 모듈. 비전 인코더는 작고 양자화 오차에 민감하며,
 # lm_head는 출력 토큰 분포에 바로 영향을 주므로 bf16으로 둔다
 _MODULES_NOT_TO_QUANTIZE = ["visual", "lm_head"]
+# 영역 찾기 출력은 상자 몇 개뿐이라 짧게 둔다
+_SUBJECT_MAX_NEW_TOKENS = 160
 # 재시도(sample=True)에서 쓰는 샘플링 설정
 _SAMPLE_TEMPERATURE = 0.7
 _SAMPLE_TOP_P = 0.9
@@ -102,20 +104,74 @@ class QwenLayoutRecommender:
         Raises:
             GpuOutOfMemoryError: 생성 중 GPU 메모리가 부족할 때.
         """
+        return self._run(
+            image,
+            user_prompt,
+            SYSTEM_PROMPT,
+            settings.layout_max_new_tokens,
+            sample,
+            "문구 배치 생성",
+        )
+
+    def detect_subjects(self, image: Image.Image) -> str:
+        """가리면 안 되는 영역(제품, 사람 얼굴)을 찾는다. 출력이 짧아 금방 끝난다.
+
+        Args:
+            image: 배치를 추천받을 이미지.
+
+        Returns:
+            str: [{"label", "bbox_2d"}] 형태의 JSON 문자열.
+
+        Raises:
+            GpuOutOfMemoryError: 생성 중 GPU 메모리가 부족할 때.
+        """
+        return self._run(
+            image, SUBJECT_PROMPT, None, _SUBJECT_MAX_NEW_TOKENS, False, "영역 찾기"
+        )
+
+    def _run(
+        self,
+        image: Image.Image,
+        prompt: str,
+        system_prompt: str | None,
+        max_new_tokens: int,
+        sample: bool,
+        name: str,
+    ) -> str:
+        """이미지와 지시문으로 한 번 생성하고 새로 만든 부분만 문자열로 돌려준다.
+
+        Args:
+            image: 입력 이미지. 긴 변을 LAYOUT_IMAGE_MAX_SIDE로 줄여 넣는다.
+            prompt: 사용자 지시문.
+            system_prompt: 시스템 지시문. 없으면 None.
+            max_new_tokens: 최대 출력 토큰 수.
+            sample: True면 샘플링, False면 greedy.
+            name: 로그에 남길 작업 이름.
+
+        Returns:
+            str: 모델 출력 문자열.
+
+        Raises:
+            GpuOutOfMemoryError: 생성 중 GPU 메모리가 부족할 때.
+        """
         resized = image.convert("RGB")
         resized.thumbnail(
             (settings.layout_image_max_side, settings.layout_image_max_side)
         )
-        messages = [
-            {"role": "system", "content": [{"type": "text", "text": SYSTEM_PROMPT}]},
+        messages = []
+        if system_prompt:
+            messages.append(
+                {"role": "system", "content": [{"type": "text", "text": system_prompt}]}
+            )
+        messages.append(
             {
                 "role": "user",
                 "content": [
                     {"type": "image", "image": resized},
-                    {"type": "text", "text": user_prompt},
+                    {"type": "text", "text": prompt},
                 ],
-            },
-        ]
+            }
+        )
         inputs = self.processor.apply_chat_template(
             messages,
             tokenize=True,
@@ -124,10 +180,7 @@ class QwenLayoutRecommender:
             return_tensors="pt",
         ).to(self.model.device)
 
-        options = {
-            "max_new_tokens": settings.layout_max_new_tokens,
-            "do_sample": sample,
-        }
+        options = {"max_new_tokens": max_new_tokens, "do_sample": sample}
         if sample:
             options.update(temperature=_SAMPLE_TEMPERATURE, top_p=_SAMPLE_TOP_P)
         else:
@@ -145,7 +198,8 @@ class QwenLayoutRecommender:
         prompt_length = inputs["input_ids"].shape[1]
         generated = output_ids[0, prompt_length:]
         logger.info(
-            "문구 배치 생성: 입력 %d 토큰, 출력 %d 토큰, %.1f초 (sample=%s)",
+            "%s: 입력 %d 토큰, 출력 %d 토큰, %.1f초 (sample=%s)",
+            name,
             prompt_length,
             generated.shape[0],
             time.perf_counter() - started,

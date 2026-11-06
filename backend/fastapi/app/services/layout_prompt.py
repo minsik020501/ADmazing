@@ -23,6 +23,17 @@ ROLE_SIZE_GUIDE: dict[CopyRole, tuple[float, float]] = {
 
 EFFECTS = ("none", "stroke", "shadow", "background")
 
+# 배치 전에 가리면 안 되는 영역(제품, 사람 얼굴)을 찾는 지시문.
+# 배치 지시문에 함께 넣으면 영역을 크게 잡아서(사람 전체 등) 따로 짧게 묻는다
+SUBJECT_PROMPT = (
+    "Detect the things in this advertisement image that must stay visible: the "
+    "advertised product, and the face of each main person. If a person is wearing "
+    "the advertised clothing, the clothing they wear is the product. Ignore small "
+    "people in the background. Output a JSON list: "
+    '[{"label": "product" or "face", "bbox_2d": [x1, y1, x2, y2]}] with '
+    "coordinates from 0 to 1000. Output [] if there is no product or face."
+)
+
 SYSTEM_PROMPT = (
     "You are an expert advertising layout designer. Given an ad image and Korean "
     "ad copy, you decide where each line of copy goes and how it is styled so the "
@@ -84,8 +95,9 @@ def build_user_prompt(
     width: int,
     height: int,
     num_proposals: int,
+    subjects: list[tuple[str, tuple[float, float, float, float]]] | None = None,
 ) -> str:
-    """문구, 글꼴 목록, 좌표 규칙, 출력 형식을 담은 사용자 지시문을 만든다.
+    """문구, 글꼴 목록, 가리면 안 되는 영역, 좌표 규칙, 출력 형식을 담은 사용자 지시문을 만든다.
 
     Args:
         copies: 배치할 역할별 문구.
@@ -93,6 +105,8 @@ def build_user_prompt(
         width: 원본 이미지 너비 (px).
         height: 원본 이미지 높이 (px).
         num_proposals: 만들 추천안 수.
+        subjects: 먼저 찾아 둔 가리면 안 되는 영역 [(이름, (왼쪽, 위, 오른쪽, 아래) 비율)].
+            없거나 비었으면 영역 목록을 넣지 않는다.
 
     Returns:
         str: 모델에 이미지와 함께 보낼 지시문.
@@ -127,19 +141,26 @@ def build_user_prompt(
             "- size: font size as a ratio of the image HEIGHT. Recommended ranges:",
             *size_lines,
             "",
+            *_subject_lines(subjects),
             "Rules:",
-            "- Never cover the main product or subject. Put copy on empty or calm "
-            "areas such as the sky, a plain wall or the table surface.",
+            "- Never cover the product or a person's face (see the regions above if "
+            "given). Put copy on empty or calm areas such as the sky, a plain wall or "
+            "the table surface.",
             "- Keep every text box fully inside the image with a small margin. "
             "Consider how wide the text will be at the chosen size.",
             "- Use dark text on bright areas and bright text on dark areas.",
             "- If the area behind the text is busy, use an effect: stroke, shadow "
             "or background (a box behind the text).",
             "- Keep a clear hierarchy: title is the biggest, then subtitle, then text.",
-            "- Lines of the same proposal must not overlap each other.",
+            "- Lines of the same proposal must not overlap each other. When you "
+            "stack lines, the distance between their y values must be larger than "
+            "the sum of half of each size (e.g. title size 0.1 and subtitle size "
+            "0.05 need a y distance of at least 0.09).",
             f"- Make {num_proposals} proposals that are clearly different from each "
-            "other: vary the position (top, bottom, left, right, center) and the "
-            "font category.",
+            "other: vary the position (top, bottom, left, right, center).",
+            "- Use a different title font in every proposal, and use at least three "
+            "font categories across the proposals (e.g. headline, serif, rounded, "
+            "handwriting). Pick fonts whose mood fits the image.",
             "- label: a short Korean name for the proposal (at most 12 characters).",
             "",
             "Output minified JSON on a single line (no indentation, no line breaks) "
@@ -152,3 +173,22 @@ def build_user_prompt(
             "align is one of: left, center, right.",
         ]
     )
+
+
+def _subject_lines(
+    subjects: list[tuple[str, tuple[float, float, float, float]]] | None,
+) -> list[str]:
+    """가리면 안 되는 영역 목록을 지시문 줄로 만든다.
+
+    Returns:
+        list[str]: 지시문 줄. 영역이 없으면 빈 목록.
+    """
+    if not subjects:
+        return []
+    lines = [
+        "Regions that must stay visible (left, top, right, bottom as a ratio of "
+        "the image):"
+    ]
+    for label, box in subjects:
+        lines.append(f"- {label}: [{', '.join(f'{v:.2f}' for v in box)}]")
+    return lines + [""]
