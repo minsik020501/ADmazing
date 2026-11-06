@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-11-04
  * 생성자: bioyejin
- * 수정일자: 2026-11-05
+ * 수정일자: 2026-11-06
  * 수정자: bioyejin
  */
 
@@ -114,3 +114,9 @@ export const ZOOM_WHEEL_SPEED = 0.0015;
 
 /** 복제한 문구 상자를 원본에서 비켜 놓는 거리 (이미지 대비 비율) */
 export const DUPLICATE_OFFSET = 0.03;
+
+/** 이미지 한 장에서 되돌릴 수 있는 최대 단계 */
+export const HISTORY_LIMIT = 50;
+
+/** 같은 항목을 이 시간(ms) 안에 이어서 바꾸면 되돌리기 한 단계로 묶는다 (슬라이더 끌기 등) */
+export const HISTORY_GROUP_MS = 500;

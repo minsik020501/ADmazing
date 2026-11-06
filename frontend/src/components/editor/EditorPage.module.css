@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-11-04
  * 생성자: bioyejin
- * 수정일자: 2026-11-05
+ * 수정일자: 2026-11-06
  * 수정자: bioyejin
  */
 
@@ -18,7 +18,7 @@
   padding: 0 var(--space-4) var(--space-8);
 }
 
-/* 왼쪽 돌아가기, 오른쪽 리셋·미리보기·저장하기 */
+/* 왼쪽 돌아가기, 오른쪽 되돌리기·다시 실행·리셋·미리보기·저장하기 */
 .toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -29,6 +29,7 @@
 
 .toolbarActions {
   display: flex;
+  align-items: center;
   gap: var(--space-2);
 }
 

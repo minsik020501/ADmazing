@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-11-04
  * 생성자: bioyejin
- * 수정일자: 2026-11-05
+ * 수정일자: 2026-11-06
  * 수정자: bioyejin
  */
 
@@ -50,6 +50,8 @@ export interface TextLayerPanelProps {
   onDelete: (id: string) => void;
   /** 선택한 문구 상자의 값을 바꾼다 */
   onChange: (id: string, changes: Partial<Omit<TextLayer, "id">>) => void;
+  /** 문구 입력칸을 벗어날 때 호출 (되돌리기 단계를 끊는 데 사용) */
+  onTextEnd: () => void;
   /** 글꼴 메뉴에서 항목으로 이동할 때 캔버스에 임시로 보여줄 글꼴 id. 끝나면 null */
   onFontPreview: (fontId: string | null) => void;
 }
@@ -58,6 +60,8 @@ interface TextInputProps {
   /** 지금 문구 */
   value: string;
   onChange: (text: string) => void;
+  /** 입력칸을 벗어날 때 호출 */
+  onEnd: () => void;
 }
 
 /**
@@ -67,7 +71,7 @@ interface TextInputProps {
  * @param props - 지금 문구, 변경 처리 함수
  * @returns 문구 입력 묶음
  */
-function TextInput({ value, onChange }: TextInputProps) {
+function TextInput({ value, onChange, onEnd }: TextInputProps) {
   const [draft, setDraft] = useState(value);
   const { max } = LAYER_LIMITS.textLength;
 
@@ -96,7 +100,10 @@ function TextInput({ value, onChange }: TextInputProps) {
           setDraft(e.target.value);
           if (e.target.value.trim() !== "") onChange(e.target.value);
         }}
-        onBlur={() => setDraft(value)}
+        onBlur={() => {
+          setDraft(value);
+          onEnd();
+        }}
       />
     </div>
   );
@@ -145,6 +152,7 @@ export default function TextLayerPanel({
   onAdd,
   onDelete,
   onChange,
+  onTextEnd,
   onFontPreview,
 }: TextLayerPanelProps) {
   const limits = LAYER_LIMITS;
@@ -161,6 +169,7 @@ export default function TextLayerPanel({
             key={`text-${selectedLayer.id}`}
             value={selectedLayer.text}
             onChange={(text) => onChange(selectedLayer.id, { text })}
+            onEnd={onTextEnd}
           />
 
           <div className={styles.field}>
