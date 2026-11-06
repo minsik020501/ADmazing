@@ -18,8 +18,7 @@ from app.services.gpu_out_of_memory_error import GpuOutOfMemoryError
 from app.services.image_generator import ImageGenerator, StepCallback
 from app.utils.gpu import get_peak_vram_mb, reset_peak_vram
 
-# VRAM 최대 사용량이 다른 요청과 섞이지 않도록 생성은 한 번에 하나씩 실행한다.
-# 문구 배치 추천 모델도 같은 GPU를 쓰므로 같은 잠금(gpu_lock)을 쓴다
+# VRAM 최대 사용량이 다른 요청과 섞이지 않도록 생성은 한 번에 하나씩 실행한다 (gpu_lock)
 # 생성 차례를 기다리는 작업이 취소 요청을 확인하는 간격
 _LOCK_POLL_SECONDS = 0.5
 

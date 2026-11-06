@@ -25,8 +25,8 @@ from app.utils.validation_message import to_korean_errors
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """서버 시작 시 이미지 생성기와 문구 배치 모델을 한 번만 로드하고
-    문구 추천기와 작업 저장소를 만든다.
+    """서버 시작 시 이미지 생성기와 영역 찾기 모델을 한 번만 로드하고
+    문구 추천기, 문구 배치 추천기, 작업 저장소를 만든다.
 
     Args:
         app: FastAPI 애플리케이션 인스턴스.

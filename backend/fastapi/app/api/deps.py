@@ -10,7 +10,7 @@ from fastapi import Request
 
 from app.services.copy_recommender import CopyRecommender
 from app.services.generation_job_store import GenerationJobStore
-from app.services.layout_recommender import LayoutRecommender
+from app.services.template_layout_recommender import TemplateLayoutRecommender
 from app.services.image_generator import ImageGenerator
 
 
@@ -41,10 +41,10 @@ def get_copy_recommender(request: Request) -> CopyRecommender:
     return request.app.state.copy_recommender
 
 
-def get_layout_recommender(request: Request) -> LayoutRecommender:
+def get_layout_recommender(request: Request) -> TemplateLayoutRecommender:
     """서버 시작 시 만든 문구 배치 추천기를 반환한다.
 
     Returns:
-        LayoutRecommender: app.state에 저장된 문구 배치 추천기.
+        TemplateLayoutRecommender: app.state에 저장된 문구 배치 추천기.
     """
     return request.app.state.layout_recommender

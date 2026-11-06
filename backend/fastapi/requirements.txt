@@ -4,3 +4,7 @@ pydantic-settings==2.6.1
 openai==1.55.3
 httpx==0.27.2
 pillow==11.0.0
+# 문구 배치 추천의 영역 찾기 (U²-Net, YuNet). CPU 전용
+numpy==2.4.6
+onnxruntime==1.30.0
+opencv-python-headless==5.0.0.93

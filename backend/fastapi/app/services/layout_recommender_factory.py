@@ -1,4 +1,4 @@
-"""설정에 맞는 문구 배치 추천기를 만드는 팩토리.
+"""문구 배치 추천기(템플릿 + 영역 찾기)를 만드는 팩토리.
 
 생성일자: 2026-11-06
 생성자: ven_choi
@@ -7,19 +7,23 @@
 """
 
 from app.core.config import settings
-from app.services.layout_recommender import LayoutRecommender
-from app.services.mock_layout_recommender import MockLayoutRecommender
+from app.services.template_layout_recommender import TemplateLayoutRecommender
 
 
-def create_layout_recommender() -> LayoutRecommender:
-    """LAYOUT_RECOMMENDER 설정에 맞는 추천기를 만든다. qwen이면 모델을 이때 불러온다.
+def create_layout_recommender() -> TemplateLayoutRecommender:
+    """문구 배치 추천기를 만든다. LAYOUT_DETECT_SUBJECTS면 영역 찾기 모델을 이때 불러온다.
 
     Returns:
-        LayoutRecommender: mock이면 고정 템플릿 추천기, qwen이면 Qwen3-VL 추천기.
-    """
-    if settings.layout_recommender == "qwen":
-        # torch, transformers는 INSTALL_ML=true 빌드에만 있으므로 필요할 때만 import한다
-        from app.services.qwen_layout_recommender import QwenLayoutRecommender
+        TemplateLayoutRecommender: 템플릿 추천기.
 
-        return QwenLayoutRecommender()
-    return MockLayoutRecommender()
+    Raises:
+        FileNotFoundError: 영역 찾기를 켰는데 모델 파일이 없을 때.
+    """
+    detector = None
+    if settings.layout_detect_subjects:
+        from app.services.subject_detector import SubjectDetector
+
+        detector = SubjectDetector(
+            settings.layout_salient_model_path, settings.layout_face_model_path
+        )
+    return TemplateLayoutRecommender(detector)

@@ -68,19 +68,14 @@ class Settings(BaseSettings):
     # OpenAI에 보낼 이미지의 긴 변(px). 분위기·색감·피사체만 보면 되므로 줄여서 보낸다
     copy_image_max_side: int = Field(512, ge=64)
 
-    # 이미지와 문구로 위치·글꼴·스타일 추천안을 만든다. mock은 GPU 없이 고정 템플릿을 돌려준다
-    layout_recommender: Literal["mock", "qwen"] = "mock"
-    layout_device: Literal["auto", "cuda", "mps", "cpu"] = "auto"
-    layout_model_dir: Path = Path("/models/qwen3-vl-4b-instruct")
-    # none: 원본 bf16. int8, int4: 언어 모델 가중치만 torchao로 줄인다(cuda 전용).
-    # 비전 인코더는 작고 양자화 오차에 민감해 bf16으로 둔다
-    layout_quant: Literal["none", "int8", "int4"] = "none"
-    # 모델에 넣을 이미지의 긴 변(px). 클수록 정확하지만 느려진다
-    layout_image_max_side: int = Field(768, ge=128)
-    # 추천안 5개 × 문구 3개의 압축 JSON이 들어갈 만큼 둔다
-    layout_max_new_tokens: int = Field(1536, ge=64)
-    # 글꼴 목록 (id, category, mood). 모델에 알려주고 결과의 글꼴 id를 검사하는 데 쓴다
-    fonts_manifest_path: Path = Path("/fonts/manifest.json")
+    # 문구 배치 추천은 템플릿과 규칙으로 만든다 (CPU). 가리면 안 되는 영역(제품, 얼굴)을
+    # 전용 검출기로 찾아 피한다. 끄면 영역을 피하지 않는다 (모델 파일이 없는 개발 환경용)
+    layout_detect_subjects: bool = True
+    # 주 피사체 분리 U²-Net, 얼굴 검출 YuNet ONNX 파일
+    layout_salient_model_path: Path = Path("/models/detectors/u2net.onnx")
+    layout_face_model_path: Path = Path(
+        "/models/detectors/face_detection_yunet_2023mar.onnx"
+    )
 
 
 settings = Settings()

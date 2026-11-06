@@ -8,8 +8,8 @@ x-api-environment: &api-environment
   SDXL_MODEL_DIR: /models/sdxl-base
   SDXL_VAE_DIR: /models/sdxl-vae-fp16-fix
   ZIMAGE_MODEL_DIR: /models/z-image-turbo
-  LAYOUT_MODEL_DIR: /models/qwen3-vl-4b-instruct
-  FONTS_MANIFEST_PATH: /fonts/manifest.json
+  LAYOUT_SALIENT_MODEL_PATH: /models/detectors/u2net.onnx
+  LAYOUT_FACE_MODEL_PATH: /models/detectors/face_detection_yunet_2023mar.onnx
 
 services:
   # api보다 먼저 한 번 실행된다. ZIMAGE_QUANT 양자화 모델이 없으면 원본에서 변환해 저장하고,
@@ -35,8 +35,6 @@ services:
     volumes:
       - ./backend/fastapi/app:/app/app
       - ./models:/models:ro
-      # 문구 배치 추천에서 쓰는 글꼴 목록 (fonts/manifest.json)
-      - ./fonts:/fonts:ro
       # GENERATION_LOG_PATH 측정 로그
       - ./logs:/app/logs
       - hf-cache:/root/.cache/huggingface
