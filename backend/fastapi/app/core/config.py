@@ -2,7 +2,7 @@
 
 생성일자: 2026-10-16
 생성자: ven_choi
-수정일자: 2026-11-04
+수정일자: 2026-11-06
 수정자: ven_choi
 """
 
@@ -58,6 +58,15 @@ class Settings(BaseSettings):
     # none: 원본 bf16. int8, fp8: transformer·text_encoder를 8bit로 줄인 모델(cuda 전용).
     # 양자화 모델은 model-prep(app/cli/prepare_zimage.py)이 <zimage_model_dir>-<종류>에 만든다
     zimage_quant: Literal["none", "int8", "fp8"] = "none"
+
+    # 생성된 이미지마다 광고 문구를 추천한다. mock은 OpenAI 키 없이 고정 문구를 돌려준다
+    copy_recommender: Literal["mock", "openai"] = "openai"
+    # 문구 추천에 쓸 OpenAI 모델. 비워 두면 OPENAI_MODEL을 쓴다 (이미지 입력 지원 모델)
+    copy_openai_model: str | None = None
+    # 이미지 1장의 문구 추천(재요청 포함)에 허용하는 최대 시간
+    copy_timeout_seconds: float = Field(20.0, gt=0)
+    # OpenAI에 보낼 이미지의 긴 변(px). 분위기·색감·피사체만 보면 되므로 줄여서 보낸다
+    copy_image_max_side: int = Field(512, ge=64)
 
 
 settings = Settings()
