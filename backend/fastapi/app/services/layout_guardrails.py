@@ -6,8 +6,14 @@
 1. 모르는 글꼴, 형식이 틀린 색, 범위 밖 숫자를 기본값·범위 안으로 맞춘다
 2. 글꼴 크기와 글자 수로 상자 크기를 어림해, 너무 넓으면 줄바꿈 폭을 정하고
    이미지 밖으로 나가지 않게 옮긴다 (세로가 넘치면 글꼴 크기를 줄인다)
-3. 상자 뒤 배경과 글자색의 대비가 낮고 효과가 없으면 외곽선을 붙인다
-4. 요청 문구를 넣고, 모델이 빠뜨린 역할은 기본 위치에 채운다
+3. 제품 가림: 가리면 안 되는 영역(subject)을 많이 덮는 문구는 위·아래·왼쪽·오른쪽 중
+   가장 가까운 빈 곳으로 옮긴다. subject가 이미지 대부분이면(장면 사진) 하지 않는다
+4. 겹침: 세로로 쌓인 문구가 서로 겹치면 아래 문구를 내리고, 이미지 밖으로 나가면
+   묶음 전체를 올린다
+5. 정렬: 상자가 이미지 왼쪽에 있으면 left, 오른쪽이면 right, 가운데면 center로 맞추고,
+   같은 쪽 문구끼리 왼쪽(오른쪽) 끝을 맞춘다
+6. 상자 뒤 배경과 글자색의 대비가 낮고 효과가 없으면 외곽선을 붙인다
+7. 요청 문구를 넣고, 모델이 빠뜨린 역할은 기본 위치에 채운다
 
 생성일자: 2026-11-06
 생성자: ven_choi
@@ -15,6 +21,7 @@
 수정자: ven_choi
 """
 
+import itertools
 import math
 import re
 import unicodedata
@@ -49,6 +56,25 @@ EDGE_MARGIN = 0.03
 WRAP_WIDTH = 0.8
 # 글자색과 배경의 WCAG 대비비가 이보다 낮으면 효과를 붙인다
 MIN_CONTRAST = 3.0
+# 문구 상자 면적 중 이 비율보다 많이 subject를 덮으면 옮긴다
+SUBJECT_COVER_LIMIT = 0.15
+# subject가 이미지 면적의 이 비율보다 크면 장면 사진으로 보고 옮기지 않는다 (옮길 곳이 없다)
+SCENE_SUBJECT_AREA = 0.6
+# subject와 문구, 문구와 문구 사이에 둘 최소 간격 (이미지 대비)
+GAP = 0.015
+# subject 옆으로 옮길 때 문구를 접어 넣을 수 있는 최소 폭 (이미지 가로 대비)
+MIN_SIDE_WIDTH = 0.2
+# 글자 폭은 글자 수로 어림하므로 실제 글꼴보다 좁을 수 있다. 겹침·가림을 볼 때만 이만큼 키워 본다
+BOX_SAFETY = 1.1
+# 상자 가운데가 이 값보다 왼쪽이면 left, (1 - 이 값)보다 오른쪽이면 right 정렬로 본다
+SIDE_ALIGN_THRESHOLD = 0.4
+# left/right 정렬 문구에 고정할 상자 폭 (어림한 글자 폭 대비). FE에서 상자 끝을 정확히
+# 맞추려고 폭을 고정하는데, 실제 글꼴이 더 넓어 줄이 바뀌지 않도록 여유를 둔다
+ALIGN_BOX_SAFETY = 1.15
+# subject 옆 좁은 칸에 접어 넣을 때 역할별 최대 줄 수. 넘으면 글자를 줄인다
+SIDE_MAX_LINES: dict[CopyRole, int] = {"title": 2, "subtitle": 2, "text": 3}
+# 옆 칸에 넣으려고 글자를 줄일 때의 하한 (역할별 권장 최소 크기 대비)
+SIDE_MIN_SIZE_RATIO = 0.8
 # 글꼴 크기 범위 (docs/text_layer_spec.md)
 _FONT_SIZE_RANGE = (0.01, 0.4)
 _LINE_HEIGHT = 1.2
@@ -63,6 +89,7 @@ def build_proposals(
     copies: list[LayoutCopy],
     image: Image.Image,
     num_proposals: int,
+    subject: tuple[float, float, float, float] | None = None,
 ) -> tuple[list[LayoutProposal], list[str]]:
     """모델의 압축 추천안을 검사·보정해 문구 상자 추천안으로 만든다.
 
@@ -71,6 +98,8 @@ def build_proposals(
         copies: 요청한 역할별 문구.
         image: 원본 이미지. 비율과 배경 밝기를 보는 데 쓴다.
         num_proposals: 돌려줄 최대 추천안 수.
+        subject: 가리면 안 되는 영역 (왼쪽, 위, 오른쪽, 아래 비율). 없으면 제품 가림
+            보정을 하지 않는다.
 
     Returns:
         tuple[list[LayoutProposal], list[str]]: 추천안 목록과 고친 내용 목록.
@@ -81,6 +110,9 @@ def build_proposals(
     aspect = image.height / image.width
     proposals: list[LayoutProposal] = []
     fixes: list[str] = []
+    if subject is not None and _area(subject) > SCENE_SUBJECT_AREA:
+        fixes.append(f"subject covers {_area(subject):.0%} of image, not avoided")
+        subject = None
     for index, raw in enumerate(raw_proposals[:num_proposals], start=1):
         prefix = f"p{index}"
         raw_layers = raw.get("layers")
@@ -88,17 +120,28 @@ def build_proposals(
             fixes.append(f"{prefix}: layers missing, dropped")
             continue
         by_role = _layers_by_role(raw_layers, prefix, fixes)
-        layers = []
+        drafts = []
         for copy in copies:
             raw_layer = by_role.get(copy.role)
             if raw_layer is None:
                 fixes.append(f"{prefix}.{copy.role}: missing, default position")
                 raw_layer = {}
-            layers.append(
-                _build_layer(
+            drafts.append(
+                _draft_layer(
                     raw_layer, copy, aspect, sample, f"{prefix}.{copy.role}", fixes
                 )
             )
+        if subject is not None:
+            for draft in drafts:
+                _avoid_subject(
+                    draft, subject, aspect, f"{prefix}.{draft['role']}", fixes
+                )
+        _separate_stack(drafts, aspect, subject, prefix, fixes)
+        _align_by_position(drafts, aspect, prefix, fixes)
+        layers = [
+            _finish_layer(draft, aspect, sample, f"{prefix}.{draft['role']}", fixes)
+            for draft in drafts
+        ]
         label = raw.get("label")
         if not isinstance(label, str) or not label.strip():
             label = f"추천안 {index}"
@@ -127,15 +170,17 @@ def _layers_by_role(raw_layers: list, prefix: str, fixes: list[str]) -> dict[str
     return by_role
 
 
-def _build_layer(
+def _draft_layer(
     raw: dict,
     copy: LayoutCopy,
     aspect: float,
     sample: Image.Image,
     prefix: str,
     fixes: list[str],
-) -> TextLayer:
-    """압축 레이어 하나를 검사·보정해 문구 상자로 펼친다.
+) -> dict:
+    """압축 레이어 하나의 값을 검사하고 이미지 안으로 맞춘 초안을 만든다.
+
+    제품 가림·겹침 보정은 추천안 단위로 하므로 여기서는 하지 않는다.
 
     Args:
         raw: 모델 출력 레이어 ({role, x, y, size, font, color, align, effect, effect_color}).
@@ -146,7 +191,7 @@ def _build_layer(
         fixes: 고친 내용을 추가할 목록.
 
     Returns:
-        TextLayer: 문구 상자.
+        dict: {role, text, x, y, size, wrap, font, color, align, effect, effect_color}.
     """
     role = copy.role
     default_x, default_y = ROLE_DEFAULT_POSITION[role]
@@ -187,33 +232,369 @@ def _build_layer(
     x = _number(raw.get("x"), default_x, (0, 1), f"{prefix}.x", fixes, bool(raw))
     y = _number(raw.get("y"), default_y, (0, 1), f"{prefix}.y", fixes, bool(raw))
 
+    # 모델이 정한 위아래 순서. 옮긴 뒤 겹침을 풀 때 이 순서로 쌓는다
+    order = y
     x, y, size, wrap = _fit_inside(copy.text, x, y, size, aspect, prefix, fixes)
+    return {
+        "order": order,
+        # 옆 칸에 넣으려고 줄일 수 있는 최소 글자 크기
+        "min_size": size_guide(role, sample.width, sample.height)[0]
+        * SIDE_MIN_SIZE_RATIO,
+        "role": role,
+        "text": copy.text,
+        "x": x,
+        "y": y,
+        "size": size,
+        "wrap": wrap,
+        "font": font,
+        "color": color,
+        "align": align,
+        "effect": effect,
+        "effect_color": effect_color,
+    }
 
+
+def _finish_layer(
+    draft: dict, aspect: float, sample: Image.Image, prefix: str, fixes: list[str]
+) -> TextLayer:
+    """초안의 대비를 확인하고 문구 상자로 펼친다.
+
+    Args:
+        draft: _draft_layer가 만들고 제품 가림·겹침 보정을 거친 초안.
+        aspect: 이미지 세로 / 가로.
+        sample: 대비 계산용으로 줄인 RGB 이미지.
+        prefix: 고친 내용 앞에 붙일 위치 표시.
+        fixes: 고친 내용을 추가할 목록.
+
+    Returns:
+        TextLayer: 문구 상자.
+    """
+    effect, effect_color = draft["effect"], draft["effect_color"]
     if effect == "none":
-        box = _box(copy.text, x, y, size, aspect, wrap)
-        ratio = _contrast_ratio(color, _mean_color(sample, box))
+        ratio = _contrast_ratio(
+            draft["color"], _mean_color(sample, _draft_box(draft, aspect))
+        )
         if ratio < MIN_CONTRAST:
             fixes.append(f"{prefix}: low contrast {ratio:.1f}, stroke added")
             effect = "stroke"
-            effect_color = _contrasting(color)
+            effect_color = _contrasting(draft["color"])
 
     return TextLayer(
-        role=role,
-        text=copy.text,
-        x=round(x, 4),
-        y=round(y, 4),
-        width=wrap,
-        fontId=font,
-        fontSize=round(size, 4),
-        align=align,
+        role=draft["role"],
+        text=draft["text"],
+        x=round(draft["x"], 4),
+        y=round(draft["y"], 4),
+        width=draft["wrap"],
+        fontId=draft["font"],
+        fontSize=round(draft["size"], 4),
+        align=draft["align"],
         lineHeight=_LINE_HEIGHT,
-        color=color,
+        color=draft["color"],
         stroke=TextLayerStroke(color=effect_color) if effect == "stroke" else None,
         shadow=TextLayerShadow(color=effect_color) if effect == "shadow" else None,
         background=(
             TextLayerBackground(color=effect_color) if effect == "background" else None
         ),
     )
+
+
+def _avoid_subject(
+    draft: dict,
+    subject: tuple[float, float, float, float],
+    aspect: float,
+    prefix: str,
+    fixes: list[str],
+) -> None:
+    """초안이 subject를 많이 덮으면 위·아래·왼쪽·오른쪽 중 가장 가까운 빈 곳으로 옮긴다.
+
+    왼쪽·오른쪽은 빈 폭이 MIN_SIDE_WIDTH 이상이면 그 폭에 맞춰 줄을 바꿔 넣는다.
+    옮길 곳이 이미지 안에 없으면 그대로 두고 고친 내용에 남긴다.
+
+    Args:
+        draft: 문구 초안. x, y, wrap을 바꾼다.
+        subject: 가리면 안 되는 영역 (비율).
+        aspect: 이미지 세로 / 가로.
+        prefix: 고친 내용 앞에 붙일 위치 표시.
+        fixes: 고친 내용을 추가할 목록.
+    """
+    box = _draft_box(draft, aspect)
+    cover = _intersection(box, subject) / max(_area(box), 1e-9)
+    if cover <= SUBJECT_COVER_LIMIT:
+        return
+    x, y, wrap = draft["x"], draft["y"], draft["wrap"]
+    left, top, right, bottom = subject
+
+    # (x, y, 줄바꿈 폭, 글자 크기) 후보
+    size = draft["size"]
+    candidates = []
+    width, height = _safe_size(draft, aspect, wrap)
+    candidates.append((x, top - GAP - height / 2, wrap, size))  # 위
+    candidates.append((x, bottom + GAP + height / 2, wrap, size))  # 아래
+    for side_width, place in (
+        (left - GAP - EDGE_MARGIN, lambda w: left - GAP - w / 2),  # 왼쪽
+        (1 - EDGE_MARGIN - right - GAP, lambda w: right + GAP + w / 2),  # 오른쪽
+    ):
+        fitted = _fit_side(draft, aspect, side_width)
+        if fitted is None:
+            continue
+        side_wrap, side_size = fitted
+        side_w, side_h = _safe_size({**draft, "size": side_size}, aspect, side_wrap)
+        cy = min(max(y, EDGE_MARGIN + side_h / 2), 1 - EDGE_MARGIN - side_h / 2)
+        candidates.append((place(side_w), cy, side_wrap, side_size))
+
+    inside = [
+        (cx, cy, cwrap, csize)
+        for cx, cy, cwrap, csize in candidates
+        if _inside_image(cx, cy, *_safe_size({**draft, "size": csize}, aspect, cwrap))
+    ]
+    if not inside:
+        fixes.append(f"{prefix}: covers subject {cover:.0%}, no room to move")
+        return
+    new_x, new_y, new_wrap, new_size = min(
+        inside, key=lambda c: math.dist(c[:2], (x, y))
+    )
+    draft.update(x=new_x, y=new_y, wrap=new_wrap, size=new_size)
+    fixes.append(
+        f"{prefix}: covers subject {cover:.0%}, moved ({x:.2f}, {y:.2f}) -> "
+        f"({new_x:.2f}, {new_y:.2f})"
+        + (f", wrapped at {new_wrap}" if new_wrap != wrap else "")
+        + (f", size {size:.3f} -> {new_size:.3f}" if new_size != size else "")
+    )
+
+
+def _fit_side(
+    draft: dict, aspect: float, side_width: float
+) -> tuple[float | None, float] | None:
+    """subject 옆 칸(폭 side_width)에 문구를 넣을 줄바꿈 폭과 글자 크기를 정한다.
+
+    한 줄로 들어가면 그대로 둔다. 넘치면 칸 폭에서 줄을 바꾸고, 역할별 최대 줄 수
+    (SIDE_MAX_LINES)를 넘으면 글자를 줄인다. 최소 크기(min_size)로도 안 되면 넣지 않는다.
+
+    Returns:
+        tuple[float | None, float] | None: (줄바꿈 폭, 글자 크기). 넣을 수 없으면 None.
+    """
+    if side_width < MIN_SIDE_WIDTH:
+        return None
+    if _safe_size(draft, aspect, draft["wrap"])[0] <= side_width:
+        return draft["wrap"], draft["size"]
+    wrap = round(side_width / BOX_SAFETY, 4)
+    # 한 줄로 썼을 때의 폭이 max_lines × 칸 폭 안에 들도록 글자 크기를 정한다
+    one_line_width = _box_size(draft["text"], draft["size"], aspect)[0]
+    max_lines = SIDE_MAX_LINES[draft["role"]]
+    size = min(draft["size"], draft["size"] * wrap * max_lines / one_line_width)
+    # 글자 단위 줄바꿈의 여유분 (한 줄에 다 못 채우는 칸)
+    size *= 0.9
+    if size < draft["min_size"]:
+        return None
+    return wrap, round(size, 4)
+
+
+def _separate_stack(
+    drafts: list[dict],
+    aspect: float,
+    subject: tuple[float, float, float, float] | None,
+    prefix: str,
+    fixes: list[str],
+) -> None:
+    """서로 겹치거나 GAP보다 가까운 문구 묶음을 모델이 정한 위아래 순서대로 다시 쌓는다.
+
+    묶음이 subject와 가로로 겹치면 subject 바로 위나 바로 아래 중 묶음이 다 들어가는
+    가까운 쪽에 쌓는다. 그 밖에는 묶음의 맨 위에서부터 아래로 쌓는다. 이미지 밖으로
+    나가면 묶음을 안쪽으로 옮긴다.
+
+    Args:
+        drafts: 한 추천안의 문구 초안들. y를 바꾼다.
+        aspect: 이미지 세로 / 가로.
+        subject: 가리면 안 되는 영역. 없으면 None.
+        prefix: 고친 내용 앞에 붙일 위치 표시.
+        fixes: 고친 내용을 추가할 목록.
+    """
+    for group in _collision_groups(drafts, aspect):
+        group.sort(key=lambda draft: draft["order"])
+        heights = [_safe_size(d, aspect, d["wrap"])[1] for d in group]
+        boxes = [_draft_box(d, aspect) for d in group]
+        total = sum(heights) + GAP * (len(group) - 1)
+        top, bottom = min(b[1] for b in boxes), max(b[3] for b in boxes)
+        center = (top + bottom) / 2
+        start = top
+        if subject is not None and any(
+            _overlaps_horizontally(box, subject) for box in boxes
+        ):
+            # subject 바로 위 또는 바로 아래에 묶음이 다 들어가는 쪽 중 가까운 쪽에 쌓는다
+            options = [
+                option
+                for option in (
+                    min(bottom, subject[1] - GAP) - total,  # 위
+                    max(top, subject[3] + GAP),  # 아래
+                )
+                if EDGE_MARGIN <= option and option + total <= 1 - EDGE_MARGIN
+            ]
+            if options:
+                start = min(options, key=lambda o: abs(o + total / 2 - center))
+            else:
+                fixes.append(f"{prefix}: no room above or below subject for lines")
+        start = max(min(start, 1 - EDGE_MARGIN - total), EDGE_MARGIN)
+        for draft, height in zip(group, heights):
+            draft["y"] = start + height / 2
+            start += height + GAP
+        fixes.append(
+            f"{prefix}: lines overlapped, restacked "
+            + ", ".join(f"{d['role']} y={d['y']:.2f}" for d in group)
+        )
+
+
+def _align_by_position(
+    drafts: list[dict], aspect: float, prefix: str, fixes: list[str]
+) -> None:
+    """상자 위치에 따라 정렬을 정하고, 같은 쪽 문구끼리 가장자리를 맞춘다.
+
+    - 상자 가운데가 SIDE_ALIGN_THRESHOLD보다 왼쪽이면 left, 오른쪽 대칭이면 right,
+      그 사이면 center.
+    - left 문구들은 그중 가장 왼쪽 끝에, right 문구들은 가장 오른쪽 끝에 맞춘다.
+    - FE에서 x는 상자 가운데이고 width가 없으면 실제 글자 폭으로 상자가 정해져 끝을 맞출 수
+      없다. 그래서 left/right 문구는 width를 고정해 상자 끝이 정확히 그 위치에 오게 한다.
+
+    Args:
+        drafts: 한 추천안의 문구 초안들. align, x, wrap을 바꾼다.
+        aspect: 이미지 세로 / 가로.
+        prefix: 고친 내용 앞에 붙일 위치 표시.
+        fixes: 고친 내용을 추가할 목록.
+    """
+    sides: dict[str, list[dict]] = {"left": [], "right": []}
+    for draft in drafts:
+        box = _draft_box(draft, aspect)
+        center = (box[0] + box[2]) / 2
+        if center < SIDE_ALIGN_THRESHOLD:
+            align = "left"
+        elif center > 1 - SIDE_ALIGN_THRESHOLD:
+            align = "right"
+        else:
+            align = "center"
+        if align != draft["align"]:
+            fixes.append(
+                f"{prefix}.{draft['role']}: align {draft['align']} -> {align} "
+                f"(box center x={center:.2f})"
+            )
+            draft["align"] = align
+        if align in sides:
+            sides[align].append(draft)
+
+    usable = 1 - 2 * EDGE_MARGIN
+    for side, group in sides.items():
+        if not group:
+            continue
+        widths = {
+            id(draft): min(
+                draft["wrap"]
+                or _box_size(draft["text"], draft["size"], aspect)[0]
+                * ALIGN_BOX_SAFETY,
+                usable,
+            )
+            for draft in group
+        }
+        if side == "left":
+            edge = max(EDGE_MARGIN, min(d["x"] - widths[id(d)] / 2 for d in group))
+        else:
+            edge = min(1 - EDGE_MARGIN, max(d["x"] + widths[id(d)] / 2 for d in group))
+        for draft in group:
+            width = round(widths[id(draft)], 4)
+            draft["wrap"] = width
+            draft["x"] = edge + width / 2 if side == "left" else edge - width / 2
+            # 여백 밖으로 나가지 않게 한 번 더 맞춘다
+            draft["x"] = min(
+                max(draft["x"], EDGE_MARGIN + width / 2), 1 - EDGE_MARGIN - width / 2
+            )
+
+
+def _collision_groups(drafts: list[dict], aspect: float) -> list[list[dict]]:
+    """가로로 겹치면서 세로 간격이 GAP보다 좁은 문구끼리 묶는다 (이어진 것까지 한 묶음).
+
+    Returns:
+        list[list[dict]]: 2개 이상인 묶음 목록.
+    """
+    parent = list(range(len(drafts)))
+
+    def find(index: int) -> int:
+        """묶음 대표를 찾는다."""
+        while parent[index] != index:
+            index = parent[index]
+        return index
+
+    boxes = [_draft_box(draft, aspect) for draft in drafts]
+    for i, j in itertools.combinations(range(len(drafts)), 2):
+        a, b = boxes[i], boxes[j]
+        vertical_gap = max(a[1], b[1]) - min(a[3], b[3])
+        if _overlaps_horizontally(a, b) and vertical_gap < GAP:
+            parent[find(i)] = find(j)
+    groups: dict[int, list[dict]] = {}
+    for index, draft in enumerate(drafts):
+        groups.setdefault(find(index), []).append(draft)
+    return [group for group in groups.values() if len(group) > 1]
+
+
+def _safe_size(draft: dict, aspect: float, wrap: float | None) -> tuple[float, float]:
+    """겹침·가림을 볼 때 쓰는 여유 있는 상자 크기를 구한다 (BOX_SAFETY배).
+
+    Returns:
+        tuple[float, float]: (폭, 높이) 비율.
+    """
+    width, height = _box_size(draft["text"], draft["size"], aspect, wrap)
+    return width * BOX_SAFETY, height * BOX_SAFETY
+
+
+def _inside_image(x: float, y: float, width: float, height: float) -> bool:
+    """가운데가 (x, y)인 상자가 여백 안쪽에 들어가는지 확인한다.
+
+    Returns:
+        bool: 들어가면 True.
+    """
+    eps = 1e-9
+    return (
+        EDGE_MARGIN + width / 2 - eps <= x <= 1 - EDGE_MARGIN - width / 2 + eps
+        and EDGE_MARGIN + height / 2 - eps <= y <= 1 - EDGE_MARGIN - height / 2 + eps
+    )
+
+
+def _draft_box(draft: dict, aspect: float) -> tuple[float, float, float, float]:
+    """초안의 여유 있는 상자 (왼쪽, 위, 오른쪽, 아래)를 구한다 (BOX_SAFETY배).
+
+    Returns:
+        tuple[float, float, float, float]: 상자 좌표 (비율, 이미지 밖이면 0~1을 넘는다).
+    """
+    width, height = _safe_size(draft, aspect, draft["wrap"])
+    return (
+        draft["x"] - width / 2,
+        draft["y"] - height / 2,
+        draft["x"] + width / 2,
+        draft["y"] + height / 2,
+    )
+
+
+def _overlaps_horizontally(a, b) -> bool:
+    """두 상자가 가로로 겹치는지 확인한다.
+
+    Returns:
+        bool: 가로 범위가 겹치면 True.
+    """
+    return min(a[2], b[2]) > max(a[0], b[0])
+
+
+def _area(box) -> float:
+    """상자 넓이를 구한다.
+
+    Returns:
+        float: 넓이 (비율²).
+    """
+    return max(box[2] - box[0], 0) * max(box[3] - box[1], 0)
+
+
+def _intersection(a, b) -> float:
+    """두 상자가 겹치는 넓이를 구한다.
+
+    Returns:
+        float: 넓이 (비율²).
+    """
+    return _area((max(a[0], b[0]), max(a[1], b[1]), min(a[2], b[2]), min(a[3], b[3])))
 
 
 def _number(
@@ -319,15 +700,60 @@ def _box_size(
 
     Returns:
         tuple[float, float]: (이미지 가로 대비 폭, 이미지 세로 대비 높이).
+            높이는 줄 간격 여백을 뺀 글자(em 상자) 높이다:
+            (줄 수 - 1) × 글자 크기 × 줄 간격 + 글자 크기.
     """
-    widths = [
-        sum(_char_em(char) for char in line) * size * aspect
-        for line in text.split("\n")
-    ]
+    scale = size * aspect
     if wrap is None:
-        return max(widths), len(widths) * size * _LINE_HEIGHT
-    lines = sum(max(1, math.ceil(width / wrap)) for width in widths)
-    return min(max(widths), wrap), lines * size * _LINE_HEIGHT
+        widths = [_em(line) * scale for line in text.split("\n")]
+    else:
+        widths = [
+            _em(line) * scale
+            for paragraph in text.split("\n")
+            for line in _word_wrap(paragraph, wrap / scale)
+        ]
+    # FE(Konva)에서 줄바꿈 폭(width)을 정한 문구 상자는 줄 길이와 관계없이 그 폭을 차지한다
+    width = wrap if wrap is not None else max(widths)
+    return width, (len(widths) - 1) * size * _LINE_HEIGHT + size
+
+
+def _word_wrap(paragraph: str, max_em: float) -> list[str]:
+    """FE(Konva wrap="word")처럼 공백에서 줄을 바꾼다. 한 단어가 폭보다 길면 글자에서 바꾼다.
+
+    Args:
+        paragraph: 줄바꿈(\\n) 없는 문구.
+        max_em: 한 줄 최대 폭 (글자 크기 대비).
+
+    Returns:
+        list[str]: 줄 목록.
+    """
+    lines: list[str] = []
+    current = ""
+    for word in paragraph.split(" "):
+        candidate = f"{current} {word}" if current else word
+        if _em(candidate) <= max_em:
+            current = candidate
+            continue
+        if current:
+            lines.append(current)
+        current = ""
+        for char in word:
+            if current and _em(current + char) > max_em:
+                lines.append(current)
+                current = char
+            else:
+                current += char
+    lines.append(current)
+    return lines
+
+
+def _em(text: str) -> float:
+    """문구 한 줄의 폭을 글자 크기(em) 대비로 어림한다.
+
+    Returns:
+        float: 폭 (em).
+    """
+    return sum(_char_em(char) for char in text)
 
 
 def _char_em(char: str) -> float:
@@ -345,23 +771,6 @@ def _char_em(char: str) -> float:
     return 0.55
 
 
-def _box(
-    text: str, x: float, y: float, size: float, aspect: float, wrap: float | None
-) -> tuple[float, float, float, float]:
-    """상자의 (왼쪽, 위, 오른쪽, 아래)를 이미지 대비 비율로 구한다.
-
-    Returns:
-        tuple[float, float, float, float]: 0~1로 자른 상자 좌표.
-    """
-    width, height = _box_size(text, size, aspect, wrap)
-    return (
-        max(x - width / 2, 0),
-        max(y - height / 2, 0),
-        min(x + width / 2, 1),
-        min(y + height / 2, 1),
-    )
-
-
 def _mean_color(
     sample: Image.Image, box: tuple[float, float, float, float]
 ) -> tuple[float, float, float]:
@@ -370,7 +779,7 @@ def _mean_color(
     Returns:
         tuple[float, float, float]: 평균 RGB (0~255).
     """
-    left, top, right, bottom = box
+    left, top, right, bottom = (min(max(value, 0.0), 1.0) for value in box)
     width, height = sample.size
     region = sample.crop(
         (
