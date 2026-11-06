@@ -27,7 +27,7 @@
 | `y` | number | 0~1 | `0.5` | 상자 가운데 세로 위치 |
 | `width` | number \| null | 0.05~1 | `null` | 줄바꿈 폭. `null`이면 문구 길이만큼 넓어지고 `\n`에서만 줄을 바꿈 |
 | `rotation` | number | -180~180 (도) | `0` | 시계 방향이 + |
-| `curve` | number | -100~100 | `0` | 구부리기. 0이면 직선 (한 줄 문구에만 적용 예정) |
+| `curve` | number | -100~100 | `0` | 구부리기. 양수는 위로 볼록, 음수는 아래로 볼록, 0은 직선, ±100은 반원. 한 줄 문구에만 적용되며, 구부린 문구는 항상 곡선 가운데에 놓이고 `width`, `align`, `lineHeight`를 쓰지 않음. `\n`이 있으면 값이 있어도 직선으로 그림 |
 | `fontId` | string | 글꼴 목록의 `id` | `"pretendard"` | 예: `gmarket-sans`, `black-han-sans`. 모르는 id는 기본 글꼴로 바뀜 |
 | `fontSize` | number | 0.01~0.4 | `0.056` | 글자 크기 (이미지 세로 대비) |
 | `bold` | boolean | | `false` | 글꼴에 준비된 가장 두꺼운 굵기로 그림 |

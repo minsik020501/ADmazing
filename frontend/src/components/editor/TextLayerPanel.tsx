@@ -25,6 +25,7 @@ import {
 } from "../../constants/editor";
 import Button from "../common/Button";
 import ColorField from "./ColorField";
+import { canCurve } from "./curveText";
 import FontPicker from "./FontPicker";
 import NumberField from "./NumberField";
 import SliderField from "./SliderField";
@@ -138,7 +139,7 @@ function ToggleButton({ label, pressed, onClick, children }: ToggleButtonProps) 
 }
 
 /**
- * [+ 텍스트 상자 추가] 버튼과, 선택한 문구 상자의 문구·글꼴·크기·모양·색·효과·위치 조절,
+ * [+ 텍스트 상자 추가] 버튼과, 선택한 문구 상자의 문구·글꼴·크기·모양·색·효과·위치·구부리기 조절,
  * [삭제] 버튼을 보여준다. 크기와 위치는 원본 이미지 기준 px로 보여주고, 저장은 비율로 한다.
  *
  * @param props - 선택한 문구 상자, 이미지 크기, 안내 문구, 추가·삭제·변경 처리 함수
@@ -307,6 +308,21 @@ export default function TextLayerPanel({
             max={limits.rotation.max}
             onChange={(rotation) => onChange(selectedLayer.id, { rotation })}
           />
+
+          <div className={styles.field}>
+            <fieldset className={styles.curve} disabled={!canCurve(selectedLayer.text)}>
+              <SliderField
+                label="구부리기"
+                value={selectedLayer.curve}
+                min={limits.curve.min}
+                max={limits.curve.max}
+                onChange={(curve) => onChange(selectedLayer.id, { curve })}
+              />
+            </fieldset>
+            {!canCurve(selectedLayer.text) && (
+              <p className={styles.curveHint}>ㄴ 한 줄 문구에만 적용돼요</p>
+            )}
+          </div>
 
           <Button
             className={styles.deleteButton}
