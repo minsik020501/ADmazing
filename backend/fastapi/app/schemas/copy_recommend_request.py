@@ -8,7 +8,7 @@
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.schemas.user_copies import UserCopies
+from app.schemas.copy_requests import CopyRequests
 from app.utils.image import decode_base64_image
 
 
@@ -17,9 +17,10 @@ class CopyRecommendRequest(BaseModel):
 
     image_base64: str = Field(..., description="문구를 추천받을 이미지의 base64 문자열")
     prompt: str = Field(..., min_length=1, description="한국어 광고 이미지 설명")
-    user_copies: UserCopies = Field(
-        default_factory=UserCopies,
-        description="역할별로 사용자가 직접 넣은 문장. 앞에 두고 남는 자리를 AI 문구로 채운다",
+    copy_requests: CopyRequests | None = Field(
+        None,
+        description="역할별 문구 요청. AI가 참고해 문구를 쓰고, 요청에 든 가격·날짜·숫자는 "
+        "바꾸지 않는다. 없거나 비운 역할은 AI가 자유롭게 추천한다",
     )
 
     @field_validator("image_base64")

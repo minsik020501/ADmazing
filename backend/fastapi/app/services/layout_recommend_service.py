@@ -23,13 +23,19 @@ async def recommend_layouts(
 
     Args:
         recommender: 템플릿 추천기.
-        req: 이미지, 역할별 문구, 추천안 수를 담은 요청.
+        req: 이미지, 역할별 문구, 추천안 수, 강조색, 글꼴 스타일, 레이아웃 지정을 담은 요청.
 
     Returns:
         LayoutRecommendResponse: 추천안 목록 (최대 req.num_proposals개).
     """
     image = decode_base64_image(req.image_base64)
     proposals = await run_in_threadpool(
-        recommender.recommend, image, req.copies, req.num_proposals
+        recommender.recommend,
+        image,
+        req.copies,
+        req.num_proposals,
+        req.accent,
+        req.styles,
+        req.template_id,
     )
     return LayoutRecommendResponse(proposals=proposals)

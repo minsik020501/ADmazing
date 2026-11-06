@@ -8,6 +8,7 @@
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.core.layout_templates import FONT_STYLES, FontStyle, TemplateId
 from app.schemas.layout_copy import LayoutCopy
 from app.utils.image import decode_base64_image
 
@@ -26,6 +27,24 @@ class LayoutRecommendRequest(BaseModel):
     )
     num_proposals: int = Field(
         MAX_PROPOSALS, ge=1, le=MAX_PROPOSALS, description="받을 추천안 수"
+    )
+    accent: str | None = Field(
+        None,
+        pattern=r"^#[0-9A-Fa-f]{6}$",
+        description="문구 강조색 #RRGGBB. 문구 추천 결과(copies.accent)를 그대로 보낸다. "
+        "없으면 강조색 없이 톤온톤으로 추천한다",
+    )
+    styles: list[FontStyle] = Field(
+        default_factory=list,
+        max_length=len(FONT_STYLES),
+        description="글꼴 스타일 (어울리는 순서). 문구 추천 결과(copies.styles)를 그대로 "
+        "보낸다. 추천안마다 앞에서부터 하나씩 쓰고, 모자라면 나머지 스타일로 채운다",
+    )
+    template_id: TemplateId | None = Field(
+        None,
+        description="레이아웃 지정. 보내면 이 템플릿으로만 추천안을 만든다 (제품을 가려도 "
+        "쓴다). 스타일까지 지정하려면 styles 1개와 num_proposals 1을 함께 보낸다. "
+        "없으면 이미지에 맞는 템플릿을 고른다",
     )
 
     @field_validator("image_base64")
