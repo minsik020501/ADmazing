@@ -3,11 +3,25 @@
  *
  * 생성일자: 2026-10-16
  * 생성자: ven_choi
- * 수정일자: 2026-11-02
+ * 수정일자: 2026-11-06
  * 수정자: bioyejin
  */
 
 import { STYLE_PRESETS } from "../constants/stylePresets";
+
+/** 추천 문구 하나 */
+export interface CopySuggestion {
+  text: string;
+  /** user: 사용자가 직접 넣은 문장, ai: AI가 추천한 문구 */
+  source: "user" | "ai";
+}
+
+/** 이미지 한 장에 어울리는 역할별 추천 문구 (역할마다 최대 5개) */
+export interface ImageCopies {
+  title: CopySuggestion[];
+  subtitle: CopySuggestion[];
+  text: CopySuggestion[];
+}
 
 /** 생성된 이미지 한 장 */
 export interface GeneratedImage {
@@ -15,6 +29,10 @@ export interface GeneratedImage {
   image_base64: string;
   /** 이 이미지를 생성한 seed (같은 seed로 다시 요청하면 같은 이미지) */
   seed: number;
+  /** 이 이미지에 맞춘 추천 문구. 추천에 실패하면 null */
+  copies: ImageCopies | null;
+  /** 문구 추천에 실패했을 때 화면에 보여줄 메시지 */
+  copies_error: string | null;
 }
 
 /** 이미지 생성 API 응답 */
@@ -33,9 +51,16 @@ export interface GenerateResponse {
 /**
  * 생성 작업 단계.
  * translating: 번역 중, queued: 앞선 생성 대기 중, generating: 생성 중,
- * done: 완료, failed: 실패, cancelled: 취소됨
+ * recommending_copy: 이미지별 문구 추천 중, done: 완료, failed: 실패, cancelled: 취소됨
  */
-export type JobStage = "translating" | "queued" | "generating" | "done" | "failed" | "cancelled";
+export type JobStage =
+  | "translating"
+  | "queued"
+  | "generating"
+  | "recommending_copy"
+  | "done"
+  | "failed"
+  | "cancelled";
 
 /** 생성 작업 상태. 진행 상황 스트림(SSE)에서 상태가 바뀔 때마다 받는다 */
 export interface GenerationJobStatus {
@@ -45,6 +70,10 @@ export interface GenerationJobStatus {
   step: number | null;
   /** 전체 디노이징 step 수 */
   total: number | null;
+  /** 문구 추천이 끝난 이미지 수 (성공·실패 모두). recommending_copy 전에는 null */
+  copy_done: number | null;
+  /** 문구를 추천할 이미지 수. recommending_copy 전에는 null */
+  copy_total: number | null;
   /** stage가 done일 때 결과 */
   result: GenerateResponse | null;
   /** stage가 failed일 때 에러 메시지 */

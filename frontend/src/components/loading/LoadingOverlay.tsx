@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-11-02
  * 생성자: bioyejin
- * 수정일자: 2026-11-02
+ * 수정일자: 2026-11-06
  * 수정자: bioyejin
  */
 
@@ -45,6 +45,11 @@ function useSmoothProgress(progress: GenerationProgress | null): BarTarget {
   const total = progress?.total ?? null;
 
   useEffect(() => {
+    // 문구 추천은 이미지 생성이 끝난 뒤이므로 막대를 가득 채워 둔다
+    if (stage === "recommending_copy") {
+      setTarget({ ratio: 1, durationMs: FINISH_MS });
+      return;
+    }
     // 번역 중, 대기 중에는 비워 둔다
     if (stage !== "generating") {
       lastStepRef.current = null;
@@ -81,6 +86,7 @@ export interface LoadingOverlayProps {
 
 /**
  * "생성 중..." 문구, 서서히 차는 진행 막대, 생성 취소 버튼을 화면 가운데에 보여준다.
+ * 이미지 생성이 끝나면 막대를 채운 채 문구 추천 진행 장수를 보여준다.
  * 화면 전체를 덮어 생성 중에는 취소 버튼만 누를 수 있다.
  *
  * @param props - 생성 진행 상황과 취소 처리 함수
@@ -103,22 +109,29 @@ export default function LoadingOverlay({ progress, onCancel }: LoadingOverlayPro
     return () => window.clearInterval(timer);
   }, []);
 
+  const recommendingCopy = progress?.stage === "recommending_copy";
+
   // 화면 읽기 프로그램에는 막대 애니메이션이 아니라 실제 step 진행률을 알린다
-  const percent =
-    progress?.step != null && progress.total
-      ? Math.round((progress.step / progress.total) * 100)
-      : 0;
+  let percent = 0;
+  if (recommendingCopy) percent = 100;
+  else if (progress?.step != null && progress.total) {
+    percent = Math.round((progress.step / progress.total) * 100);
+  }
 
   return createPortal(
     <div className={styles.backdrop}>
       <div className={styles.content} role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <p id={titleId} className={styles.title}>
-          생성 중
+          {recommendingCopy ? "문구 추천 중" : "생성 중"}
           <span className={styles.dots} aria-hidden>
             {".".repeat(dots)}
           </span>
         </p>
-        <p className={styles.message}>조금만 기다려 주세요!</p>
+        <p className={styles.message}>
+          {recommendingCopy
+            ? `${progress.copy_total ?? 0}장 중 ${progress.copy_done ?? 0}장 완료`
+            : "조금만 기다려 주세요!"}
+        </p>
         <div
           className={styles.track}
           role="progressbar"
