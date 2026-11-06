@@ -115,6 +115,9 @@ export const ZOOM_WHEEL_SPEED = 0.0015;
 /** 복제한 문구 상자를 원본에서 비켜 놓는 거리 (이미지 대비 비율) */
 export const DUPLICATE_OFFSET = 0.03;
 
+/** 선택 테두리가 문구 상자에서 떨어진 거리 (화면 px) */
+export const SELECTION_PADDING_PX = 6;
+
 /** 이미지 한 장에서 되돌릴 수 있는 최대 단계 */
 export const HISTORY_LIMIT = 50;
 

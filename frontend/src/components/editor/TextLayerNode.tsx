@@ -9,7 +9,10 @@
 
 import { useLayoutEffect, useRef } from "react";
 import type Konva from "konva";
+import type { Context } from "konva/lib/Context";
+import type { Shape } from "konva/lib/Shape";
 import { Group, Rect, Text, TextPath } from "react-konva";
+import { SELECTION_PADDING_PX } from "../../constants/editor";
 import { drawCurvedText, isCurved, toCurvePath } from "./curveText";
 import { resolveLayerFont, withAlpha, type TextLayer } from "./textLayer";
 
@@ -49,10 +52,25 @@ export interface TextLayerNodeProps {
 }
 
 /**
+ * 잡을 수 있는 영역을 그린다. 선택 테두리까지 잡히도록 상자보다 넓지만, 화면에는 보이지 않고
+ * 선택 테두리 계산에도 들어가지 않는다.
+ *
+ * @param context - 그릴 곳
+ * @param shape - 상자 크기의 투명한 사각형
+ */
+function drawHitArea(context: Context, shape: Shape) {
+  const padding = SELECTION_PADDING_PX / (shape.getStage()?.scaleX() || 1);
+  context.beginPath();
+  context.rect(-padding, -padding, shape.width() + padding * 2, shape.height() + padding * 2);
+  context.closePath();
+  context.fillStrokeShape(shape);
+}
+
+/**
  * 문구 상자 하나를 그린다. 묶음(Group)이 상자 가운데에 놓여 위치·회전·투명도를 맡고,
  * 그 안의 배경 상자와 글자는 묶음 가운데를 기준으로 맞춘다. 구부린 문구는 곡선 위에 그리고,
  * 직접 입력하는 동안에는 입력 칸과 맞도록 직선으로 돌아간다.
- * 클릭하면 선택, 더블클릭하면 직접 입력, 끌면 이동한다. 가운데가 이미지 밖으로 나가지 않고,
+ * 글자 사이의 빈 곳을 포함해 상자 어디를 눌러도 클릭하면 선택, 더블클릭하면 직접 입력, 끌면 이동한다. 가운데가 이미지 밖으로 나가지 않고,
  * 이미지 가운데선 가까이에서는 달라붙는다. 끌기로 생긴 위치와 핸들로 생긴 배율·각도는 끝날 때 데이터에 옮겨 담는다.
  *
  * @param props - 문구 상자, 이미지 크기, 입력 중 여부와 처리 함수
@@ -76,6 +94,7 @@ export default function TextLayerNode({
   const textRef = useRef<Konva.Text>(null);
   const pathRef = useRef<Konva.TextPath>(null);
   const backgroundRef = useRef<Konva.Rect>(null);
+  const hitAreaRef = useRef<Konva.Rect>(null);
   const backgroundPadding = (layer.background?.padding ?? 0) * imageHeight;
   const font = resolveLayerFont(layer);
   const curved = isCurved(layer) && !editing;
@@ -106,6 +125,7 @@ export default function TextLayerNode({
       height: height + backgroundPadding * 2,
     };
     backgroundRef.current?.setAttrs(box);
+    hitAreaRef.current?.setAttrs(box);
     onMeasure(id, { width, height });
   });
 
@@ -172,6 +192,7 @@ export default function TextLayerNode({
         onInteract(false);
       }}
     >
+      <Rect ref={hitAreaRef} fill="transparent" hitFunc={drawHitArea} />
       {layer.background && (
         <Rect
           ref={backgroundRef}
