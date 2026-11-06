@@ -19,7 +19,7 @@ import { base64ToBlob, downloadBlob, toImageFileName } from "./download";
 import EditorCanvas, { type EditorCanvasHandle } from "./EditorCanvas";
 import EditorOverlay from "./EditorOverlay";
 import EditorSidePanel from "./EditorSidePanel";
-import { createTextLayer } from "./textLayer";
+import { createTextLayer, type TextLayer } from "./textLayer";
 import TextLayerPanel from "./TextLayerPanel";
 import ThumbnailStrip from "./ThumbnailStrip";
 import styles from "./EditorPage.module.css";
@@ -53,13 +53,13 @@ function isTypingTarget(target: EventTarget | null): boolean {
 }
 
 /**
- * Ctrl+Z를 브라우저의 글자 되돌리기에 맡길 곳인지 확인한다.
- * 슬라이더나 색 선택 칸은 글자를 받지 않으므로 문구 상자 되돌리기를 쓴다.
+ * Ctrl 단축키를 브라우저의 글자 편집 기능(되돌리기, 복사, 붙여넣기)에 맡길 곳인지 확인한다.
+ * 슬라이더나 색 선택 칸은 글자를 받지 않으므로 문구 상자 단축키를 쓴다.
  *
  * @param target - 키 이벤트가 일어난 요소
  * @returns 글자를 입력하는 칸이면 true
  */
-function usesNativeUndo(target: EventTarget | null): boolean {
+function usesNativeEditKeys(target: EventTarget | null): boolean {
   if (target instanceof HTMLInputElement && NON_TEXT_INPUT_TYPES.includes(target.type)) {
     return false;
   }
@@ -84,7 +84,7 @@ function stepZoom(scale: number, direction: 1 | -1): number {
 /**
  * 위에 돌아가기·리셋·미리보기·저장 버튼, 왼쪽에 캔버스 카드(확대·축소, 캔버스, 썸네일),
  * 오른쪽에 탭 패널이 있는 편집 화면. 문구 상자를 추가해 이미지 위에서 바로 입력하고 옮길 수 있으며,
- * 원본이나 문구를 합친 편집본을 원본 해상도 PNG로 저장한다.
+ * 단축키로 다른 이미지에도 복사할 수 있다. 원본이나 문구를 합친 편집본을 원본 해상도 PNG로 저장한다.
  *
  * @param props - 생성 결과, 편집 중인 이미지 순서, 문구 상자, 이미지 고르기·돌아가기 처리 함수
  * @returns 에디터 화면
@@ -97,6 +97,8 @@ export default function EditorPage({
   textLayers,
 }: EditorPageProps) {
   const canvasRef = useRef<EditorCanvasHandle>(null);
+  // Ctrl+C·X로 복사한 문구 상자. 다른 이미지에 붙일 수 있도록 이미지를 바꿔도 유지한다
+  const clipboardRef = useRef<TextLayer | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -161,7 +163,7 @@ export default function EditorPage({
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
-      if (editingId || overlayOpen || usesNativeUndo(e.target)) return;
+      if (editingId || overlayOpen || usesNativeEditKeys(e.target)) return;
       const key = e.key.toLowerCase();
       if (key !== "z" && key !== "y") return;
       e.preventDefault();
@@ -171,6 +173,55 @@ export default function EditorPage({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [editingId, overlayOpen, index, textLayers]);
+
+  /**
+   * 문구 상자를 살짝 비켜 지금 이미지에 넣고, 넣은 상자를 선택한다.
+   *
+   * @param source - 복사할 문구 상자
+   * @returns 넣은 상자. 개수 제한을 넘으면 null
+   */
+  const addCopy = useCallback(
+    (source: TextLayer): TextLayer | null => {
+      const copy = createTextLayer({
+        ...source,
+        x: Math.min(1, source.x + DUPLICATE_OFFSET),
+        y: Math.min(1, source.y + DUPLICATE_OFFSET),
+      });
+      if (!textLayers.add(index, copy)) {
+        setNotice(`문구 상자는 이미지 한 장에 ${LAYER_LIMITS.layerCount.max}개까지 넣을 수 있어요`);
+        return null;
+      }
+      setNotice(null);
+      setSelectedId(copy.id);
+      return copy;
+    },
+    [index, textLayers],
+  );
+
+  // Ctrl+C·X·V로 문구 상자를 복사·잘라내기·붙여넣기 한다 (맥은 Cmd). 글자 입력 중이나 팝업이 열려 있으면 쓰지 않는다
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
+      if (editingId || overlayOpen || usesNativeEditKeys(e.target)) return;
+      // 한글 입력 상태에서도 동작하도록 글자(e.key)가 아니라 키 위치(e.code)로 구분한다
+      if (e.code === "KeyV") {
+        const copied = clipboardRef.current;
+        if (!copied) return;
+        e.preventDefault();
+        // 다음 붙여넣기가 방금 넣은 상자에서 이어지도록 계단처럼 비켜 간다
+        clipboardRef.current = addCopy(copied) ?? copied;
+      } else if ((e.code === "KeyC" || e.code === "KeyX") && selectedLayer) {
+        e.preventDefault();
+        clipboardRef.current = selectedLayer;
+        if (e.code === "KeyX") {
+          textLayers.remove(index, selectedLayer.id);
+          setSelectedId(null);
+        }
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedLayer, editingId, overlayOpen, index, textLayers, addCopy]);
 
   const closeSave = useCallback(() => {
     setSaveOpen(false);
@@ -214,18 +265,7 @@ export default function EditorPage({
   /** 문구 상자를 살짝 비켜 복제하고, 복제한 상자를 선택한다. */
   function handleDuplicate(id: string) {
     const source = layers.find((layer) => layer.id === id);
-    if (!source) return;
-    const copy = createTextLayer({
-      ...source,
-      x: Math.min(1, source.x + DUPLICATE_OFFSET),
-      y: Math.min(1, source.y + DUPLICATE_OFFSET),
-    });
-    if (!textLayers.add(index, copy)) {
-      setNotice(`문구 상자는 이미지 한 장에 ${LAYER_LIMITS.layerCount.max}개까지 넣을 수 있어요`);
-      return;
-    }
-    setNotice(null);
-    setSelectedId(copy.id);
+    if (source) addCopy(source);
   }
 
   /** 지금 이미지의 문구를 모두 지운다. */
