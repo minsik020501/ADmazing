@@ -9,10 +9,13 @@
 import asyncio
 
 from app.core.copy_role import CopyRole
+from app.services.copy_candidates import CopyCandidates
 
 # 진행률 화면을 확인할 수 있도록 흉내 내는 응답 시간
 _MOCK_SECONDS = 0.5
 
+_MOCK_ACCENT = "#E8743B"
+_MOCK_STYLES = ["clean", "minimal_gothic"]
 _MOCK_COPIES: dict[CopyRole, list[str]] = {
     "title": [
         "여름을 마시다",
@@ -39,25 +42,36 @@ _MOCK_COPIES: dict[CopyRole, list[str]] = {
 
 
 class MockCopyRecommender:
-    """역할마다 고정 문구를 필요한 개수만큼 돌려준다."""
+    """역할마다 고정 문구를 필요한 개수만큼, 강조색·스타일은 고정 값을 돌려준다."""
 
     async def recommend(
         self,
         image_base64: str,
         prompt: str,
+        keywords: list[str],
         existing: dict[CopyRole, list[str]],
         counts: dict[CopyRole, int],
-    ) -> dict[CopyRole, list[str]]:
-        """고정 문구 목록의 앞에서부터 필요한 개수만큼 돌려준다.
+    ) -> CopyCandidates:
+        """고정 문구 목록의 앞에서부터 필요한 개수만큼, 필수 단어를 앞에 붙여 돌려준다.
 
         Args:
             image_base64: 사용하지 않는다.
             prompt: 사용하지 않는다.
+            keywords: 문구 앞에 붙일 필수 단어.
             existing: 사용하지 않는다.
             counts: 역할별로 필요한 문구 수.
 
         Returns:
-            dict[CopyRole, list[str]]: 역할별 고정 문구.
+            CopyCandidates: 역할별 고정 문구와 고정 강조색·스타일.
         """
         await asyncio.sleep(_MOCK_SECONDS)
-        return {role: _MOCK_COPIES[role][:count] for role, count in counts.items()}
+        return CopyCandidates(
+            copies={
+                role: [
+                    " ".join([*keywords, text]) for text in _MOCK_COPIES[role][:count]
+                ]
+                for role, count in counts.items()
+            },
+            accent=_MOCK_ACCENT,
+            styles=list(_MOCK_STYLES),
+        )

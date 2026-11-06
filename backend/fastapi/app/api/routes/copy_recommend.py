@@ -44,10 +44,10 @@ async def recommend_copy(
 ):
     """이미지 한 장에 어울리는 title, subtitle, text 문구를 역할마다 최대 5개 추천한다.
 
-    역할마다 사용자 문장을 그대로 앞에 두고, 남는 자리를 AI 문구로 채운다.
+    필수 단어·문장(keywords)이 있으면 모든 문구에 글자 그대로 넣는다.
 
     Args:
-        req: 이미지, 한국어 프롬프트, 사용자 문장을 담은 요청.
+        req: 이미지, 한국어 프롬프트, 필수 단어·문장을 담은 요청.
         copy_recommender: 의존성으로 주입되는 문구 추천기.
 
     Returns:
@@ -58,7 +58,7 @@ async def recommend_copy(
     """
     try:
         return await recommend_copies(
-            copy_recommender, req.image_base64, req.prompt, req.user_copies
+            copy_recommender, req.image_base64, req.prompt, req.keywords
         )
     except CopyRecommendationError as error:
         logger.warning("문구 추천 실패: %s", error)

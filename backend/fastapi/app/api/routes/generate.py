@@ -41,7 +41,7 @@ async def generate(
     생성이 끝날 때까지 응답을 기다린다. 진행률과 취소가 필요하면 /api/jobs를 쓴다.
 
     Args:
-        req: 한국어 프롬프트, 이미지 비율, 시드, 사용자 문장을 담은 요청.
+        req: 한국어 프롬프트, 이미지 비율, 시드, 필수 단어·문장을 담은 요청.
             해상도는 비율에 맞는 IMAGE_RESOLUTIONS 값을 사용한다.
         image_generator: 의존성으로 주입되는 이미지 생성기.
         copy_recommender: 의존성으로 주입되는 문구 추천기.

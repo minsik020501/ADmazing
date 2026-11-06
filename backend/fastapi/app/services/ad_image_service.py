@@ -40,7 +40,7 @@ async def generate_ad_images(
     문구 추천에 실패한 이미지는 copies 대신 copies_error를 채우고, 작업은 실패시키지 않는다.
 
     Args:
-        req: 한국어 프롬프트, 이미지 비율, 시드, 사용자 문장을 담은 요청.
+        req: 한국어 프롬프트, 이미지 비율, 시드, 필수 단어·문장을 담은 요청.
             해상도는 비율에 맞는 IMAGE_RESOLUTIONS 값을 사용한다.
         image_generator: 이미지 생성기.
         copy_recommender: 문구 추천기.
@@ -74,7 +74,7 @@ async def generate_ad_images(
     # run_generation이 끝나면 GPU 잠금이 풀려 있으므로, 문구를 추천하는 동안
     # 다음 작업의 이미지 생성이 기다리지 않는다
     copies = await recommend_copies_for_images(
-        copy_recommender, images, req.prompt, req.user_copies, job
+        copy_recommender, images, req.prompt, req.keywords, job
     )
 
     return GenerateResponse(

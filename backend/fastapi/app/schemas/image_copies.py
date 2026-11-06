@@ -9,19 +9,29 @@
 from pydantic import BaseModel, Field
 
 from app.core.copy_role import COPIES_PER_ROLE
+from app.core.layout_templates import MAX_STYLES, FontStyle
 from app.schemas.copy_suggestion import CopySuggestion
 
 _ROLE_DESCRIPTION = (
-    f"최대 {COPIES_PER_ROLE}개. 사용자 문장(source=user)이 넣은 순서대로 앞에 오고 "
-    "나머지를 AI 문구로 채운다"
+    f"최대 {COPIES_PER_ROLE}개. 필수 단어가 들어간 문구만 남기므로 더 적을 수 있다"
 )
 
 
 class ImageCopies(BaseModel):
-    """이미지 한 장에 어울리는 title, subtitle, text 문구 목록."""
+    """이미지 한 장에 어울리는 title, subtitle, text 문구 목록과 강조색·글꼴 스타일."""
 
     title: list[CopySuggestion] = Field(..., description=f"타이틀. {_ROLE_DESCRIPTION}")
     subtitle: list[CopySuggestion] = Field(
         ..., description=f"서브타이틀. {_ROLE_DESCRIPTION}"
     )
     text: list[CopySuggestion] = Field(..., description=f"본문. {_ROLE_DESCRIPTION}")
+    accent: str | None = Field(
+        None,
+        description="이미지를 보고 고른 문구 강조색 #RRGGBB. 문구 배치 추천 요청의 accent로 "
+        "그대로 보내면 된다. 고르지 못하면 null",
+    )
+    styles: list[FontStyle] = Field(
+        default_factory=list,
+        description=f"이미지에 어울리는 글꼴 스타일 (어울리는 순서, 최대 {MAX_STYLES}개). "
+        "문구 배치 추천 요청의 styles로 그대로 보내면 된다. 고르지 못하면 빈 목록",
+    )

@@ -77,7 +77,7 @@ async def create_job(
     진행 상황은 GET /jobs/{job_id}/events(SSE)로 받고, DELETE /jobs/{job_id}로 취소한다.
 
     Args:
-        req: 한국어 프롬프트, 이미지 비율, 시드, 사용자 문장을 담은 요청.
+        req: 한국어 프롬프트, 이미지 비율, 시드, 필수 단어·문장을 담은 요청.
         image_generator: 의존성으로 주입되는 이미지 생성기.
         copy_recommender: 의존성으로 주입되는 문구 추천기.
         job_store: 의존성으로 주입되는 작업 저장소.

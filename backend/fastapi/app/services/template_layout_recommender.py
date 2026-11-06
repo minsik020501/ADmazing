@@ -6,9 +6,11 @@ CPU에서만 돌며, 영역 찾기를 포함해 1초 안팎이다.
 순서:
     1. 가리면 안 되는 영역(제품, 얼굴)을 찾는다 (검출기가 없으면 건너뛴다)
     2. 템플릿마다 문구 블록을 쌓아 보고, 영역을 8% 넘게 덮는 템플릿은 뺀다
-    3. 블록 아래 배경이 차분한 순서로 최대 5개를 고른다. 안 덮는 템플릿이 3개보다 적으면
-       덮는 정도가 작은 템플릿으로 3개까지 채운다
-    4. 추천안마다 다른 글꼴 짝과 배색 방식(layout_palette)을 쓴다
+    3. 글자가 놓일 자리에서 읽히는 글자색이 없는 문구가 적은 순서, 그다음 블록 아래 배경이
+       차분한 순서로 최대 5개를 고른다. 안 덮는 템플릿이 3개보다 적으면 덮는 정도가 작은
+       템플릿으로 3개까지 채운다
+    4. 추천안마다 다른 글꼴 스타일과 배색 방식(layout_palette)을 쓴다. 강조색과 글꼴 스타일은
+       문구 추천에서 OpenAI가 이미지를 보고 고른 값을 요청으로 받는다
 
 생성일자: 2026-11-06
 생성자: ven_choi
@@ -21,12 +23,13 @@ import logging
 from PIL import Image
 
 from app.core.layout_templates import (
-    FONT_PAIRS,
+    FONT_STYLES,
     FONT_SIZES,
     GAPS,
     LINE_HEIGHTS,
     MARGIN,
     TEMPLATES,
+    FontStyle,
 )
 from app.schemas.layout_copy import LayoutCopy
 from app.schemas.layout_proposal import LayoutProposal
@@ -34,9 +37,13 @@ from app.schemas.text_layer import TextLayer
 from app.services.layout_palette import (
     SCHEME_NAMES,
     SCHEMES,
-    accent_color,
+    accent_from_hex,
     apply_palette,
     busyness,
+    is_readable,
+    luminance_map,
+    text_background,
+    MIN_CONTRAST,
 )
 from app.services.subject_detector import Box, SubjectDetector, union_box
 from app.utils.text_measure import box_size
@@ -61,7 +68,12 @@ class TemplateLayoutRecommender:
         self._detector = detector
 
     def recommend(
-        self, image: Image.Image, copies: list[LayoutCopy], num_proposals: int
+        self,
+        image: Image.Image,
+        copies: list[LayoutCopy],
+        num_proposals: int,
+        accent: str | None = None,
+        styles: list[FontStyle] | None = None,
     ) -> list[LayoutProposal]:
         """추천안을 만든다.
 
@@ -69,62 +81,78 @@ class TemplateLayoutRecommender:
             image: 원본 이미지.
             copies: 배치할 역할별 문구.
             num_proposals: 받을 최대 추천안 수.
+            accent: 강조색 #RRGGBB (문구 추천 결과). 없으면 톤온톤으로만 추천한다.
+            styles: 글꼴 스타일 (어울리는 순서, 문구 추천 결과). 추천안마다 앞에서부터 하나씩
+                쓰고, 모자라면 FONT_STYLES 순서대로 나머지 스타일로 채운다.
 
         Returns:
             list[LayoutProposal]: 추천안 (MIN_PROPOSALS ~ num_proposals개, 템플릿 수 이하).
         """
         subjects = self._detect(image)
         subject = union_box([box for _, box in subjects])
-        products = [box for label, box in subjects if label == "product"]
-        accent = accent_color(
-            image,
-            products,
-            has_face=any(label == "face" for label, _ in subjects),
-            no_subjects=not subjects,
-        )
+        accent_lch = accent_from_hex(accent)
+        style_order = list(dict.fromkeys([*(styles or []), *FONT_STYLES]))
 
         aspect = image.height / image.width
-        short = min(image.width, image.height)
+        luminance = luminance_map(image)
         candidates = []
         for template_id in TEMPLATES:
-            layers = build_block(template_id, copies, FONT_PAIRS[0][:2], aspect, image)
+            layers = build_block(
+                template_id, copies, FONT_STYLES[style_order[0]][:2], aspect, image
+            )
             block = block_box(layers, aspect)
             cover = _cover(block, subject) if subject else 0.0
-            candidates.append(
-                (cover > MAX_SUBJECT_COVER, cover, busyness(image, block), template_id)
+            unreadable = sum(
+                not is_readable(
+                    text_background(luminance, layer, aspect),
+                    MIN_CONTRAST[layer.role],
+                )
+                for layer in layers
             )
-        clean = sorted((c for c in candidates if not c[0]), key=lambda c: c[2])
+            candidates.append(
+                (
+                    cover > MAX_SUBJECT_COVER,
+                    cover,
+                    unreadable,
+                    busyness(image, block),
+                    template_id,
+                )
+            )
+        clean = sorted((c for c in candidates if not c[0]), key=lambda c: c[2:4])
         if len(clean) >= MIN_PROPOSALS:
             chosen = clean
         else:
-            covering = sorted((c for c in candidates if c[0]), key=lambda c: c[1])
+            covering = sorted((c for c in candidates if c[0]), key=lambda c: c[1:4])
             chosen = (clean + covering)[:MIN_PROPOSALS]
         chosen = chosen[:num_proposals]
 
         proposals = []
-        for index, (_, cover, busy, template_id) in enumerate(chosen):
-            heading, body, pair_name = FONT_PAIRS[index % len(FONT_PAIRS)]
+        for index, (_, cover, unreadable, busy, template_id) in enumerate(chosen):
+            heading, body, style_name = FONT_STYLES[
+                style_order[index % len(style_order)]
+            ]
             layers = build_block(template_id, copies, (heading, body), aspect, image)
             scheme = apply_palette(
                 layers,
                 image,
+                luminance,
                 block_box(layers, aspect),
                 SCHEMES[index % len(SCHEMES)],
-                accent,
+                accent_lch,
             )
             proposals.append(
                 LayoutProposal(
-                    label=f"{TEMPLATES[template_id].name} · {pair_name}"
+                    label=f"{TEMPLATES[template_id].name} · {style_name}"
                     f" · {SCHEME_NAMES[scheme]}",
                     layers=layers,
                 )
             )
             logger.debug(
-                "template %s cover=%.0f%% busy=%.0f short=%d",
+                "template %s cover=%.0f%% unreadable=%d busy=%.0f",
                 template_id,
                 cover * 100,
+                unreadable,
                 busy,
-                short,
             )
         return proposals
 

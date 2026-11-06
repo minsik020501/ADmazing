@@ -63,6 +63,9 @@ class Settings(BaseSettings):
     copy_recommender: Literal["mock", "openai"] = "openai"
     # 문구 추천에 쓸 OpenAI 모델. 비워 두면 OPENAI_MODEL을 쓴다 (이미지 입력 지원 모델)
     copy_openai_model: str | None = None
+    # 추론 모델(gpt-5 계열 이후)의 reasoning_effort. 비워 두면 보내지 않는다 (추론 모델이 아니면
+    # 비워야 한다). 기본(medium)은 한 번에 11~23초가 걸려 시간 제한을 넘기므로 none을 권장한다
+    copy_reasoning_effort: Literal["none", "low", "medium", "high"] | None = None
     # 이미지 1장의 문구 추천(재요청 포함)에 허용하는 최대 시간
     copy_timeout_seconds: float = Field(20.0, gt=0)
     # OpenAI에 보낼 이미지의 긴 변(px). 분위기·색감·피사체만 보면 되므로 줄여서 보낸다
