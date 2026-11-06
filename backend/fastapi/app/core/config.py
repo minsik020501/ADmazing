@@ -68,5 +68,14 @@ class Settings(BaseSettings):
     # OpenAI에 보낼 이미지의 긴 변(px). 분위기·색감·피사체만 보면 되므로 줄여서 보낸다
     copy_image_max_side: int = Field(512, ge=64)
 
+    # 문구 배치 추천은 템플릿과 규칙으로 만든다 (CPU). 가리면 안 되는 영역(제품, 얼굴)을
+    # 전용 검출기로 찾아 피한다. 끄면 영역을 피하지 않는다 (모델 파일이 없는 개발 환경용)
+    layout_detect_subjects: bool = True
+    # 주 피사체 분리 U²-Net, 얼굴 검출 YuNet ONNX 파일
+    layout_salient_model_path: Path = Path("/models/detectors/u2net.onnx")
+    layout_face_model_path: Path = Path(
+        "/models/detectors/face_detection_yunet_2023mar.onnx"
+    )
+
 
 settings = Settings()
