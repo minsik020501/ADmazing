@@ -29,7 +29,19 @@ class LayoutTemplate(NamedTuple):
     width: float
 
 
-TEMPLATES: dict[str, LayoutTemplate] = {
+# 템플릿 id. 문구 배치 추천 요청의 template_id로 레이아웃을 지정할 때 쓴다
+TemplateId = Literal[
+    "top_left",
+    "bottom_left",
+    "top_right",
+    "bottom_right",
+    "top_center",
+    "bottom_center",
+    "side_left",
+    "side_right",
+]
+
+TEMPLATES: dict[TemplateId, LayoutTemplate] = {
     "top_left": LayoutTemplate("좌상단 블록", "top", "left", 0.62),
     "bottom_left": LayoutTemplate("좌하단 블록", "bottom", "left", 0.62),
     "top_right": LayoutTemplate("우상단 블록", "top", "right", 0.62),

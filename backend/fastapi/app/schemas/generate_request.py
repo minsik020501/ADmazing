@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 
 from app.core.config import settings
 from app.core.image_ratio import DEFAULT_IMAGE_RATIO, ImageRatio
-from app.schemas.copy_keyword import CopyKeyword, keywords_field
+from app.schemas.copy_requests import CopyRequests
 from app.utils.seed import MAX_SEED
 
 # 이미지마다 seed를 1씩 늘려 쓰므로 마지막 이미지의 seed도 MAX_SEED를 넘지 않게 한다
@@ -34,4 +34,8 @@ class GenerateRequest(BaseModel):
         DEFAULT_IMAGE_RATIO,
         description="이미지 비율 (가로:세로). 비율별 SDXL 해상도로 생성. 없으면 1:1",
     )
-    keywords: list[CopyKeyword] = keywords_field()
+    copy_requests: CopyRequests | None = Field(
+        None,
+        description="역할별 문구 요청. AI가 참고해 문구를 쓰고, 요청에 든 가격·날짜·숫자는 "
+        "바꾸지 않는다. 없거나 비운 역할은 AI가 자유롭게 추천한다",
+    )

@@ -12,6 +12,8 @@ CPU에서만 돌며, 영역 찾기를 포함해 1초 안팎이다.
     4. 추천안마다 다른 글꼴 스타일과 배색 방식(layout_palette)을 쓴다. 강조색과 글꼴 스타일은
        문구 추천에서 OpenAI가 이미지를 보고 고른 값을 요청으로 받는다
 
+요청에 template_id가 있으면 1~3을 건너뛰고 그 템플릿으로만 추천안을 만든다.
+
 생성일자: 2026-11-06
 생성자: ven_choi
 수정일자: 2026-11-06
@@ -30,6 +32,7 @@ from app.core.layout_templates import (
     MARGIN,
     TEMPLATES,
     FontStyle,
+    TemplateId,
 )
 from app.schemas.layout_copy import LayoutCopy
 from app.schemas.layout_proposal import LayoutProposal
@@ -74,6 +77,7 @@ class TemplateLayoutRecommender:
         num_proposals: int,
         accent: str | None = None,
         styles: list[FontStyle] | None = None,
+        template_id: TemplateId | None = None,
     ) -> list[LayoutProposal]:
         """추천안을 만든다.
 
@@ -84,11 +88,15 @@ class TemplateLayoutRecommender:
             accent: 강조색 #RRGGBB (문구 추천 결과). 없으면 톤온톤으로만 추천한다.
             styles: 글꼴 스타일 (어울리는 순서, 문구 추천 결과). 추천안마다 앞에서부터 하나씩
                 쓰고, 모자라면 FONT_STYLES 순서대로 나머지 스타일로 채운다.
+            template_id: 레이아웃 지정. 있으면 영역을 가려도 이 템플릿만 쓰고, 추천안마다
+                글꼴 스타일과 배색만 바꾼다.
 
         Returns:
-            list[LayoutProposal]: 추천안 (MIN_PROPOSALS ~ num_proposals개, 템플릿 수 이하).
+            list[LayoutProposal]: 추천안. template_id가 있으면 num_proposals개, 없으면
+                MIN_PROPOSALS ~ num_proposals개 (템플릿 수 이하).
         """
-        subjects = self._detect(image)
+        # 템플릿을 지정하면 영역을 피하지 않으므로 영역 찾기를 건너뛴다
+        subjects = [] if template_id else self._detect(image)
         subject = union_box([box for _, box in subjects])
         accent_lch = accent_from_hex(accent)
         style_order = list(dict.fromkeys([*(styles or []), *FONT_STYLES]))
@@ -96,9 +104,9 @@ class TemplateLayoutRecommender:
         aspect = image.height / image.width
         luminance = luminance_map(image)
         candidates = []
-        for template_id in TEMPLATES:
+        for candidate_id in [template_id] if template_id else TEMPLATES:
             layers = build_block(
-                template_id, copies, FONT_STYLES[style_order[0]][:2], aspect, image
+                candidate_id, copies, FONT_STYLES[style_order[0]][:2], aspect, image
             )
             block = block_box(layers, aspect)
             cover = _cover(block, subject) if subject else 0.0
@@ -115,23 +123,20 @@ class TemplateLayoutRecommender:
                     cover,
                     unreadable,
                     busyness(image, block),
-                    template_id,
+                    candidate_id,
                 )
             )
-        clean = sorted((c for c in candidates if not c[0]), key=lambda c: c[2:4])
-        if len(clean) >= MIN_PROPOSALS:
-            chosen = clean
+        if template_id:
+            # 지정한 템플릿 하나로 스타일·배색만 바꿔 추천안 수를 채운다
+            chosen = candidates * num_proposals
         else:
-            covering = sorted((c for c in candidates if c[0]), key=lambda c: c[1:4])
-            chosen = (clean + covering)[:MIN_PROPOSALS]
-        chosen = chosen[:num_proposals]
+            chosen = self._choose(candidates, num_proposals)
 
         proposals = []
-        for index, (_, cover, unreadable, busy, template_id) in enumerate(chosen):
-            heading, body, style_name = FONT_STYLES[
-                style_order[index % len(style_order)]
-            ]
-            layers = build_block(template_id, copies, (heading, body), aspect, image)
+        for index, (_, cover, unreadable, busy, chosen_id) in enumerate(chosen):
+            style = style_order[index % len(style_order)]
+            heading, body, style_name = FONT_STYLES[style]
+            layers = build_block(chosen_id, copies, (heading, body), aspect, image)
             scheme = apply_palette(
                 layers,
                 image,
@@ -142,19 +147,40 @@ class TemplateLayoutRecommender:
             )
             proposals.append(
                 LayoutProposal(
-                    label=f"{TEMPLATES[template_id].name} · {style_name}"
+                    label=f"{TEMPLATES[chosen_id].name} · {style_name}"
                     f" · {SCHEME_NAMES[scheme]}",
+                    template_id=chosen_id,
+                    style=style,
                     layers=layers,
                 )
             )
             logger.debug(
                 "template %s cover=%.0f%% unreadable=%d busy=%.0f",
-                template_id,
+                chosen_id,
                 cover * 100,
                 unreadable,
                 busy,
             )
         return proposals
+
+    @staticmethod
+    def _choose(candidates: list[tuple], num_proposals: int) -> list[tuple]:
+        """영역을 덜 덮고, 읽히고, 배경이 차분한 순서로 템플릿 후보를 고른다.
+
+        Args:
+            candidates: (덮음 초과 여부, 덮는 비율, 안 읽히는 문구 수, 배경 복잡도, 템플릿 id).
+            num_proposals: 받을 최대 추천안 수.
+
+        Returns:
+            list[tuple]: 고른 후보 (MIN_PROPOSALS ~ num_proposals개).
+        """
+        clean = sorted((c for c in candidates if not c[0]), key=lambda c: c[2:4])
+        if len(clean) >= MIN_PROPOSALS:
+            chosen = clean
+        else:
+            covering = sorted((c for c in candidates if c[0]), key=lambda c: c[1:4])
+            chosen = (clean + covering)[:MIN_PROPOSALS]
+        return chosen[:num_proposals]
 
     def _detect(self, image: Image.Image) -> list[tuple[str, Box]]:
         """영역을 찾는다. 검출기가 없거나 실패하면 빈 목록이다.

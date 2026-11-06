@@ -17,32 +17,32 @@ COPY_ROLES: tuple[CopyRole, ...] = ("title", "subtitle", "text")
 # 역할마다 돌려줄 문구 수
 COPIES_PER_ROLE = 5
 
-# AI가 추천하는 문구의 역할별 최대 글자 수. 넘는 문구는 버린다
+# 요청이 없는 역할에서 AI가 추천하는 문구의 최대 글자 수. 넘는 문구는 버린다
 AI_COPY_MAX_LENGTH: dict[CopyRole, int] = {"title": 15, "subtitle": 30, "text": 60}
+
+# 역할별 문구 요청(copy_requests)의 최대 글자 수.
+# 요청이 있는 역할은 요청 내용을 담을 수 있게 추천 문구도 이 글자 수까지 허용한다
+COPY_REQUEST_MAX_LENGTH: dict[CopyRole, int] = {
+    "title": 20,
+    "subtitle": 30,
+    "text": 100,
+}
 
 # 사용자가 직접 넣는 문장의 최대 글자 수 (문구 상자 text 상한과 같다)
 USER_COPY_MAX_LENGTH = 200
 
-# 필수 단어·문장 수와 하나의 최대 글자 수
-MAX_KEYWORDS = 3
-KEYWORD_MAX_LENGTH = 20
 
-# 필수 단어가 길어 역할별 최대 글자 수를 넘길 때, 필수 단어 외에 더 둘 수 있는 글자 수
-KEYWORD_EXTRA_LENGTH = 6
-
-
-def copy_max_length(role: CopyRole, keywords: list[str]) -> int:
-    """필수 단어를 넣을 수 있게 늘린 역할별 최대 글자 수.
+def copy_max_length(role: CopyRole, requests: dict[CopyRole, str]) -> int:
+    """요청 유무에 따른 역할별 추천 문구 최대 글자 수.
 
     Args:
         role: 역할.
-        keywords: 필수 단어·문장.
+        requests: 역할별 문구 요청 (요청이 없는 역할은 키가 없다).
 
     Returns:
-        int: AI_COPY_MAX_LENGTH와 (필수 단어 글자 수 합 + 사이 공백 + KEYWORD_EXTRA_LENGTH)
-            중 큰 값.
+        int: 요청이 있으면 COPY_REQUEST_MAX_LENGTH와 AI_COPY_MAX_LENGTH 중 큰 값,
+            없으면 AI_COPY_MAX_LENGTH.
     """
-    if not keywords:
-        return AI_COPY_MAX_LENGTH[role]
-    needed = sum(len(keyword) for keyword in keywords) + len(keywords) - 1
-    return max(AI_COPY_MAX_LENGTH[role], needed + KEYWORD_EXTRA_LENGTH)
+    if role in requests:
+        return max(AI_COPY_MAX_LENGTH[role], COPY_REQUEST_MAX_LENGTH[role])
+    return AI_COPY_MAX_LENGTH[role]

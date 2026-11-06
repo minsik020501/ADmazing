@@ -34,7 +34,8 @@ router = APIRouter(tags=["copy"])
     responses={
         status.HTTP_502_BAD_GATEWAY: {
             "model": ErrorResponse,
-            "description": "OpenAI 호출 실패, 시간 초과 등으로 문구 추천 실패",
+            "description": "OpenAI 호출 실패, 시간 초과, 조건에 맞는 문구 없음 등으로 "
+            "문구 추천 실패",
         },
     },
 )
@@ -44,10 +45,12 @@ async def recommend_copy(
 ):
     """이미지 한 장에 어울리는 title, subtitle, text 문구를 역할마다 최대 5개 추천한다.
 
-    필수 단어·문장(keywords)이 있으면 모든 문구에 글자 그대로 넣는다.
+    같은 번호의 title, subtitle, text가 한 묶음(칩 하나)으로 어울리게 쓰인다.
+    역할별 요청(copy_requests)이 있으면 AI가 참고해 쓰고, 요청의 가격·날짜·숫자는 바꾸지
+    않는다.
 
     Args:
-        req: 이미지, 한국어 프롬프트, 필수 단어·문장을 담은 요청.
+        req: 이미지, 한국어 프롬프트, 역할별 문구 요청을 담은 요청.
         copy_recommender: 의존성으로 주입되는 문구 추천기.
 
     Returns:
@@ -58,7 +61,10 @@ async def recommend_copy(
     """
     try:
         return await recommend_copies(
-            copy_recommender, req.image_base64, req.prompt, req.keywords
+            copy_recommender,
+            req.image_base64,
+            req.prompt,
+            req.copy_requests.filled() if req.copy_requests else {},
         )
     except CopyRecommendationError as error:
         logger.warning("문구 추천 실패: %s", error)

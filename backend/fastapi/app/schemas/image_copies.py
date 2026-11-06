@@ -13,12 +13,16 @@ from app.core.layout_templates import MAX_STYLES, FontStyle
 from app.schemas.copy_suggestion import CopySuggestion
 
 _ROLE_DESCRIPTION = (
-    f"최대 {COPIES_PER_ROLE}개. 필수 단어가 들어간 문구만 남기므로 더 적을 수 있다"
+    f"1~{COPIES_PER_ROLE}개. title[i], subtitle[i], text[i]가 한 묶음(칩 하나)으로 "
+    "어울리게 쓰였고, 세 목록의 길이는 같다"
 )
 
 
 class ImageCopies(BaseModel):
-    """이미지 한 장에 어울리는 title, subtitle, text 문구 목록과 강조색·글꼴 스타일."""
+    """이미지 한 장에 어울리는 title, subtitle, text 문구 목록과 강조색·글꼴 스타일·대표색.
+
+    같은 번호의 문구끼리 한 광고로 읽히도록 묶어서 추천한다.
+    """
 
     title: list[CopySuggestion] = Field(..., description=f"타이틀. {_ROLE_DESCRIPTION}")
     subtitle: list[CopySuggestion] = Field(
@@ -34,4 +38,9 @@ class ImageCopies(BaseModel):
         default_factory=list,
         description=f"이미지에 어울리는 글꼴 스타일 (어울리는 순서, 최대 {MAX_STYLES}개). "
         "문구 배치 추천 요청의 styles로 그대로 보내면 된다. 고르지 못하면 빈 목록",
+    )
+    palette: list[str] = Field(
+        default_factory=list,
+        description="이미지의 대표색 #RRGGBB (많이 쓰인 순서, 최대 5개). "
+        "글자색을 고를 때 기본색으로 쓴다",
     )

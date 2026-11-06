@@ -1,4 +1,4 @@
-"""OpenAI로 이미지를 보고 광고 문구와 문구 강조색·글꼴 스타일을 추천하는 문구 추천기.
+"""OpenAI로 이미지를 보고 광고 문구 묶음과 문구 강조색·글꼴 스타일을 추천하는 문구 추천기.
 
 강조색과 스타일은 문구 배치 추천(/api/layout/recommend)에서 쓴다. 강조색의 명도는 배치 추천이
 글자 아래 배경을 보고 다시 맞추므로, 여기서는 색조와 채도(어떤 색인지)만 정하면 된다.
@@ -46,27 +46,34 @@ SYSTEM_PROMPT = (
     "- title: the main headline. Short, punchy and memorable.\n"
     "- subtitle: supports the title with a concrete benefit or feeling.\n"
     "- text: body copy such as product information, offers or a call to action.\n"
+    "You write copy as SETS. One set is one ad: its title, subtitle and text are "
+    "shown together, so they must read naturally as a whole, share the same angle "
+    "and tone, and not repeat each other. Different sets take clearly different "
+    "angles.\n"
     "The maximum number of characters per line for each role is given in the "
     "request.\n"
+    "Requests per role:\n"
+    "- The user may give a request for some roles. A request is NOT the final "
+    "copy. It tells you what that role should say. Rewrite it into good copy that "
+    "fits the role and its character limit (e.g. a short headline for title, a "
+    "benefit line for subtitle, an informative line for text).\n"
+    "- Keep every fact in a request: never change, round or drop numbers, prices, "
+    "dates, periods, percentages, names or places. Write numbers exactly as in the "
+    "request.\n"
+    "- Roles without a request are written freely, but must fit the same set and "
+    "may use facts from the other requests.\n"
     "Rules:\n"
     "- Write in natural Korean. English words only when they are common in Korean "
     "ads (e.g. SALE, NEW).\n"
     "- Reflect what is actually visible in the image: the subject, colors, mood and "
-    "season. Do not invent product names, prices, discounts or features that are "
-    "neither in the image nor in the description, required keywords or existing "
-    "copy.\n"
-    "- Required keywords: if given, EVERY line of EVERY role must contain EVERY "
-    "keyword exactly as written (same spelling, spacing and symbols; you may add "
-    "Korean particles right after it). Build each line naturally around the "
-    "keywords and use their meaning, e.g. a brand name or an event. Vary where "
-    "the keywords appear (beginning, middle or end) so the lines do not all look "
-    "alike.\n"
-    "- Existing copy was already chosen. Match its tone and information, but never "
-    "repeat it or write a near-duplicate.\n"
-    "- Every line in a role must be clearly different from the others.\n"
-    "- No quotation marks, emojis, hashtags or trailing periods.\n"
-    "- Return exactly the requested number of lines for each role, and an empty "
-    "list for roles that need 0.\n"
+    "season. Do not invent product names, prices, discounts, dates or other numbers "
+    "that are neither in the image nor in the description, requests or existing "
+    "sets.\n"
+    "- Existing sets were already chosen. Match their tone, but never repeat them "
+    "or write a near-duplicate.\n"
+    "- No quotation marks, emojis, hashtags or trailing periods, unless the "
+    "request itself contains them.\n"
+    "- Return exactly the requested number of sets.\n"
     "Accent color:\n"
     "- Also choose ONE accent color (#RRGGBB) for the headline text on this image. "
     "Take it from the product or a key object, or choose a color that harmonizes "
@@ -74,7 +81,7 @@ SYSTEM_PROMPT = (
     "- Do not worry about contrast or lightness. Brightness is adjusted "
     "automatically for readability.\n"
     f"Font styles: choose 1 to {MAX_STYLES} styles that best fit this ad (image, "
-    "mood, copy and required keywords), best first. Available styles:\n"
+    "mood, copy and requests), best first. Available styles:\n"
     + "".join(f"- {style}: {guide}\n" for style, guide in _STYLE_GUIDES.items())
 )
 _HEX_COLOR = re.compile(r"^#[0-9A-Fa-f]{6}$")
@@ -88,9 +95,14 @@ _RESPONSE_FORMAT = {
         "schema": {
             "type": "object",
             "properties": {
-                **{
-                    role: {"type": "array", "items": {"type": "string"}}
-                    for role in COPY_ROLES
+                "sets": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {role: {"type": "string"} for role in COPY_ROLES},
+                        "required": list(COPY_ROLES),
+                        "additionalProperties": False,
+                    },
                 },
                 "accent": {"type": "string", "description": "#RRGGBB"},
                 "styles": {
@@ -99,7 +111,7 @@ _RESPONSE_FORMAT = {
                     "description": f"1~{MAX_STYLES} font styles, best first",
                 },
             },
-            "required": [*COPY_ROLES, "accent", "styles"],
+            "required": ["sets", "accent", "styles"],
             "additionalProperties": False,
         },
     },
@@ -107,28 +119,28 @@ _RESPONSE_FORMAT = {
 
 
 class OpenAICopyRecommender:
-    """OpenAI Structured Outputs로 역할별 문구와 강조색·글꼴 스타일을 JSON으로 받는다."""
+    """OpenAI Structured Outputs로 문구 묶음과 강조색·글꼴 스타일을 JSON으로 받는다."""
 
     async def recommend(
         self,
         image_base64: str,
         prompt: str,
-        keywords: list[str],
-        existing: dict[CopyRole, list[str]],
-        counts: dict[CopyRole, int],
+        requests: dict[CopyRole, str],
+        existing: list[dict[CopyRole, str]],
+        count: int,
     ) -> CopyCandidates:
-        """이미지와 프롬프트, 필수 단어, 이미 받은 문구를 보내고 역할별 문구와 강조색·스타일을
+        """이미지와 프롬프트, 역할별 요청, 이미 받은 묶음을 보내고 문구 묶음과 강조색·스타일을
         받는다.
 
         Args:
             image_base64: PNG 이미지의 base64 문자열.
             prompt: 사용자가 입력한 한국어 이미지 설명.
-            keywords: 모든 문구에 글자 그대로 넣어야 하는 단어·문장.
-            existing: 역할별로 앞서 받아 둔 AI 문구.
-            counts: 역할별로 필요한 AI 문구 수.
+            requests: 역할별 문구 요청.
+            existing: 앞서 받아 둔 문구 묶음.
+            count: 필요한 문구 묶음 수.
 
         Returns:
-            CopyCandidates: 역할별 문구 후보 (정리 전)와 강조색·스타일.
+            CopyCandidates: 문구 묶음 후보 (정리 전)와 강조색·스타일.
 
         Raises:
             CopyRecommendationError: OpenAI 호출이 실패했거나 응답 형식이 틀렸을 때.
@@ -145,7 +157,7 @@ class OpenAICopyRecommender:
                             {
                                 "type": "text",
                                 "text": _build_user_message(
-                                    prompt, keywords, existing, counts
+                                    prompt, requests, existing, count
                                 ),
                             },
                             {
@@ -171,42 +183,44 @@ class OpenAICopyRecommender:
 
 def _build_user_message(
     prompt: str,
-    keywords: list[str],
-    existing: dict[CopyRole, list[str]],
-    counts: dict[CopyRole, int],
+    requests: dict[CopyRole, str],
+    existing: list[dict[CopyRole, str]],
+    count: int,
 ) -> str:
-    """이미지 설명, 필수 단어, 이미 받은 문구, 역할별 필요 개수·최대 글자 수를 담은
+    """이미지 설명, 역할별 요청, 이미 받은 묶음, 필요한 묶음 수, 역할별 최대 글자 수를 담은
     사용자 메시지를 만든다.
 
     Returns:
         str: OpenAI에 보낼 사용자 메시지.
     """
-    lines = [
-        f"Image description (Korean): {prompt}",
+    lines = [f"Image description (Korean): {prompt}", "", "Requests per role:"]
+    for role in COPY_ROLES:
+        lines.append(
+            f"- {role}: "
+            + (
+                json.dumps(requests[role], ensure_ascii=False)
+                if role in requests
+                else "none"
+            )
+        )
+    lines += ["", "Maximum characters per line:"]
+    for role in COPY_ROLES:
+        lines.append(f"- {role}: {copy_max_length(role, requests)}")
+    lines += [
         "",
-        "Required keywords (must appear in every line): "
-        + (json.dumps(keywords, ensure_ascii=False) if keywords else "none"),
+        "Existing sets: " + json.dumps(existing, ensure_ascii=False),
         "",
-        "Maximum characters per line:",
+        f"Number of new sets to write: {count}",
     ]
-    for role in COPY_ROLES:
-        lines.append(f"- {role}: {copy_max_length(role, keywords)}")
-    lines += ["", "Existing copy:"]
-    for role in COPY_ROLES:
-        copies = existing.get(role, [])
-        lines.append(f"- {role}: {json.dumps(copies, ensure_ascii=False)}")
-    lines += ["", "Number of new lines to write:"]
-    for role in COPY_ROLES:
-        lines.append(f"- {role}: {counts.get(role, 0)}")
     return "\n".join(lines)
 
 
 def _parse_response(content: str | None) -> CopyCandidates:
-    """Structured Outputs 응답 JSON을 역할별 문구 목록과 강조색으로 읽는다.
+    """Structured Outputs 응답 JSON을 문구 묶음 목록과 강조색·스타일로 읽는다.
 
     Returns:
-        CopyCandidates: 역할별 문구 후보와 강조색·스타일 (형식이 틀린 강조색은 None,
-            목록에 없는 스타일과 중복은 뺀다).
+        CopyCandidates: 문구 묶음 후보와 강조색·스타일 (역할이 빠진 묶음과 형식이 틀린
+            강조색은 버리고, 목록에 없는 스타일과 중복은 뺀다).
 
     Raises:
         CopyRecommendationError: 응답이 비었거나 형식이 틀렸을 때 (모델이 거절한 경우 포함).
@@ -217,12 +231,15 @@ def _parse_response(content: str | None) -> CopyCandidates:
         data = json.loads(content)
     except json.JSONDecodeError as error:
         raise CopyRecommendationError("OpenAI 응답이 JSON이 아닙니다.") from error
-    result: dict[CopyRole, list[str]] = {}
-    for role in COPY_ROLES:
-        values = data.get(role, [])
-        if not isinstance(values, list):
-            raise CopyRecommendationError(f"OpenAI 응답의 {role}이 목록이 아닙니다.")
-        result[role] = [value for value in values if isinstance(value, str)]
+    raw_sets = data.get("sets", [])
+    if not isinstance(raw_sets, list):
+        raise CopyRecommendationError("OpenAI 응답의 sets가 목록이 아닙니다.")
+    sets: list[dict[CopyRole, str]] = [
+        {role: item[role] for role in COPY_ROLES}
+        for item in raw_sets
+        if isinstance(item, dict)
+        and all(isinstance(item.get(role), str) for role in COPY_ROLES)
+    ]
     accent = data.get("accent")
     if not isinstance(accent, str) or not _HEX_COLOR.match(accent.strip()):
         accent = None
@@ -232,7 +249,7 @@ def _parse_response(content: str | None) -> CopyCandidates:
         if style in FONT_STYLES and style not in styles:
             styles.append(style)
     return CopyCandidates(
-        copies=result,
+        sets=sets,
         accent=accent.strip().upper() if accent else None,
         styles=styles[:MAX_STYLES],
     )

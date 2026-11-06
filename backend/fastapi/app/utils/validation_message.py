@@ -51,7 +51,7 @@ def to_korean_errors(errors: list[dict]) -> list[dict]:
         loc = error.get("loc", ())
         # loc는 ("body", "seed")처럼 위치 다음에 필드 이름이 온다.
         # JSON 파싱 에러는 ("body", 1)처럼 필드 이름 대신 오류 위치(숫자)가 온다.
-        # 목록 항목 에러는 ("body", "keywords", 0)처럼 끝에 순번이 붙으므로
+        # 목록 항목 에러는 ("body", "styles", 0)처럼 끝에 순번이 붙으므로
         # 그 앞의 필드 이름을 쓴다
         field = None
         if len(loc) > 1 and isinstance(loc[-1], str):

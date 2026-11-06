@@ -13,5 +13,6 @@ class CopySuggestion(BaseModel):
     """추천 목록의 문구 하나."""
 
     text: str = Field(
-        ..., description="문구. 필수 단어가 있으면 모두 글자 그대로 들어 있다"
+        ...,
+        description="문구. 역할별 요청이 있으면 그 내용을 담고, 요청의 숫자는 바꾸지 않는다",
     )

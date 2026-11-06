@@ -15,6 +15,8 @@ import logging
 import re
 
 from app.core.config import settings
+from fastapi.concurrency import run_in_threadpool
+
 from app.core.copy_role import (
     COPIES_PER_ROLE,
     COPY_ROLES,
@@ -31,10 +33,12 @@ from app.services.copy_recommendation_error import (
 from app.services.copy_recommender import CopyRecommender
 from app.services.generation_cancelled_error import GenerationCancelledError
 from app.services.generation_job import GenerationJob
+from app.utils.image import decode_base64_image
+from app.utils.image_palette import extract_palette
 
 logger = logging.getLogger(__name__)
 
-# 길이 초과·중복으로 버려질 문구를 감안해 필요한 개수보다 더 받는다
+# 길이 초과·중복으로 버려질 묶음을 감안해 필요한 개수보다 더 받는다
 _EXTRA_CANDIDATES = 2
 # 정리 후에도 모자랄 때 모자란 만큼 다시 요청하는 횟수
 _MAX_RETRIES = 1
@@ -42,13 +46,15 @@ _MAX_RETRIES = 1
 _QUOTE_CHARS = "\"'“”‘’「」『』《》〈〉`"
 # 중복 비교에서 무시하는 문자 (공백, 문장 부호)
 _IGNORED_FOR_DUPLICATE = re.compile(r"[\s.,!?·~…\-_'\"“”‘’]")
+# 숫자 하나 (1,000이나 3.5처럼 쉼표·소수점이 낀 숫자도 하나로 본다)
+_NUMBER = re.compile(r"\d+(?:[.,]\d+)*")
 
 
 async def recommend_copies_for_images(
     recommender: CopyRecommender,
     images: list[str],
     prompt: str,
-    keywords: list[str],
+    requests: dict[CopyRole, str],
     job: GenerationJob | None = None,
 ) -> list[tuple[ImageCopies | None, str | None]]:
     """생성된 이미지마다 문구를 동시에 추천한다. 실패한 이미지가 있어도 나머지는 돌려준다.
@@ -57,7 +63,7 @@ async def recommend_copies_for_images(
         recommender: 문구 추천기.
         images: PNG 이미지의 base64 문자열 목록.
         prompt: 사용자가 입력한 한국어 이미지 설명.
-        keywords: 모든 문구에 글자 그대로 넣어야 하는 필수 단어·문장.
+        requests: 역할별 문구 요청 (요청이 없는 역할은 키가 없다).
         job: 진행 상황을 기록하고 취소를 확인할 작업. 없으면 기록하지 않는다.
 
     Returns:
@@ -75,7 +81,7 @@ async def recommend_copies_for_images(
         # 취소(CancelledError)는 잡지 않고 그대로 올려 보낸다. 끝난 장수에도 세지 않는다
         try:
             result = (
-                await recommend_copies(recommender, image_base64, prompt, keywords),
+                await recommend_copies(recommender, image_base64, prompt, requests),
                 None,
             )
         except CopyRecommendationError as error:
@@ -119,110 +125,144 @@ async def recommend_copies(
     recommender: CopyRecommender,
     image_base64: str,
     prompt: str,
-    keywords: list[str],
+    requests: dict[CopyRole, str],
 ) -> ImageCopies:
-    """이미지 한 장에 대해 역할마다 AI 문구를 추천한다.
+    """이미지 한 장에 대해 title, subtitle, text를 한 묶음으로 AI 문구 묶음을 추천한다.
 
-    필수 단어가 있으면 모두 글자 그대로 들어간 문구만 남긴다. 문구 배치 추천에 쓸 강조색과
-    글꼴 스타일도 함께 받는다.
+    역할별 요청이 있으면 AI가 참고해 쓰고, 요청에 든 숫자를 바꾼 묶음은 버린다. 문구 배치
+    추천에 쓸 강조색·글꼴 스타일과 이미지의 대표색도 함께 돌려준다.
 
-    정리 후 개수가 모자라면 모자란 만큼 한 번 더 요청하고, 그래도 모자라면 있는 만큼 돌려준다.
-    전체 시간은 COPY_TIMEOUT_SECONDS로 제한한다.
+    정리 후 개수가 모자라면 모자란 만큼 한 번 더 요청한다. 전체 시간은 COPY_TIMEOUT_SECONDS로
+    제한하고, 재요청이 시간을 넘기면 앞서 받은 묶음만 돌려준다.
 
     Args:
         recommender: 문구 추천기.
         image_base64: PNG 이미지의 base64 문자열.
         prompt: 사용자가 입력한 한국어 이미지 설명.
-        keywords: 모든 문구에 글자 그대로 넣어야 하는 필수 단어·문장.
+        requests: 역할별 문구 요청 (요청이 없는 역할은 키가 없다).
 
     Returns:
-        ImageCopies: 역할별 추천 문구 (역할마다 최대 COPIES_PER_ROLE개)와 강조색·스타일.
+        ImageCopies: 역할별 추천 문구 (역할마다 1~COPIES_PER_ROLE개, 같은 번호끼리 한 묶음)와
+            강조색·스타일·대표색.
 
     Raises:
-        CopyRecommendationError: 추천에 실패했거나, 시간을 넘겼거나, 이미지를 읽을 수 없을 때.
+        CopyRecommendationError: 추천에 실패했거나, 쓸 수 있는 묶음이 하나도 없거나,
+            이미지를 읽을 수 없을 때.
     """
     try:
-        ai_copies, accent, styles = await asyncio.wait_for(
-            _collect_ai_copies(recommender, image_base64, prompt, keywords),
-            timeout=settings.copy_timeout_seconds,
+        sets, accent, styles = await _collect_sets(
+            recommender, image_base64, prompt, requests
         )
-    except TimeoutError as error:
-        raise CopyRecommendationError(
-            f"{settings.copy_timeout_seconds}초 안에 문구 추천이 끝나지 않았습니다."
-        ) from error
+        palette = await run_in_threadpool(
+            extract_palette, decode_base64_image(image_base64)
+        )
     except ValueError as error:
-        # 이미지를 읽을 수 없을 때 (to_jpeg_data_url)
+        # 이미지를 읽을 수 없을 때 (to_jpeg_data_url, decode_base64_image)
         raise CopyRecommendationError(str(error)) from error
-    return _assemble(ai_copies, accent, styles)
+    if not sets:
+        raise CopyRecommendationError("조건에 맞는 문구 묶음이 하나도 없습니다.")
+    return ImageCopies(
+        **{
+            role: [CopySuggestion(text=copy_set[role]) for copy_set in sets]
+            for role in COPY_ROLES
+        },
+        accent=accent,
+        styles=styles,
+        palette=palette,
+    )
 
 
-async def _collect_ai_copies(
+async def _collect_sets(
     recommender: CopyRecommender,
     image_base64: str,
     prompt: str,
-    keywords: list[str],
-) -> tuple[dict[CopyRole, list[str]], str | None, list[FontStyle]]:
-    """필요한 개수가 찰 때까지(최대 1번 재요청) AI 문구를 받아 정리한다.
+    requests: dict[CopyRole, str],
+) -> tuple[list[dict[CopyRole, str]], str | None, list[FontStyle]]:
+    """COPIES_PER_ROLE개가 찰 때까지(최대 1번 재요청) AI 문구 묶음을 받아 정리한다.
 
     Returns:
-        tuple[dict[CopyRole, list[str]], str | None, list[FontStyle]]: (역할별로 정리·중복
-            제거한 AI 문구, 강조색 #RRGGBB 또는 None, 어울리는 순서의 글꼴 스타일).
+        tuple[list[dict[CopyRole, str]], str | None, list[FontStyle]]: (정리·중복 제거한
+            문구 묶음, 강조색 #RRGGBB 또는 None, 어울리는 순서의 글꼴 스타일).
 
     Raises:
-        CopyRecommendationError: 추천기가 실패했을 때.
+        CopyRecommendationError: 추천기가 실패했거나, 첫 요청이 시간을 넘겼을 때.
     """
-    accepted: dict[CopyRole, list[str]] = {role: [] for role in COPY_ROLES}
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + settings.copy_timeout_seconds
+    accepted: list[dict[CopyRole, str]] = []
     accent = None
     styles: list[FontStyle] = []
     for _ in range(1 + _MAX_RETRIES):
-        shortfall = {role: COPIES_PER_ROLE - len(accepted[role]) for role in COPY_ROLES}
-        if all(count <= 0 for count in shortfall.values()):
+        shortfall = COPIES_PER_ROLE - len(accepted)
+        if shortfall <= 0:
             break
-        existing = {role: list(accepted[role]) for role in COPY_ROLES}
-        result = await recommender.recommend(
-            image_base64,
-            prompt,
-            keywords,
-            existing,
-            {
-                role: count + _EXTRA_CANDIDATES if count > 0 else 0
-                for role, count in shortfall.items()
-            },
-        )
+        try:
+            result = await asyncio.wait_for(
+                recommender.recommend(
+                    image_base64,
+                    prompt,
+                    requests,
+                    [dict(copy_set) for copy_set in accepted],
+                    shortfall + _EXTRA_CANDIDATES,
+                ),
+                timeout=max(deadline - loop.time(), 0),
+            )
+        except TimeoutError as error:
+            if not accepted:
+                raise CopyRecommendationError(
+                    f"{settings.copy_timeout_seconds}초 안에 문구 추천이 끝나지 "
+                    "않았습니다."
+                ) from error
+            # 재요청이 시간을 넘겨도 앞서 받은 묶음은 버리지 않는다
+            logger.warning(
+                "문구 재요청 시간 초과. 받은 %d묶음만 돌려줍니다.", len(accepted)
+            )
+            break
+        except CopyRecommendationError:
+            if not accepted:
+                raise
+            logger.warning("문구 재요청 실패. 받은 %d묶음만 돌려줍니다.", len(accepted))
+            break
         accent = accent or result.accent
         styles = styles or result.styles
-        for role in COPY_ROLES:
-            if shortfall[role] <= 0:
-                continue
-            seen = {_duplicate_key(text) for text in existing[role]}
-            added = 0
-            for raw in result.copies.get(role, []):
-                if added >= shortfall[role]:
-                    break
-                text = _clean(raw)
-                key = _duplicate_key(text)
-                if not _is_valid(text, role, keywords) or key in seen:
-                    continue
-                seen.add(key)
-                accepted[role].append(text)
-                added += 1
-    return accepted, accent, styles
+        _accept_sets(result.sets, accepted, requests, prompt)
+    return accepted[:COPIES_PER_ROLE], accent, styles
 
 
-def _assemble(
-    ai_copies: dict[CopyRole, list[str]], accent: str | None, styles: list[FontStyle]
-) -> ImageCopies:
-    """AI 문구를 역할별 COPIES_PER_ROLE개 이하로 묶는다.
+def _accept_sets(
+    candidates: list[dict[CopyRole, str]],
+    accepted: list[dict[CopyRole, str]],
+    requests: dict[CopyRole, str],
+    prompt: str,
+) -> None:
+    """후보 묶음을 정리해, 모든 역할이 쓸 수 있고 앞선 묶음과 겹치지 않는 묶음만 accepted에
+    COPIES_PER_ROLE개까지 더한다.
 
-    Returns:
-        ImageCopies: 역할별 추천 문구와 강조색·스타일.
+    Args:
+        candidates: 추천기가 돌려준 문구 묶음 (정리 전).
+        accepted: 지금까지 받아 둔 묶음. 이 목록에 더한다.
+        requests: 역할별 문구 요청.
+        prompt: 사용자가 입력한 한국어 이미지 설명 (쓸 수 있는 숫자를 모을 때 쓴다).
     """
-    result = {}
-    for role in COPY_ROLES:
-        result[role] = [CopySuggestion(text=text) for text in ai_copies[role]][
-            :COPIES_PER_ROLE
-        ]
-    return ImageCopies(**result, accent=accent, styles=styles)
+    seen = {
+        role: {_duplicate_key(copy_set[role]) for copy_set in accepted}
+        for role in COPY_ROLES
+    }
+    allowed_numbers = _numbers(" ".join([prompt, *requests.values()]))
+    for raw in candidates:
+        if len(accepted) >= COPIES_PER_ROLE:
+            break
+        copy_set = {role: _clean(raw[role]) for role in COPY_ROLES}
+        keys = {role: _duplicate_key(copy_set[role]) for role in COPY_ROLES}
+        if any(
+            not _is_valid(copy_set[role], role, requests, allowed_numbers)
+            or keys[role] in seen[role]
+            for role in COPY_ROLES
+        ):
+            continue
+        for role in COPY_ROLES:
+            seen[role].add(keys[role])
+        accepted.append(copy_set)
 
 
 def _clean(text: str) -> str:
@@ -235,39 +275,45 @@ def _clean(text: str) -> str:
     return text.rstrip(".。").strip()
 
 
-def _is_valid(text: str, role: CopyRole, keywords: list[str]) -> bool:
+def _is_valid(
+    text: str,
+    role: CopyRole,
+    requests: dict[CopyRole, str],
+    allowed_numbers: set[str],
+) -> bool:
     """정리한 AI 문구를 쓸 수 있는지 확인한다.
 
-    Returns:
-        bool: 비어 있지 않고, 역할별 최대 글자 수 이하이며, 해시태그가 없고,
-            필수 단어가 모두 들어 있으면 True.
-    """
-    return (
-        0 < len(text) <= copy_max_length(role, keywords)
-        and "#" not in text
-        and _contains_keywords(text, keywords)
-    )
-
-
-def _contains_keywords(text: str, keywords: list[str]) -> bool:
-    """필수 단어가 모두 글자 그대로 들어 있는지 확인한다.
-
-    띄어쓰기와 영문 대소문자는 무시한다 (예: "1+1 행사"와 "1+1행사"는 같다).
+    Args:
+        text: 정리한 문구.
+        role: 역할.
+        requests: 역할별 문구 요청.
+        allowed_numbers: 이미지 설명과 요청에 든 숫자.
 
     Returns:
-        bool: 모두 들어 있으면 True (필수 단어가 없으면 True).
+        bool: 아래를 모두 만족하면 True.
+            - 비어 있지 않고 역할별 최대 글자 수 이하
+            - 해시태그(#)가 없다. 그 역할의 요청에 #이 있으면 허용한다
+            - 요청이 하나라도 있으면, 이미지 설명·요청에 없는 숫자를 쓰지 않는다
+            - 그 역할에 요청이 있으면, 요청의 숫자를 모두 담는다 (가격·날짜를 바꾸지 않는다)
     """
-    compact = _compact(text)
-    return all(_compact(keyword) in compact for keyword in keywords)
+    if not 0 < len(text) <= copy_max_length(role, requests):
+        return False
+    request = requests.get(role, "")
+    if "#" in text and "#" not in request:
+        return False
+    numbers = _numbers(text)
+    if requests and not numbers <= allowed_numbers:
+        return False
+    return _numbers(request) <= numbers
 
 
-def _compact(text: str) -> str:
-    """띄어쓰기를 지우고 소문자로 바꾼다.
+def _numbers(text: str) -> set[str]:
+    """글에 든 숫자를 모은다. 쉼표는 지워 1,000과 1000을 같게 본다.
 
     Returns:
-        str: 비교용 문자열.
+        set[str]: 숫자 문자열 집합.
     """
-    return "".join(text.split()).lower()
+    return {match.replace(",", "") for match in _NUMBER.findall(text)}
 
 
 def _duplicate_key(text: str) -> str:
