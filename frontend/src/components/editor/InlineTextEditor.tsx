@@ -3,11 +3,11 @@
  *
  * 생성일자: 2026-11-04
  * 생성자: bioyejin
- * 수정일자: 2026-11-05
+ * 수정일자: 2026-11-06
  * 수정자: bioyejin
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 import { DEFAULT_LAYER_TEXT } from "../../constants/editor";
 import { resolveLayerFont, withAlpha, type TextLayer } from "./textLayer";
 import type { TextLayerSize } from "./TextLayerNode";
@@ -44,6 +44,8 @@ export interface InlineTextEditorProps {
  * 캔버스 글자와 같은 위치·글꼴·크기의 입력 칸(textarea)을 겹쳐 띄워 바로 입력하게 한다.
  * 한글 조합 입력이 안정적이도록 캔버스가 아닌 일반 입력 칸을 쓴다.
  * Enter는 줄바꿈이고, Esc나 바깥 클릭으로 입력을 끝낸다. 새 상자의 기본 문구는 전체 선택해 바로 덮어쓰게 한다.
+ * 브라우저는 글자에 외곽선을 그린 뒤 채우기의 그림자를 그 위에 얹으므로, 외곽선과 그림자는 뒤에 겹친
+ * 같은 문구에 그리고 입력 칸은 글자색만 맡는다.
  *
  * @param props - 문구 상자, 그려진 크기, 이미지 크기, 배율, 입력·종료 처리 함수
  * @returns 입력 칸
@@ -76,44 +78,57 @@ export default function InlineTextEditor({
     ? (size?.width ?? 0) * scale + fontSizePx * 0.5
     : (layer.width ?? 0) * imageWidth * scale;
   const height = Math.max(size?.height ?? 0, layer.fontSize * imageHeight * layer.lineHeight);
+  const className = `${styles.input} ${autoWidth ? styles.autoWidth : ""}`;
+  // 입력 칸과 뒤에 겹친 문구가 정확히 포개지도록 같은 값을 쓴다
+  const textStyle: CSSProperties = {
+    left: layer.x * imageWidth * scale,
+    top: layer.y * imageHeight * scale,
+    width: Math.max(width, fontSizePx),
+    height: height * scale,
+    transform: `translate(-50%, -50%) rotate(${layer.rotation}deg)`,
+    fontFamily: font.family,
+    fontSize: fontSizePx,
+    fontWeight: font.weight,
+    fontStyle: font.italic ? "italic" : "normal",
+    textDecoration: layer.strike ? "line-through" : "none",
+    textAlign: layer.align,
+    lineHeight: layer.lineHeight,
+    opacity: layer.opacity,
+  };
 
   return (
-    <textarea
-      ref={ref}
-      className={`${styles.input} ${autoWidth ? styles.autoWidth : ""}`}
-      value={layer.text}
-      aria-label="문구 입력"
-      spellCheck={false}
-      style={{
-        left: layer.x * imageWidth * scale,
-        top: layer.y * imageHeight * scale,
-        width: Math.max(width, fontSizePx),
-        height: height * scale,
-        transform: `translate(-50%, -50%) rotate(${layer.rotation}deg)`,
-        fontFamily: font.family,
-        fontSize: fontSizePx,
-        fontWeight: font.weight,
-        fontStyle: font.italic ? "italic" : "normal",
-        textDecoration: layer.strike ? "line-through" : "none",
-        textAlign: layer.align,
-        lineHeight: layer.lineHeight,
-        color: layer.color,
-        opacity: layer.opacity,
-        // 캔버스처럼 외곽선을 글자 뒤에 그린다
-        WebkitTextStroke: layer.stroke
-          ? `${layer.stroke.width * imageHeight * scale}px ${withAlpha(layer.stroke.color, layer.stroke.opacity)}`
-          : undefined,
-        paintOrder: "stroke fill",
-        textShadow: toCssTextShadow(layer.shadow, imageHeight * scale),
-      }}
-      onChange={(e) => onChange(e.target.value)}
-      onBlur={onDone}
-      onKeyDown={(e) => {
-        if (e.key === "Escape") {
-          e.preventDefault();
-          ref.current?.blur();
-        }
-      }}
-    />
+    <>
+      {(layer.stroke || layer.shadow) && (
+        <div
+          className={`${className} ${styles.effects}`}
+          aria-hidden="true"
+          style={{
+            ...textStyle,
+            WebkitTextStroke: layer.stroke
+              ? `${layer.stroke.width * imageHeight * scale}px ${withAlpha(layer.stroke.color, layer.stroke.opacity)}`
+              : undefined,
+            textShadow: toCssTextShadow(layer.shadow, imageHeight * scale),
+          }}
+        >
+          {layer.text}
+        </div>
+      )}
+      <textarea
+        ref={ref}
+        className={className}
+        value={layer.text}
+        aria-label="문구 입력"
+        spellCheck={false}
+        style={{ ...textStyle, color: layer.color }}
+        onChange={(e) => onChange(e.target.value)}
+        onBlur={onDone}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            e.preventDefault();
+            ref.current?.blur();
+          }
+        }}
+      />
+    </>
   );
 }

@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-11-04
  * 생성자: bioyejin
- * 수정일자: 2026-11-05
+ * 수정일자: 2026-11-06
  * 수정자: bioyejin
  */
 
@@ -20,6 +20,7 @@ import type Konva from "konva";
 import { Image as KonvaImage, Layer, Line, Stage, Transformer } from "react-konva";
 import {
   LAYER_LIMITS,
+  SELECTION_PADDING_PX,
   STAGE_MAX_HEIGHT_RATIO,
   ZOOM_LIMITS,
   ZOOM_WHEEL_SPEED,
@@ -33,8 +34,7 @@ import styles from "./EditorCanvas.module.css";
 
 // 글꼴을 미리 받을 때 쓰는 글자 크기 (크기와 상관없이 같은 파일을 받으므로 아무 값이나 됨)
 const FONT_LOAD_SIZE_PX = 32;
-// 선택 테두리가 상자에서 떨어진 거리, 모서리 핸들 크기 (화면 px)
-const SELECTION_PADDING_PX = 6;
+// 모서리 핸들 크기 (화면 px)
 const ANCHOR_SIZE_PX = 10;
 // 회전 핸들이 선택 테두리에서 떨어진 거리 (화면 px)
 const ROTATE_ANCHOR_OFFSET_PX = 24;

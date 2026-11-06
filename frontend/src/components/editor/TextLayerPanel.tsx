@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-11-04
  * 생성자: bioyejin
- * 수정일자: 2026-11-05
+ * 수정일자: 2026-11-06
  * 수정자: bioyejin
  */
 
@@ -25,6 +25,7 @@ import {
 } from "../../constants/editor";
 import Button from "../common/Button";
 import ColorField from "./ColorField";
+import { canCurve } from "./curveText";
 import FontPicker from "./FontPicker";
 import NumberField from "./NumberField";
 import SliderField from "./SliderField";
@@ -50,6 +51,8 @@ export interface TextLayerPanelProps {
   onDelete: (id: string) => void;
   /** 선택한 문구 상자의 값을 바꾼다 */
   onChange: (id: string, changes: Partial<Omit<TextLayer, "id">>) => void;
+  /** 문구 입력칸을 벗어날 때 호출 (되돌리기 단계를 끊는 데 사용) */
+  onTextEnd: () => void;
   /** 글꼴 메뉴에서 항목으로 이동할 때 캔버스에 임시로 보여줄 글꼴 id. 끝나면 null */
   onFontPreview: (fontId: string | null) => void;
 }
@@ -58,6 +61,8 @@ interface TextInputProps {
   /** 지금 문구 */
   value: string;
   onChange: (text: string) => void;
+  /** 입력칸을 벗어날 때 호출 */
+  onEnd: () => void;
 }
 
 /**
@@ -67,7 +72,7 @@ interface TextInputProps {
  * @param props - 지금 문구, 변경 처리 함수
  * @returns 문구 입력 묶음
  */
-function TextInput({ value, onChange }: TextInputProps) {
+function TextInput({ value, onChange, onEnd }: TextInputProps) {
   const [draft, setDraft] = useState(value);
   const { max } = LAYER_LIMITS.textLength;
 
@@ -96,7 +101,10 @@ function TextInput({ value, onChange }: TextInputProps) {
           setDraft(e.target.value);
           if (e.target.value.trim() !== "") onChange(e.target.value);
         }}
-        onBlur={() => setDraft(value)}
+        onBlur={() => {
+          setDraft(value);
+          onEnd();
+        }}
       />
     </div>
   );
@@ -131,7 +139,7 @@ function ToggleButton({ label, pressed, onClick, children }: ToggleButtonProps) 
 }
 
 /**
- * [+ 텍스트 상자 추가] 버튼과, 선택한 문구 상자의 문구·글꼴·크기·모양·색·효과·위치 조절,
+ * [+ 텍스트 상자 추가] 버튼과, 선택한 문구 상자의 문구·글꼴·크기·모양·색·효과·위치·구부리기 조절,
  * [삭제] 버튼을 보여준다. 크기와 위치는 원본 이미지 기준 px로 보여주고, 저장은 비율로 한다.
  *
  * @param props - 선택한 문구 상자, 이미지 크기, 안내 문구, 추가·삭제·변경 처리 함수
@@ -145,6 +153,7 @@ export default function TextLayerPanel({
   onAdd,
   onDelete,
   onChange,
+  onTextEnd,
   onFontPreview,
 }: TextLayerPanelProps) {
   const limits = LAYER_LIMITS;
@@ -161,6 +170,7 @@ export default function TextLayerPanel({
             key={`text-${selectedLayer.id}`}
             value={selectedLayer.text}
             onChange={(text) => onChange(selectedLayer.id, { text })}
+            onEnd={onTextEnd}
           />
 
           <div className={styles.field}>
@@ -298,6 +308,21 @@ export default function TextLayerPanel({
             max={limits.rotation.max}
             onChange={(rotation) => onChange(selectedLayer.id, { rotation })}
           />
+
+          <div className={styles.field}>
+            <fieldset className={styles.curve} disabled={!canCurve(selectedLayer.text)}>
+              <SliderField
+                label="구부리기"
+                value={selectedLayer.curve}
+                min={limits.curve.min}
+                max={limits.curve.max}
+                onChange={(curve) => onChange(selectedLayer.id, { curve })}
+              />
+            </fieldset>
+            {!canCurve(selectedLayer.text) && (
+              <p className={styles.curveHint}>ㄴ 한 줄 문구에만 적용돼요</p>
+            )}
+          </div>
 
           <Button
             className={styles.deleteButton}

@@ -3,12 +3,12 @@
  *
  * 생성일자: 2026-11-04
  * 생성자: bioyejin
- * 수정일자: 2026-11-05
+ * 수정일자: 2026-11-06
  * 수정자: bioyejin
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, Download, Eye, Minus, Plus, RotateCcw, Save } from "lucide-react";
+import { ArrowLeft, Download, Eye, Minus, Plus, Redo2, RotateCcw, Save, Undo2 } from "lucide-react";
 import type { GenerateResponse } from "../../api/client";
 import { DUPLICATE_OFFSET, LAYER_LIMITS, ZOOM_LIMITS } from "../../constants/editor";
 import type { TextLayers } from "../../hooks/useTextLayers";
@@ -23,6 +23,9 @@ import { createTextLayer } from "./textLayer";
 import TextLayerPanel from "./TextLayerPanel";
 import ThumbnailStrip from "./ThumbnailStrip";
 import styles from "./EditorPage.module.css";
+
+// 글자를 입력받지 않는 input 종류
+const NON_TEXT_INPUT_TYPES = ["range", "color", "checkbox", "radio", "button"];
 
 export interface EditorPageProps {
   result: GenerateResponse;
@@ -47,6 +50,20 @@ function isTypingTarget(target: EventTarget | null): boolean {
     target instanceof HTMLElement &&
     (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))
   );
+}
+
+/**
+ * Ctrl+Z를 브라우저의 글자 되돌리기에 맡길 곳인지 확인한다.
+ * 슬라이더나 색 선택 칸은 글자를 받지 않으므로 문구 상자 되돌리기를 쓴다.
+ *
+ * @param target - 키 이벤트가 일어난 요소
+ * @returns 글자를 입력하는 칸이면 true
+ */
+function usesNativeUndo(target: EventTarget | null): boolean {
+  if (target instanceof HTMLInputElement && NON_TEXT_INPUT_TYPES.includes(target.type)) {
+    return false;
+  }
+  return isTypingTarget(target);
 }
 
 /**
@@ -115,6 +132,11 @@ export default function EditorPage({
     setPreviewFontId(null);
   }, [selectedId]);
 
+  // 되돌리기로 선택한 상자가 없어지면 선택을 푼다
+  useEffect(() => {
+    if (selectedId && !selectedLayer) setSelectedId(null);
+  }, [selectedId, selectedLayer]);
+
   // 미리보기를 닫거나 화면을 나가면 임시 주소를 정리한다
   useEffect(() => {
     if (!previewUrl) return;
@@ -134,6 +156,21 @@ export default function EditorPage({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedId, editingId, overlayOpen, index, textLayers]);
+
+  // Ctrl+Z로 되돌리고 Ctrl+Y나 Ctrl+Shift+Z로 다시 실행한다 (맥은 Cmd). 글자 입력 중이나 팝업이 열려 있으면 쓰지 않는다
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      if (editingId || overlayOpen || usesNativeUndo(e.target)) return;
+      const key = e.key.toLowerCase();
+      if (key !== "z" && key !== "y") return;
+      e.preventDefault();
+      if (key === "y" || e.shiftKey) textLayers.redo(index);
+      else textLayers.undo(index);
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [editingId, overlayOpen, index, textLayers]);
 
   const closeSave = useCallback(() => {
     setSaveOpen(false);
@@ -160,9 +197,10 @@ export default function EditorPage({
   function handleEndEdit() {
     const layer = layers.find((item) => item.id === editingId);
     if (layer && layer.text.trim() === "") {
-      textLayers.remove(index, layer.id);
+      textLayers.removeEmpty(index, layer.id);
       setSelectedId(null);
     }
+    textLayers.endChangeGroup(index);
     setEditingId(null);
   }
 
@@ -244,6 +282,24 @@ export default function EditorPage({
           이전 화면으로
         </Button>
         <div className={styles.toolbarActions}>
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<Undo2 size={16} />}
+            aria-label="되돌리기"
+            title="되돌리기 (Ctrl+Z)"
+            disabled={!textLayers.canUndo(index)}
+            onClick={() => textLayers.undo(index)}
+          />
+          <Button
+            variant="ghost"
+            size="sm"
+            icon={<Redo2 size={16} />}
+            aria-label="다시 실행"
+            title="다시 실행 (Ctrl+Y)"
+            disabled={!textLayers.canRedo(index)}
+            onClick={() => textLayers.redo(index)}
+          />
           <Button
             icon={<RotateCcw size={14} />}
             disabled={layers.length === 0}
@@ -339,6 +395,7 @@ export default function EditorPage({
             onAdd={handleAdd}
             onDelete={handleDelete}
             onChange={(id, changes) => textLayers.update(index, id, changes)}
+            onTextEnd={() => textLayers.endChangeGroup(index)}
             onFontPreview={setPreviewFontId}
           />
         </EditorSidePanel>
