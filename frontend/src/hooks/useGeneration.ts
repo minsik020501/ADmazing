@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-11-02
  * 생성자: bioyejin
- * 수정일자: 2026-11-02
+ * 수정일자: 2026-11-06
  * 수정자: bioyejin
  */
 
@@ -18,7 +18,10 @@ import {
 } from "../api/client";
 
 /** 생성 중 진행 상황. 로딩 화면의 진행 막대에 쓴다 */
-export type GenerationProgress = Pick<GenerationJobStatus, "stage" | "step" | "total">;
+export type GenerationProgress = Pick<
+  GenerationJobStatus,
+  "stage" | "step" | "total" | "copy_done" | "copy_total"
+>;
 
 export interface Generation {
   /** 생성 중이면 true (작업 등록부터 끝날 때까지) */
@@ -123,7 +126,13 @@ export default function useGeneration(): Generation {
             stop();
             setCancelled(true);
           } else {
-            setProgress({ stage: status.stage, step: status.step, total: status.total });
+            setProgress({
+              stage: status.stage,
+              step: status.step,
+              total: status.total,
+              copy_done: status.copy_done,
+              copy_total: status.copy_total,
+            });
           }
         },
         (message) => {
