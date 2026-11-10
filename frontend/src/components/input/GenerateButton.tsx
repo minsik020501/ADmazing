@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-10-22
  * 생성자: bioyejin
- * 수정일자: 2026-11-02
+ * 수정일자: 2026-11-10
  * 수정자: bioyejin
  */
 
@@ -49,7 +49,13 @@ export default function GenerateButton({
 }: GenerateButtonProps) {
   return (
     <div className={styles.wrapper}>
-      <Button variant="primary" disabled={disabled} title={SHORTCUT_LABEL} onClick={onClick}>
+      <Button
+        variant="primary"
+        className={styles.button}
+        disabled={disabled}
+        title={SHORTCUT_LABEL}
+        onClick={onClick}
+      >
         {loading ? "생성 중..." : "이미지 생성"}
       </Button>
       {health && <p className={styles.hint}>{toHint(health)}</p>}
