@@ -40,6 +40,8 @@
 
   /* 움직임 */
   --transition-fast: 120ms ease;
+  /* 접었다 펼치는 영역 (AI 추천안 칩 아래 선택 영역) */
+  --transition-slide: 200ms ease;
 
   /* 레이아웃 */
   --sidebar-width: 264px;
@@ -55,6 +57,9 @@
   --color-viewer-overlay: rgba(0, 0, 0, 0.65);
   --color-text-on-overlay-muted: rgba(255, 255, 255, 0.6);
   --color-overlay-button-hover: rgba(255, 255, 255, 0.12);
+
+  /* 에디터 캔버스: AI 추천안을 적용하는 동안 덮는 60% 어두운 레이어 */
+  --color-canvas-busy-overlay: rgba(0, 0, 0, 0.6);
 }
 
 /* ---- 라이트 테마 (기본) ---- */

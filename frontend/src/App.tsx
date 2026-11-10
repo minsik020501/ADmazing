@@ -30,6 +30,7 @@ import {
 } from "./constants/copyRequests";
 import { DEFAULT_RATIO } from "./constants/imageRatios";
 import { DEFAULT_STYLE_ID } from "./constants/stylePresets";
+import useCopyProposals from "./hooks/useCopyProposals";
 import useGeneration from "./hooks/useGeneration";
 import useTextLayers from "./hooks/useTextLayers";
 import styles from "./App.module.css";
@@ -56,6 +57,8 @@ export default function App() {
   const [editorIndex, setEditorIndex] = useState(0);
   // 이미지별 문구 상자. 에디터를 나갔다 와도 남고, 생성 결과가 바뀌면 비운다
   const textLayers = useTextLayers(result);
+  // 이미지별로 적용한 AI 추천안과 받아 둔 배치. 문구 상자처럼 결과가 바뀌면 비운다
+  const copyProposals = useCopyProposals(result, textLayers);
 
   // 스크롤되는 메인 영역 (생성이 끝나면 결과가 보이도록 맨 아래로 스크롤)
   const mainRef = useRef<HTMLDivElement>(null);
@@ -159,6 +162,7 @@ export default function App() {
               onIndexChange={setEditorIndex}
               onBack={handleCloseEditor}
               textLayers={textLayers}
+              copyProposals={copyProposals}
             />
           </main>
         ) : (

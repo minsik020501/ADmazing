@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-11-05
  * 생성자: bioyejin
- * 수정일자: 2026-11-05
+ * 수정일자: 2026-11-10
  * 수정자: bioyejin
  */
 
@@ -18,18 +18,20 @@ const TABS: { id: PanelTab; label: string }[] = [
 ];
 
 export interface EditorSidePanelProps {
+  /** [AI 추천] 탭 내용 */
+  ai: ReactNode;
   /** [텍스트 편집기] 탭 내용 */
   children: ReactNode;
 }
 
 /**
- * [AI 추천], [텍스트 편집기] 탭을 보여준다. AI 추천은 모델이 연결되면 추천안 칩이 들어갈 자리다.
+ * [AI 추천], [텍스트 편집기] 탭을 보여준다. 에디터를 열면 AI 추천 탭부터 보인다.
  *
- * @param props - 텍스트 편집기 탭 내용
+ * @param props - AI 추천 탭 내용, 텍스트 편집기 탭 내용
  * @returns 탭 패널
  */
-export default function EditorSidePanel({ children }: EditorSidePanelProps) {
-  const [tab, setTab] = useState<PanelTab>("text");
+export default function EditorSidePanel({ ai, children }: EditorSidePanelProps) {
+  const [tab, setTab] = useState<PanelTab>("ai");
   const baseId = useId();
 
   return (
@@ -57,11 +59,7 @@ export default function EditorSidePanel({ children }: EditorSidePanelProps) {
         aria-labelledby={`${baseId}-${tab}-tab`}
         className={styles.content}
       >
-        {tab === "text" ? (
-          children
-        ) : (
-          <p className={styles.hint}>이미지에 어울리는 문구 추천은 준비 중이에요</p>
-        )}
+        {tab === "text" ? children : ai}
       </div>
     </aside>
   );

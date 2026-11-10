@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-11-04
  * 생성자: bioyejin
- * 수정일자: 2026-11-06
+ * 수정일자: 2026-11-10
  * 수정자: bioyejin
  */
 
@@ -11,9 +11,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, Download, Eye, Minus, Plus, Redo2, RotateCcw, Save, Undo2 } from "lucide-react";
 import type { GenerateResponse } from "../../api/client";
 import { DUPLICATE_OFFSET, LAYER_LIMITS, ZOOM_LIMITS } from "../../constants/editor";
+import type { CopyProposals } from "../../hooks/useCopyProposals";
 import type { TextLayers } from "../../hooks/useTextLayers";
+import AnimatedDots from "../common/AnimatedDots";
 import Button from "../common/Button";
 import Modal from "../common/Modal";
+import AiProposalList from "./AiProposalList";
 import { pickTextColor } from "./autoColor";
 import { base64ToBlob, downloadBlob, toImageFileName } from "./download";
 import EditorCanvas, { type EditorCanvasHandle } from "./EditorCanvas";
@@ -37,6 +40,8 @@ export interface EditorPageProps {
   onBack: () => void;
   /** 이미지별 문구 상자 (에디터를 나갔다 와도 유지되도록 바깥에서 관리) */
   textLayers: TextLayers;
+  /** 이미지별 AI 추천안 적용 상태 (문구 상자와 같이 바깥에서 관리) */
+  copyProposals: CopyProposals;
 }
 
 /**
@@ -95,6 +100,7 @@ export default function EditorPage({
   onIndexChange,
   onBack,
   textLayers,
+  copyProposals,
 }: EditorPageProps) {
   const canvasRef = useRef<EditorCanvasHandle>(null);
   // Ctrl+C·X로 복사한 문구 상자. 다른 이미지에 붙일 수 있도록 이미지를 바꿔도 유지한다
@@ -110,16 +116,21 @@ export default function EditorPage({
   const [scale, setScale] = useState(0);
   const [saveOpen, setSaveOpen] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
+  // 고친 추천안을 처음 문구로 되돌릴지 묻는 중인 칩 순서
+  const [restoreChip, setRestoreChip] = useState<number | null>(null);
   // 미리보기로 띄운 합성 이미지의 임시 주소
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const image = result.images[index];
   const layers = textLayers.layersOf(index);
+  const proposalState = copyProposals.stateOf(index);
+  // 이 이미지에 AI 추천안 배치를 받아 오는 중이면 캔버스를 어둡게 덮는다
+  const applyingProposal = proposalState.pendingChip !== null;
   const selectedLayer = layers.find((layer) => layer.id === selectedId) ?? null;
   const shownLayers = previewFontId
     ? layers.map((layer) => (layer.id === selectedId ? { ...layer, fontId: previewFontId } : layer))
     : layers;
-  const overlayOpen = saveOpen || resetOpen || previewUrl !== null;
+  const overlayOpen = saveOpen || resetOpen || restoreChip !== null || previewUrl !== null;
 
   // 다른 이미지로 바꾸면 선택과 입력을 풀고 확대도 기본(화면 맞춤)으로 되돌린다
   useEffect(() => {
@@ -266,6 +277,40 @@ export default function EditorPage({
   function handleDuplicate(id: string) {
     const source = layers.find((layer) => layer.id === id);
     if (source) addCopy(source);
+  }
+
+  /**
+   * AI 추천안 적용이나 레이아웃·스타일 변경이 끝나기를 기다린다.
+   * 문구 상자가 통째로 바뀌었으면 선택과 입력을 푼다.
+   *
+   * @param applying - 적용했으면 true를 돌려주는 작업
+   */
+  async function handleProposalChange(applying: Promise<boolean>) {
+    if (await applying) {
+      setSelectedId(null);
+      setEditingId(null);
+      setNotice(null);
+    }
+  }
+
+  /**
+   * 추천안 칩을 누른다. 다른 칩이면 바로 적용하고, 이미 적용한 칩이면 고친 내용이 있을 때만
+   * 처음 문구로 되돌릴지 묻는다 (고치지 않았으면 아무 일도 하지 않는다).
+   *
+   * @param chipIndex - 칩 순서
+   */
+  function handleChipClick(chipIndex: number) {
+    if (proposalState.applied?.chipIndex !== chipIndex) {
+      handleProposalChange(copyProposals.apply(index, chipIndex));
+    } else if (copyProposals.isEdited(index)) {
+      setRestoreChip(chipIndex);
+    }
+  }
+
+  /** 팝업에서 확인하면 고친 추천안을 처음 문구로 되돌린다 (Ctrl+Z로 다시 가져올 수 있다). */
+  function handleRestoreProposal() {
+    if (restoreChip !== null) handleProposalChange(copyProposals.apply(index, restoreChip));
+    setRestoreChip(null);
   }
 
   /** 지금 이미지의 문구를 모두 지운다. */
@@ -415,6 +460,11 @@ export default function EditorPage({
               onZoomChange={setZoom}
               onScaleChange={setScale}
             />
+            {applyingProposal && (
+              <div className={styles.busyLayer} role="status">
+                적용 중<AnimatedDots />
+              </div>
+            )}
           </div>
 
           <ThumbnailStrip
@@ -426,7 +476,19 @@ export default function EditorPage({
           />
         </section>
 
-        <EditorSidePanel>
+        <EditorSidePanel
+          ai={
+            <AiProposalList
+              copies={image.copies}
+              copiesError={image.copies_error}
+              ratio={result.ratio}
+              state={proposalState}
+              busy={copyProposals.busy}
+              onApply={handleChipClick}
+              onChoose={(choice) => handleProposalChange(copyProposals.choose(index, choice))}
+            />
+          }
+        >
           <TextLayerPanel
             selectedLayer={selectedLayer}
             imageWidth={result.width}
@@ -448,6 +510,16 @@ export default function EditorPage({
         onConfirm={handleReset}
         onCancel={() => setResetOpen(false)}
       />
+
+      <Modal
+        open={restoreChip !== null}
+        title="해당 추천안의 초기 문구로 되돌릴까요?"
+        confirmLabel="되돌리기"
+        onConfirm={handleRestoreProposal}
+        onCancel={() => setRestoreChip(null)}
+      >
+        수정된 내용이 사라져요. 되돌린 뒤에도 Ctrl+Z로 다시 가져올 수 있어요.
+      </Modal>
 
       {previewUrl && (
         <EditorOverlay label="편집본 미리보기" onClose={closePreview}>
