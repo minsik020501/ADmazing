@@ -3,13 +3,14 @@
  *
  * 생성일자: 2026-11-02
  * 생성자: bioyejin
- * 수정일자: 2026-11-06
+ * 수정일자: 2026-11-10
  * 수정자: bioyejin
  */
 
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { GenerationProgress } from "../../hooks/useGeneration";
+import AnimatedDots from "../common/AnimatedDots";
 import Button from "../common/Button";
 import styles from "./LoadingOverlay.module.css";
 
@@ -18,8 +19,6 @@ const FIRST_STEP_GUESS_MS = 2000;
 const FIRST_STEP_GUESS_RATIO = 0.1;
 /** 마지막 step이 끝났을 때 끝까지 채우는 시간 */
 const FINISH_MS = 300;
-/** "생성 중" 뒤 점이 하나씩 늘어나는 간격 */
-const DOTS_INTERVAL_MS = 500;
 
 /** 진행 막대의 목표 위치(0~1)와 그 위치까지 채우는 데 걸리는 시간 */
 interface BarTarget {
@@ -95,18 +94,11 @@ export interface LoadingOverlayProps {
 export default function LoadingOverlay({ progress, onCancel }: LoadingOverlayProps) {
   const titleId = useId();
   const cancelRef = useRef<HTMLButtonElement>(null);
-  const [dots, setDots] = useState(1);
   const bar = useSmoothProgress(progress);
 
   // 뒤 화면이 키보드로 눌리지 않도록 취소 버튼에 포커스
   useEffect(() => {
     cancelRef.current?.focus();
-  }, []);
-
-  // 점 개수를 1 → 2 → 3 → 1 … 로 바꾼다
-  useEffect(() => {
-    const timer = window.setInterval(() => setDots((count) => (count % 3) + 1), DOTS_INTERVAL_MS);
-    return () => window.clearInterval(timer);
   }, []);
 
   const recommendingCopy = progress?.stage === "recommending_copy";
@@ -123,9 +115,7 @@ export default function LoadingOverlay({ progress, onCancel }: LoadingOverlayPro
       <div className={styles.content} role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <p id={titleId} className={styles.title}>
           {recommendingCopy ? "문구 추천 중" : "생성 중"}
-          <span className={styles.dots} aria-hidden>
-            {".".repeat(dots)}
-          </span>
+          <AnimatedDots />
         </p>
         <p className={styles.message}>
           {recommendingCopy

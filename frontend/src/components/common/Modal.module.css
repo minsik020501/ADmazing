@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-10-22
  * 생성자: bioyejin
- * 수정일자: 2026-10-22
+ * 수정일자: 2026-11-10
  * 수정자: bioyejin
  */
 
@@ -18,9 +18,12 @@
   background: var(--color-overlay);
 }
 
+/* 기본 폭은 400px. 제목·설명이 그보다 길면 한 줄로 들어가는 길이까지만 넓어지고,
+   640px(좁은 화면에서는 화면 폭)을 넘는 내용만 줄바꿈한다 */
 .dialog {
-  width: 100%;
-  max-width: 400px;
+  width: fit-content;
+  min-width: min(400px, 100%);
+  max-width: min(640px, 100%);
   padding: var(--space-6);
   /* 완전한 흰색보다 살짝 차분한 메인 배경색 */
   background: var(--color-bg);
@@ -34,6 +37,11 @@
   font-size: var(--font-size-md);
   font-weight: var(--font-weight-bold);
   line-height: 1.5;
+}
+
+/* 설명이 있는 팝업의 제목. 설명과 구분되게 키운다 */
+.titleLarge {
+  font-size: var(--font-size-modal-title);
 }
 
 .body {

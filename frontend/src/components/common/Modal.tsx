@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-10-22
  * 생성자: bioyejin
- * 수정일자: 2026-10-22
+ * 수정일자: 2026-11-10
  * 수정자: bioyejin
  */
 
@@ -26,6 +26,7 @@ export interface ModalProps {
 
 /**
  * 확인/취소를 묻는 팝업. 열리면 확인 버튼에 포커스가 가서 Enter로 바로 확인할 수 있다.
+ * 설명이 있으면 제목을 크게 써서 설명과 구분하고, 제목만 있으면 본문 크기로 쓴다.
  *
  * @param props - 열림 여부, 제목, 설명, 버튼 문구와 확인/취소 처리
  * @returns 열려 있으면 화면 위에 뜨는 팝업, 닫혀 있으면 null
@@ -70,7 +71,7 @@ export default function Modal({
         aria-labelledby={titleId}
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 id={titleId} className={styles.title}>
+        <h2 id={titleId} className={`${styles.title} ${children ? styles.titleLarge : ""}`}>
           {title}
         </h2>
         {children && <div className={styles.body}>{children}</div>}

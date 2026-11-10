@@ -3,25 +3,33 @@
  *
  * 생성일자: 2026-10-16
  * 생성자: ven_choi
- * 수정일자: 2026-11-06
+ * 수정일자: 2026-11-10
  * 수정자: bioyejin
  */
 
-import type { CopyRequestRow } from "../constants/copyRequests";
+import type { CopyRequestRow, CopyRole } from "../constants/copyRequests";
 import { STYLE_PRESETS } from "../constants/stylePresets";
 
 /** 추천 문구 하나 */
 export interface CopySuggestion {
+  /** 문구. 입력 화면의 요청이 있으면 그 내용을 담고, 요청의 숫자는 바꾸지 않는다 */
   text: string;
-  /** user: 사용자가 직접 넣은 문장, ai: AI가 추천한 문구 */
-  source: "user" | "ai";
 }
 
-/** 이미지 한 장에 어울리는 역할별 추천 문구 (역할마다 최대 5개) */
+/**
+ * 이미지 한 장에 어울리는 역할별 추천 문구와 배치 추천에 쓸 값.
+ * title[i], subtitle[i], text[i]가 한 묶음(칩 하나)이고, 세 목록의 길이는 같다(1~5개).
+ */
 export interface ImageCopies {
   title: CopySuggestion[];
   subtitle: CopySuggestion[];
   text: CopySuggestion[];
+  /** 이미지를 보고 고른 문구 강조색 #RRGGBB. 배치 추천 요청에 그대로 보낸다 */
+  accent: string | null;
+  /** 이미지에 어울리는 글꼴 스타일 id (어울리는 순서, 최대 3개). 고르지 못하면 빈 목록 */
+  styles: string[];
+  /** 이미지의 대표색 #RRGGBB (많이 쓰인 순서, 최대 5개) */
+  palette: string[];
 }
 
 /** 생성된 이미지 한 장 */
@@ -223,6 +231,68 @@ export async function cancelGenerationJob(jobId: string, keepalive = false): Pro
   if (!res.ok) {
     throw new Error(`요청 실패 (${res.status})`);
   }
+}
+
+/** 배치를 추천받을 문구 하나 */
+export interface LayoutCopy {
+  role: CopyRole;
+  text: string;
+}
+
+/** 문구 배치 추천 요청 */
+export interface LayoutRequest {
+  /** 배치를 추천받을 이미지 (PNG base64) */
+  imageBase64: string;
+  /** 역할별 문구 (역할마다 하나). 빈 문구는 보내지 않는다 */
+  copies: LayoutCopy[];
+  /** 문구 강조색 (문구 추천 결과의 accent) */
+  accent: string | null;
+  /** 글꼴 스타일 id */
+  style: string;
+  /** 레이아웃 id. 없으면 서버가 이미지에 맞는 레이아웃을 고른다 */
+  templateId?: string;
+}
+
+/** 문구 배치 추천안 하나 */
+export interface LayoutProposal {
+  /** 서버가 붙인 짧은 이름 */
+  label: string;
+  /** 서버가 쓴 레이아웃 id */
+  template_id: string;
+  /** 서버가 쓴 글꼴 스타일 id */
+  style: string;
+  /** 문구 상자 목록 (docs/text_layer_spec.md 형식). 에디터에 넣기 전에 검사한다 */
+  layers: unknown[];
+}
+
+/**
+ * 이미지와 문구로 문구 배치(위치, 글꼴, 크기, 색)를 하나 추천받는다.
+ *
+ * @param request - 이미지, 문구, 강조색, 스타일, 레이아웃(선택)
+ * @returns 추천안 하나
+ * @throws {Error} 응답 상태가 2xx가 아니거나 추천안이 없을 때
+ */
+export async function recommendLayout(request: LayoutRequest): Promise<LayoutProposal> {
+  const res = await fetch("/api/layout/recommend", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      image_base64: request.imageBase64,
+      copies: request.copies.filter((copy) => copy.text.trim() !== ""),
+      num_proposals: 1,
+      accent: request.accent,
+      styles: [request.style],
+      ...(request.templateId && { template_id: request.templateId }),
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(toErrorMessage(body?.detail, res.status));
+  }
+  const body: { proposals: LayoutProposal[] } = await res.json();
+  const proposal = body.proposals[0];
+  if (!proposal) throw new Error("배치 추천 결과가 비어 있어요");
+  return proposal;
 }
 
 /**

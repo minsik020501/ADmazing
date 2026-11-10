@@ -1,0 +1,191 @@
+/**
+ * AiProposalList 컴포넌트 스타일.
+ *
+ * 생성일자: 2026-11-10
+ * 생성자: bioyejin
+ * 수정일자: 2026-11-10
+ * 수정자: bioyejin
+ */
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.hint {
+  margin: 0;
+  color: var(--color-text-tertiary);
+}
+
+/* ---- 추천안 칩 ---- */
+
+.chips {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 왼쪽 "추천안 n ✨", 오른쪽 줄인 Title */
+.chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  height: 44px;
+  padding: 0 var(--space-3);
+  cursor: pointer;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition:
+    border-color var(--transition-fast),
+    background-color var(--transition-fast);
+}
+
+.chip:not(:disabled):hover {
+  border-color: var(--color-border-strong);
+}
+
+/* 배치를 받아 오는 동안에는 누를 수 없다 */
+.chip:disabled {
+  cursor: wait;
+}
+
+/* 지금 문구 상자를 만든 칩 */
+.selected,
+.selected:not(:disabled):hover {
+  background: var(--color-primary-weak);
+  border-color: var(--color-primary);
+}
+
+.number {
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+}
+
+.title {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---- 레이아웃·스타일 선택 ---- */
+
+/* 적용한 칩 밑으로 펼쳐지는 영역. 높이 0fr → 1fr로 늘려 슬라이드처럼 보인다.
+   접힌 영역은 visibility로 숨겨 키보드로도 들어가지 않는다 (접힐 때는 슬라이드가 끝난 뒤 숨김) */
+.slide {
+  display: grid;
+  grid-template-rows: 0fr;
+  visibility: hidden;
+  transition:
+    grid-template-rows var(--transition-slide),
+    visibility var(--transition-slide);
+}
+
+.slideOpen {
+  grid-template-rows: 1fr;
+  visibility: visible;
+}
+
+.slideInner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-1) var(--space-1);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.groupLabel {
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-secondary);
+}
+
+/* 위쪽 여백은 칩 위로 올라간 '추천' 배지 자리다 */
+.scrollRow,
+.wrapRow {
+  display: flex;
+  gap: var(--space-2);
+  padding-top: var(--space-4);
+}
+
+/* 레이아웃 8개는 한 줄로 두고 좌우로 스크롤한다 */
+.scrollRow {
+  overflow-x: auto;
+  padding-bottom: var(--space-1);
+  scrollbar-width: thin;
+}
+
+.wrapRow {
+  flex-wrap: wrap;
+  row-gap: var(--space-4);
+}
+
+.option {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+/* 칩 위쪽 가운데에 얹어 칩 내용(아이콘·글자)을 가리지 않는다 */
+.badge {
+  position: absolute;
+  top: calc(-1 * var(--space-3));
+  left: 50%;
+  padding: 0 var(--space-1);
+  white-space: nowrap;
+  transform: translateX(-50%);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.25;
+  color: var(--color-text-on-primary);
+  pointer-events: none;
+  background: var(--color-primary);
+  border-radius: var(--radius-sm);
+}
+
+/* 위치 아이콘 칩의 이름 (화면에는 안 보이고 화면 낭독기만 읽는다) */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.warning,
+.error {
+  margin: 0;
+  color: var(--color-danger);
+}
+
+/* ---- 추천 문구가 없을 때 ---- */
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.emptyMessage {
+  margin: 0;
+  color: var(--color-text-secondary);
+}

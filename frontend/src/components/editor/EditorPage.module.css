@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-11-04
  * 생성자: bioyejin
- * 수정일자: 2026-11-06
+ * 수정일자: 2026-11-10
  * 수정자: bioyejin
  */
 
@@ -99,9 +99,25 @@
 
 /* 캔버스가 놓이는 바탕. 세로로 긴 이미지는 좌우가 비므로 바탕색으로 구분한다 */
 .stage {
+  position: relative;
   min-width: 0;
   padding: var(--space-3);
   background: var(--color-surface-muted);
+  border-radius: var(--radius-md);
+}
+
+/* AI 추천안을 적용하는 동안 캔버스 바탕 전체를 덮는 어두운 레이어. 그동안 캔버스는 누를 수 없다 */
+.busyLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-on-overlay);
+  background: var(--color-canvas-busy-overlay);
   border-radius: var(--radius-md);
 }
 

@@ -18,6 +18,8 @@
   --font-size-md: 12px;
   --font-size-lg: 24px;
   --font-size-xl: 36px;
+  /* 설명이 있는 팝업의 제목. 12의 배수 규칙의 예외로, 24px는 팝업 안에서 너무 커서 18px를 쓴다 */
+  --font-size-modal-title: 18px;
   --font-weight-regular: 400;
   --font-weight-bold: 700;
 
@@ -38,6 +40,8 @@
 
   /* 움직임 */
   --transition-fast: 120ms ease;
+  /* 접었다 펼치는 영역 (AI 추천안 칩 아래 선택 영역) */
+  --transition-slide: 200ms ease;
 
   /* 레이아웃 */
   --sidebar-width: 264px;
@@ -53,6 +57,9 @@
   --color-viewer-overlay: rgba(0, 0, 0, 0.65);
   --color-text-on-overlay-muted: rgba(255, 255, 255, 0.6);
   --color-overlay-button-hover: rgba(255, 255, 255, 0.12);
+
+  /* 에디터 캔버스: AI 추천안을 적용하는 동안 덮는 60% 어두운 레이어 */
+  --color-canvas-busy-overlay: rgba(0, 0, 0, 0.6);
 }
 
 /* ---- 라이트 테마 (기본) ---- */

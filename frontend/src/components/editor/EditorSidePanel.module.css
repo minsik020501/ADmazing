@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-11-05
  * 생성자: bioyejin
- * 수정일자: 2026-11-05
+ * 수정일자: 2026-11-10
  * 수정자: bioyejin
  */
 
@@ -61,9 +61,4 @@
 
 .content {
   padding: var(--space-4);
-}
-
-.hint {
-  margin: 0;
-  color: var(--color-text-tertiary);
 }

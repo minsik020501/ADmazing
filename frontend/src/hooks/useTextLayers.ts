@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-11-04
  * 생성자: bioyejin
- * 수정일자: 2026-11-06
+ * 수정일자: 2026-11-10
  * 수정자: bioyejin
  */
 
@@ -12,6 +12,19 @@ import { HISTORY_GROUP_MS, HISTORY_LIMIT, LAYER_LIMITS } from "../constants/edit
 import type { TextLayer } from "../components/editor/textLayer";
 
 type LayerChanges = Partial<Omit<TextLayer, "id">>;
+
+/**
+ * 문구 상자 목록이 어떤 AI 추천안에서 왔는지. 되돌리기 기록에 함께 남아,
+ * 되돌리면 AI 추천 탭의 칩·레이아웃·스타일 선택도 같이 돌아간다
+ */
+export interface AppliedProposal {
+  /** 칩 순서 */
+  chipIndex: number;
+  /** 레이아웃 id */
+  templateId: string;
+  /** 글꼴 스타일 id */
+  styleId: string;
+}
 
 export interface TextLayers {
   /** 이미지 순서(0부터)의 문구 상자 목록 */
@@ -24,8 +37,13 @@ export interface TextLayers {
   remove: (imageIndex: number, id: string) => void;
   /** 문구를 다 지운 상자를 없앤다. 되돌리면 입력 전 문구가 있던 상자로 돌아간다 */
   removeEmpty: (imageIndex: number, id: string) => void;
-  /** 이미지의 문구 상자를 통째로 바꾼다 (리셋, 나중에 AI 추천안을 적용할 때 사용) */
-  replace: (imageIndex: number, layers: TextLayer[]) => void;
+  /**
+   * 이미지의 문구 상자를 통째로 바꾼다 (리셋, AI 추천안 적용).
+   * applied는 AI 추천안을 적용할 때 넘기고, 리셋처럼 추천안이 아니면 null이다
+   */
+  replace: (imageIndex: number, layers: TextLayer[], applied?: AppliedProposal | null) => void;
+  /** 지금 문구 상자를 만든 AI 추천안. 추천안을 적용한 적이 없거나 리셋했으면 null */
+  appliedOf: (imageIndex: number) => AppliedProposal | null;
   /** 한 단계 되돌린다 */
   undo: (imageIndex: number) => void;
   /** 되돌린 것을 한 단계 다시 실행한다 */
@@ -36,13 +54,18 @@ export interface TextLayers {
   endChangeGroup: (imageIndex: number) => void;
 }
 
-/** 이미지 한 장의 문구 상자와 되돌리기 기록 */
-interface ImageHistory {
+/** 되돌리기 한 단계: 문구 상자 목록과 그 목록을 만든 AI 추천안 */
+interface Snapshot {
   layers: TextLayer[];
+  applied: AppliedProposal | null;
+}
+
+/** 이미지 한 장의 문구 상자와 되돌리기 기록 */
+interface ImageHistory extends Snapshot {
   /** 지금보다 이전 상태들 (뒤에 있을수록 최근) */
-  past: TextLayer[][];
+  past: Snapshot[];
   /** 되돌려서 지나온 상태들 (앞에 있을수록 먼저 다시 실행) */
-  future: TextLayer[][];
+  future: Snapshot[];
   /** 마지막 변경의 묶음 이름. 같은 이름이 이어지면 한 단계로 합친다 */
   group: string | null;
   /** 마지막 변경 시각 (ms) */
@@ -51,6 +74,7 @@ interface ImageHistory {
 
 const EMPTY_HISTORY: ImageHistory = {
   layers: [],
+  applied: null,
   past: [],
   future: [],
   group: null,
@@ -76,6 +100,7 @@ function toGroupName(id: string, changes: LayerChanges): string {
  * @param now - 지금 시각 (ms)
  * @param group - 묶음 이름. null이면 항상 새 단계
  * @param groupMs - 앞 변경과 이 시간(ms) 안이면 묶는다
+ * @param applied - 새 목록을 만든 AI 추천안. 생략하면 지금 값을 이어받는다(직접 편집)
  * @returns 새 기록
  */
 function commit(
@@ -84,11 +109,14 @@ function commit(
   now: number,
   group: string | null = null,
   groupMs: number = HISTORY_GROUP_MS,
+  applied: AppliedProposal | null = history.applied,
 ): ImageHistory {
   const merged = group !== null && group === history.group && now - history.changedAt < groupMs;
+  const current: Snapshot = { layers: history.layers, applied: history.applied };
   return {
     layers,
-    past: merged ? history.past : [...history.past, history.layers].slice(-HISTORY_LIMIT),
+    applied,
+    past: merged ? history.past : [...history.past, current].slice(-HISTORY_LIMIT),
     future: [],
     group,
     changedAt: now,
@@ -190,11 +218,18 @@ export default function useTextLayers(resetKey: unknown): TextLayers {
   );
 
   const replace = useCallback(
-    (imageIndex: number, layers: TextLayer[]) => {
+    (imageIndex: number, layers: TextLayer[], applied: AppliedProposal | null = null) => {
       const now = Date.now();
-      change(imageIndex, (history) => commit(history, layers, now));
+      change(imageIndex, (history) =>
+        commit(history, layers, now, null, HISTORY_GROUP_MS, applied),
+      );
     },
     [change],
+  );
+
+  const appliedOf = useCallback(
+    (imageIndex: number) => (historyByImage[imageIndex] ?? EMPTY_HISTORY).applied,
+    [historyByImage],
   );
 
   const undo = useCallback(
@@ -203,9 +238,9 @@ export default function useTextLayers(resetKey: unknown): TextLayers {
         const previous = history.past[history.past.length - 1];
         if (!previous) return history;
         return {
-          layers: previous,
+          ...previous,
           past: history.past.slice(0, -1),
-          future: [history.layers, ...history.future],
+          future: [{ layers: history.layers, applied: history.applied }, ...history.future],
           group: null,
           changedAt: 0,
         };
@@ -220,8 +255,8 @@ export default function useTextLayers(resetKey: unknown): TextLayers {
         const [next, ...future] = history.future;
         if (!next) return history;
         return {
-          layers: next,
-          past: [...history.past, history.layers],
+          ...next,
+          past: [...history.past, { layers: history.layers, applied: history.applied }],
           future,
           group: null,
           changedAt: 0,
@@ -257,6 +292,7 @@ export default function useTextLayers(resetKey: unknown): TextLayers {
     remove,
     removeEmpty,
     replace,
+    appliedOf,
     undo,
     redo,
     canUndo,
