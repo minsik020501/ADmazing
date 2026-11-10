@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-10-22
  * 생성자: bioyejin
- * 수정일자: 2026-10-22
+ * 수정일자: 2026-11-10
  * 수정자: bioyejin
  */
 
@@ -12,7 +12,12 @@
   flex-direction: column;
   align-items: center;
   gap: var(--space-2);
-  margin-top: var(--space-6);
+  margin-top: var(--input-generate-gap);
+}
+
+/* 고정 폭. "생성 중..."으로 바뀌어도 폭이 그대로다 */
+.button {
+  width: var(--action-button-width);
 }
 
 .hint {

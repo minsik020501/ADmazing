@@ -1,0 +1,159 @@
+/**
+ * EditorPage 컴포넌트 스타일.
+ *
+ * 생성일자: 2026-11-04
+ * 생성자: bioyejin
+ * 수정일자: 2026-11-10
+ * 수정자: bioyejin
+ */
+
+/* 입력 화면(720px)보다 넓게 써서 캔버스 옆에 패널을 둔다 */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 1280px;
+  margin: 0 auto;
+  /* 위쪽 여백은 위에 붙는 타이틀 영역이 맡는다 */
+  padding: 0 var(--space-4) var(--space-8);
+}
+
+/* 왼쪽 돌아가기, 오른쪽 되돌리기·다시 실행·리셋·미리보기·저장하기 */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.toolbarActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* 파란 글자. 마우스를 올려도 색을 유지한다 */
+.toolbar .backButton {
+  color: var(--color-primary-text);
+}
+
+/* 넓은 화면: 캔버스 카드 | 패널. 좁은 화면에서는 패널이 아래로 내려간다 */
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+@media (max-width: 899px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* 위에서부터 확대·축소 줄, 캔버스, 썸네일 줄 */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: var(--space-3);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+
+.canvasTools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.zoom {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* 눌러서 화면에 맞추는 % 표시 */
+.zoomValue {
+  min-width: 48px;
+  height: 32px;
+  padding: 0 var(--space-1);
+  color: var(--color-text);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+}
+
+.zoomValue:hover {
+  background: var(--color-surface-muted);
+}
+
+.resolution {
+  color: var(--color-text-tertiary);
+}
+
+/* 캔버스가 놓이는 바탕. 세로로 긴 이미지는 좌우가 비므로 바탕색으로 구분한다 */
+.stage {
+  position: relative;
+  min-width: 0;
+  padding: var(--space-3);
+  background: var(--color-surface-muted);
+  border-radius: var(--radius-md);
+}
+
+/* AI 추천안을 적용하는 동안 캔버스 바탕 전체를 덮는 어두운 레이어. 그동안 캔버스는 누를 수 없다 */
+.busyLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-on-overlay);
+  background: var(--color-canvas-busy-overlay);
+  border-radius: var(--radius-md);
+}
+
+/* 오른쪽 점 3개 자리(AnimatedDots, 3ch)만큼 왼쪽도 비워, "적용 중" 글자가 정가운데에 오게 한다 */
+.busyLayer::before {
+  width: 3ch;
+  content: "";
+}
+
+/* 미리보기 이미지. 레이어 안에 들어오게 줄이고 비율은 유지 */
+.previewImage {
+  display: block;
+  max-width: min(80vw, 1024px);
+  max-height: 78vh;
+  object-fit: contain;
+  border-radius: var(--radius-md);
+}
+
+/* 저장 화면: 버튼을 위아래로 놓고 그 아래 안내 문구 */
+.saveMenu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 240px;
+  max-width: 100%;
+}
+
+.saveHint {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-on-overlay-muted);
+  text-align: center;
+}
+
+.saveError {
+  margin: 0;
+  color: var(--color-text-on-overlay);
+  text-align: center;
+}

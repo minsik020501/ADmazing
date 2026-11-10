@@ -6,7 +6,7 @@
  *
  * 생성일자: 2026-10-22
  * 생성자: bioyejin
- * 수정일자: 2026-10-22
+ * 수정일자: 2026-11-10
  * 수정자: bioyejin
  */
 
@@ -22,7 +22,8 @@ export interface StylePreset {
 export const DEFAULT_STYLE_ID = "none";
 
 export const STYLE_PRESETS: StylePreset[] = [
-  { id: DEFAULT_STYLE_ID, label: "없음", suffix: "" },
+  // 스타일 문구를 붙이지 않아 모델이 알아서 정한다
+  { id: DEFAULT_STYLE_ID, label: "랜덤", suffix: "" },
   { id: "photo", label: "실사 사진", suffix: "실사 사진 스타일, 사실적인 디테일" },
   { id: "studio", label: "제품 스튜디오", suffix: "제품 스튜디오 촬영, 깔끔한 배경과 조명" },
   { id: "illustration", label: "일러스트", suffix: "일러스트 스타일" },

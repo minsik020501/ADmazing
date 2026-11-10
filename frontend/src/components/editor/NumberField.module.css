@@ -1,0 +1,57 @@
+/**
+ * NumberField 컴포넌트 스타일.
+ *
+ * 생성일자: 2026-11-05
+ * 생성자: bioyejin
+ * 수정일자: 2026-11-05
+ * 수정자: bioyejin
+ */
+
+.number {
+  width: 48px;
+  height: 28px;
+  padding: 0 var(--space-1);
+  color: var(--color-text);
+  text-align: center;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  /* 칸을 좁게 쓰려고 브라우저 기본 위아래 화살표를 숨긴다 */
+  appearance: textfield;
+}
+
+.number::-webkit-inner-spin-button,
+.number::-webkit-outer-spin-button {
+  margin: 0;
+  appearance: none;
+}
+
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.stepButton {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 28px;
+  padding: 0;
+  color: var(--color-text);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+}
+
+.stepButton:hover:not(:disabled) {
+  background: var(--color-surface-muted);
+}
+
+.stepButton:disabled {
+  color: var(--color-text-tertiary);
+  cursor: not-allowed;
+}

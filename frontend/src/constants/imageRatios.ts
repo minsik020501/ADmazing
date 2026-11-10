@@ -6,7 +6,7 @@
  *
  * 생성일자: 2026-10-22
  * 생성자: bioyejin
- * 수정일자: 2026-10-22
+ * 수정일자: 2026-11-10
  * 수정자: bioyejin
  */
 
@@ -29,8 +29,8 @@ export const IMAGE_RATIOS: ImageRatio[] = [
   { value: "4:5", label: "세로 피드", width: 4, height: 5 },
   { value: "3:4", label: "세로", width: 3, height: 4 },
   { value: "2:3", label: "포스터", width: 2, height: 3 },
-  { value: "9:16", label: "스토리·릴스", width: 9, height: 16 },
-  { value: "16:9", label: "배너·유튜브", width: 16, height: 9 },
+  { value: "9:16", label: "스토리 · 릴스", width: 9, height: 16 },
+  { value: "16:9", label: "배너 · 유튜브", width: 16, height: 9 },
   { value: "4:3", label: "가로", width: 4, height: 3 },
   { value: "3:2", label: "사진", width: 3, height: 2 },
 ];

@@ -3,11 +3,34 @@
  *
  * 생성일자: 2026-10-16
  * 생성자: ven_choi
- * 수정일자: 2026-10-28
- * 수정자: ven_choi
+ * 수정일자: 2026-11-10
+ * 수정자: bioyejin
  */
 
+import type { CopyRequestRow, CopyRole } from "../constants/copyRequests";
 import { STYLE_PRESETS } from "../constants/stylePresets";
+
+/** 추천 문구 하나 */
+export interface CopySuggestion {
+  /** 문구. 입력 화면의 요청이 있으면 그 내용을 담고, 요청의 숫자는 바꾸지 않는다 */
+  text: string;
+}
+
+/**
+ * 이미지 한 장에 어울리는 역할별 추천 문구와 배치 추천에 쓸 값.
+ * title[i], subtitle[i], text[i]가 한 묶음(칩 하나)이고, 세 목록의 길이는 같다(1~5개).
+ */
+export interface ImageCopies {
+  title: CopySuggestion[];
+  subtitle: CopySuggestion[];
+  text: CopySuggestion[];
+  /** 이미지를 보고 고른 문구 강조색 #RRGGBB. 배치 추천 요청에 그대로 보낸다 */
+  accent: string | null;
+  /** 이미지에 어울리는 글꼴 스타일 id (어울리는 순서, 최대 3개). 고르지 못하면 빈 목록 */
+  styles: string[];
+  /** 이미지의 대표색 #RRGGBB (많이 쓰인 순서, 최대 5개) */
+  palette: string[];
+}
 
 /** 생성된 이미지 한 장 */
 export interface GeneratedImage {
@@ -15,6 +38,10 @@ export interface GeneratedImage {
   image_base64: string;
   /** 이 이미지를 생성한 seed (같은 seed로 다시 요청하면 같은 이미지) */
   seed: number;
+  /** 이 이미지에 맞춘 추천 문구. 추천에 실패하면 null */
+  copies: ImageCopies | null;
+  /** 문구 추천에 실패했을 때 화면에 보여줄 메시지 */
+  copies_error: string | null;
 }
 
 /** 이미지 생성 API 응답 */
@@ -29,6 +56,41 @@ export interface GenerateResponse {
   /** 서버 설정(NUM_IMAGES_PER_REQUEST)만큼 생성된 이미지 목록 */
   images: GeneratedImage[];
 }
+
+/**
+ * 생성 작업 단계.
+ * translating: 번역 중, queued: 앞선 생성 대기 중, generating: 생성 중,
+ * recommending_copy: 이미지별 문구 추천 중, done: 완료, failed: 실패, cancelled: 취소됨
+ */
+export type JobStage =
+  | "translating"
+  | "queued"
+  | "generating"
+  | "recommending_copy"
+  | "done"
+  | "failed"
+  | "cancelled";
+
+/** 생성 작업 상태. 진행 상황 스트림(SSE)에서 상태가 바뀔 때마다 받는다 */
+export interface GenerationJobStatus {
+  job_id: string;
+  stage: JobStage;
+  /** 완료한 디노이징 step 수. step == total이면 이미지 마무리(디코딩) 중 */
+  step: number | null;
+  /** 전체 디노이징 step 수 */
+  total: number | null;
+  /** 문구 추천이 끝난 이미지 수 (성공·실패 모두). recommending_copy 전에는 null */
+  copy_done: number | null;
+  /** 문구를 추천할 이미지 수. recommending_copy 전에는 null */
+  copy_total: number | null;
+  /** stage가 done일 때 결과 */
+  result: GenerateResponse | null;
+  /** stage가 failed일 때 에러 메시지 */
+  error: string | null;
+}
+
+/** 작업이 끝난 단계. 이 단계를 받으면 진행 상황 스트림이 닫힌다 */
+const FINISHED_STAGES: JobStage[] = ["done", "failed", "cancelled"];
 
 /** 서버 상태 조회 API 응답 */
 export interface HealthResponse {
@@ -69,6 +131,8 @@ export interface GenerateOptions {
   styleId: string;
   /** 비율 (constants/imageRatios.ts, 서버 허용값과 같음) */
   ratio: string;
+  /** 삽입할 문구 입력 줄. AI가 문구를 추천할 때 참고한다 */
+  copyRequests: CopyRequestRow[];
 }
 
 /**
@@ -84,27 +148,151 @@ function buildPrompt(prompt: string, styleId: string): string {
 }
 
 /**
- * 화면에서 고른 옵션으로 광고 이미지 생성을 요청한다.
+ * 화면에서 고른 옵션을 서버 요청 본문으로 바꾼다.
  * 화면 옵션을 서버 요청 형식으로 바꾸는 일은 이 함수에서만 한다.
  *
- * @param options - 프롬프트, 스타일, 비율
- * @returns 원본 프롬프트, 번역된 프롬프트, 비율과 해상도, 생성된 이미지와 seed 목록
+ * 비어 있는 문구 줄은 보내지 않고, 내용이 있는 줄이 하나도 없으면 copy_requests를 넣지 않는다.
+ *
+ * @param options - 프롬프트, 스타일, 비율, 문구 입력 줄
+ * @returns JSON 문자열로 된 요청 본문
+ */
+function toRequestBody(options: GenerateOptions): string {
+  const copyRequests = options.copyRequests
+    .map((row) => [row.role, row.text.trim()])
+    .filter(([, text]) => text !== "");
+  return JSON.stringify({
+    prompt: buildPrompt(options.prompt, options.styleId),
+    ratio: options.ratio,
+    ...(copyRequests.length > 0 && { copy_requests: Object.fromEntries(copyRequests) }),
+  });
+}
+
+/**
+ * 이미지 생성 작업을 등록한다. 서버는 생성을 기다리지 않고 바로 작업 id를 돌려준다.
+ *
+ * @param options - 프롬프트, 스타일, 비율, 문구 입력 줄
+ * @returns 진행 상황 조회와 취소에 쓰는 작업 id
+ * @throws {Error} 응답 상태가 2xx가 아닐 때 (예: 422 입력 검증 실패)
+ */
+export async function createGenerationJob(options: GenerateOptions): Promise<string> {
+  const res = await fetch("/api/jobs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: toRequestBody(options),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(toErrorMessage(body?.detail, res.status));
+  }
+  const body: { job_id: string } = await res.json();
+  return body.job_id;
+}
+
+/**
+ * 작업의 진행 상황을 구독한다. 상태가 바뀔 때마다 onStatus가 호출되고,
+ * 작업이 끝나면(done, failed, cancelled) 구독이 자동으로 닫힌다.
+ *
+ * @param jobId - 작업 id
+ * @param onStatus - 새 상태를 받을 때마다 호출
+ * @param onError - 서버 연결이 끊겨 더 받을 수 없을 때 호출
+ * @returns 구독을 닫는 함수
+ */
+export function subscribeGenerationJob(
+  jobId: string,
+  onStatus: (status: GenerationJobStatus) => void,
+  onError: (message: string) => void,
+): () => void {
+  const source = new EventSource(`/api/jobs/${jobId}/events`);
+  source.onmessage = (event) => {
+    const status: GenerationJobStatus = JSON.parse(event.data);
+    // 서버가 스트림을 닫으면 브라우저가 다시 연결하려 하므로 끝난 작업은 먼저 닫는다
+    if (FINISHED_STAGES.includes(status.stage)) source.close();
+    onStatus(status);
+  };
+  source.onerror = () => {
+    // 잠깐 끊긴 경우에는 브라우저가 알아서 다시 연결한다(CONNECTING).
+    // CLOSED는 다시 연결하지 않는 경우(작업이 없음, 서버 응답 에러 등)
+    if (source.readyState === EventSource.CLOSED) {
+      onError("서버와 연결이 끊겨 진행 상황을 받지 못했습니다. 잠시 후 다시 시도해 주세요.");
+    }
+  };
+  return () => source.close();
+}
+
+/**
+ * 작업 취소를 요청한다. 이미 끝난 작업이면 서버에서 아무 일도 하지 않는다.
+ *
+ * @param jobId - 작업 id
+ * @param keepalive - 탭을 닫는 중에도 요청이 끝까지 전송되게 할지 여부
  * @throws {Error} 응답 상태가 2xx가 아닐 때
  */
-export async function generateImage(options: GenerateOptions): Promise<GenerateResponse> {
-  const res = await fetch("/api/generate", {
+export async function cancelGenerationJob(jobId: string, keepalive = false): Promise<void> {
+  const res = await fetch(`/api/jobs/${jobId}`, { method: "DELETE", keepalive });
+  if (!res.ok) {
+    throw new Error(`요청 실패 (${res.status})`);
+  }
+}
+
+/** 배치를 추천받을 문구 하나 */
+export interface LayoutCopy {
+  role: CopyRole;
+  text: string;
+}
+
+/** 문구 배치 추천 요청 */
+export interface LayoutRequest {
+  /** 배치를 추천받을 이미지 (PNG base64) */
+  imageBase64: string;
+  /** 역할별 문구 (역할마다 하나). 빈 문구는 보내지 않는다 */
+  copies: LayoutCopy[];
+  /** 문구 강조색 (문구 추천 결과의 accent) */
+  accent: string | null;
+  /** 글꼴 스타일 id */
+  style: string;
+  /** 레이아웃 id. 없으면 서버가 이미지에 맞는 레이아웃을 고른다 */
+  templateId?: string;
+}
+
+/** 문구 배치 추천안 하나 */
+export interface LayoutProposal {
+  /** 서버가 붙인 짧은 이름 */
+  label: string;
+  /** 서버가 쓴 레이아웃 id */
+  template_id: string;
+  /** 서버가 쓴 글꼴 스타일 id */
+  style: string;
+  /** 문구 상자 목록 (docs/text_layer_spec.md 형식). 에디터에 넣기 전에 검사한다 */
+  layers: unknown[];
+}
+
+/**
+ * 이미지와 문구로 문구 배치(위치, 글꼴, 크기, 색)를 하나 추천받는다.
+ *
+ * @param request - 이미지, 문구, 강조색, 스타일, 레이아웃(선택)
+ * @returns 추천안 하나
+ * @throws {Error} 응답 상태가 2xx가 아니거나 추천안이 없을 때
+ */
+export async function recommendLayout(request: LayoutRequest): Promise<LayoutProposal> {
+  const res = await fetch("/api/layout/recommend", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      prompt: buildPrompt(options.prompt, options.styleId),
-      ratio: options.ratio,
+      image_base64: request.imageBase64,
+      copies: request.copies.filter((copy) => copy.text.trim() !== ""),
+      num_proposals: 1,
+      accent: request.accent,
+      styles: [request.style],
+      ...(request.templateId && { template_id: request.templateId }),
     }),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => null);
     throw new Error(toErrorMessage(body?.detail, res.status));
   }
-  return res.json();
+  const body: { proposals: LayoutProposal[] } = await res.json();
+  const proposal = body.proposals[0];
+  if (!proposal) throw new Error("배치 추천 결과가 비어 있어요");
+  return proposal;
 }
 
 /**

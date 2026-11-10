@@ -1,0 +1,424 @@
+{
+  "fonts": [
+    {
+      "id": "mona12",
+      "name": "Mona12",
+      "family": "Mona12Ad",
+      "category": "signature",
+      "mood": "ADmazing 시그니처, 픽셀 감성의 레트로 글꼴",
+      "license": "OFL",
+      "license_url": "https://github.com/MonadABXY/mona-font/blob/2026.10.09/OFL.txt",
+      "allow_convert": true,
+      "files": [
+        { "weight": 400, "url": "https://cdn.jsdelivr.net/gh/MonadABXY/mona-font@2026.10.09/web/Mona12.woff2" },
+        { "weight": 700, "url": "https://cdn.jsdelivr.net/gh/MonadABXY/mona-font@2026.10.09/web/Mona12-Bold.woff2" }
+      ]
+    },
+    {
+      "id": "gmarket-sans",
+      "name": "G마켓 산스",
+      "family": "GmarketSans",
+      "category": "headline",
+      "mood": "깔끔하고 힘 있는 커머스 고딕",
+      "license": "OFL",
+      "license_url": "https://noonnu.cc/font_page/366",
+      "allow_convert": true,
+      "files": [
+        { "weight": 300, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansLight.woff" },
+        { "weight": 500, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansMedium.woff" },
+        { "weight": 700, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.1/GmarketSansBold.woff" }
+      ]
+    },
+    {
+      "id": "s-core-dream",
+      "name": "에스코어드림",
+      "family": "SCoreDream",
+      "category": "headline",
+      "mood": "모던하고 단정한 고딕",
+      "license": "에스코어 라이선스 (임베딩 허용, 수정 금지)",
+      "license_url": "https://noonnu.cc/font_page/223",
+      "allow_convert": false,
+      "files": [
+        { "weight": 300, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/S-CoreDream-3Light.woff" },
+        { "weight": 400, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/S-CoreDream-4Regular.woff" },
+        { "weight": 700, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/S-CoreDream-6Bold.woff" }
+      ]
+    },
+    {
+      "id": "paperlogy",
+      "name": "페이퍼로지",
+      "family": "Paperlogy",
+      "category": "headline",
+      "mood": "단단하고 트렌디한 고딕",
+      "license": "OFL",
+      "license_url": "https://noonnu.cc/font_page/1456",
+      "allow_convert": true,
+      "files": [
+        { "weight": 300, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-3Light.woff2" },
+        { "weight": 400, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-4Regular.woff2" },
+        { "weight": 700, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-7Bold.woff2" }
+      ]
+    },
+    {
+      "id": "a2z",
+      "name": "에이투지체",
+      "family": "A2z",
+      "category": "headline",
+      "mood": "기하학적인 테크 느낌의 고딕",
+      "license": "OFL",
+      "license_url": "https://noonnu.cc/font_page/1778",
+      "allow_convert": true,
+      "files": [
+        { "weight": 300, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2601-6@1.0/에이투지체-3Light.woff2" },
+        { "weight": 400, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2601-6@1.0/에이투지체-4Regular.woff2" },
+        { "weight": 700, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2601-6@1.0/에이투지체-7Bold.woff2" }
+      ]
+    },
+    {
+      "id": "aggro",
+      "name": "어그로체",
+      "family": "SBAggro",
+      "category": "headline",
+      "mood": "강렬한 유튜브·이벤트 느낌",
+      "license": "샌드박스네트워크 라이선스 (임베딩·수정 허용)",
+      "license_url": "https://noonnu.cc/font_page/738",
+      "allow_convert": true,
+      "files": [
+        { "weight": 300, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2108@1.1/SBAggroL.woff" },
+        { "weight": 500, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2108@1.1/SBAggroM.woff" },
+        { "weight": 700, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2108@1.1/SBAggroB.woff" }
+      ]
+    },
+    {
+      "id": "jalnan",
+      "name": "여기어때 잘난체",
+      "family": "YeogiOttaeJalnan",
+      "category": "headline",
+      "mood": "두껍고 친근한 프로모션",
+      "license": "여기어때 라이선스 (임베딩 조건부, 수정 후 재배포 금지, 출처 표기 권장)",
+      "license_url": "https://noonnu.cc/font_page/115",
+      "allow_convert": false,
+      "files": [
+        { "weight": 400, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_four@1.2/JalnanOTF00.woff" }
+      ]
+    },
+    {
+      "id": "black-han-sans",
+      "name": "검은고딕",
+      "family": "BlackHanSans",
+      "category": "headline",
+      "mood": "아주 굵은 임팩트",
+      "license": "OFL",
+      "license_url": "https://fonts.google.com/specimen/Black+Han+Sans",
+      "allow_convert": true,
+      "files": [
+        { "weight": 400, "url": "https://raw.githubusercontent.com/google/fonts/main/ofl/blackhansans/BlackHanSans-Regular.ttf" }
+      ]
+    },
+    {
+      "id": "dohyeon",
+      "name": "도현체",
+      "family": "DoHyeon",
+      "category": "headline",
+      "mood": "유쾌한 배민 감성",
+      "license": "OFL",
+      "license_url": "https://noonnu.cc/font_page/55",
+      "allow_convert": true,
+      "files": [
+        { "weight": 400, "url": "https://raw.githubusercontent.com/google/fonts/main/ofl/dohyeon/DoHyeon-Regular.ttf" }
+      ]
+    },
+    {
+      "id": "isamanru",
+      "name": "이사만루",
+      "family": "Isamanru",
+      "category": "headline",
+      "mood": "스포티하고 역동적",
+      "license": "공게임즈 라이선스 (임베딩 허용, 수정 후 유료 판매 금지)",
+      "license_url": "https://noonnu.cc/font_page/463",
+      "allow_convert": true,
+      "files": [
+        { "weight": 300, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_20-10@1.0/GongGothicLight.woff" },
+        { "weight": 500, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_20-10@1.0/GongGothicMedium.woff" },
+        { "weight": 700, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_20-10@1.0/GongGothicBold.woff" }
+      ]
+    },
+    {
+      "id": "bithumb-gothic",
+      "name": "빗썸고딕 Original",
+      "family": "BithumbGothicOriginal",
+      "category": "headline",
+      "mood": "단정한 브랜드 고딕",
+      "license": "OFL",
+      "license_url": "https://noonnu.cc/font_page/1978",
+      "allow_convert": true,
+      "files": [
+        { "weight": 700, "url": "https://cdn.jsdelivr.net/gh/Project-Noonnu/2610082345@original/original/Bithumb Gothic Original.woff2" }
+      ]
+    },
+    {
+      "id": "pretendard",
+      "name": "프리텐다드",
+      "family": "Pretendard",
+      "category": "body",
+      "mood": "가장 무난한 표준 고딕",
+      "license": "OFL",
+      "license_url": "https://noonnu.cc/font_page/694",
+      "allow_convert": true,
+      "files": [
+        { "weight": 300, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Light.woff2" },
+        { "weight": 400, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Regular.woff2" },
+        { "weight": 700, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/pretendard@1.0/Pretendard-Bold.woff2" }
+      ]
+    },
+    {
+      "id": "suit",
+      "name": "수트",
+      "family": "SUIT",
+      "category": "body",
+      "mood": "세련된 UI 고딕",
+      "license": "OFL",
+      "license_url": "https://noonnu.cc/font_page/845",
+      "allow_convert": true,
+      "files": [
+        { "weight": 300, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_suit@1.0/SUIT-Light.woff2" },
+        { "weight": 400, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_suit@1.0/SUIT-Regular.woff2" },
+        { "weight": 700, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_suit@1.0/SUIT-Bold.woff2" }
+      ]
+    },
+    {
+      "id": "noto-sans-kr",
+      "name": "본고딕 (Noto Sans KR)",
+      "family": "NotoSansKR",
+      "category": "body",
+      "mood": "중립적인 표준 고딕",
+      "license": "OFL",
+      "license_url": "https://fonts.google.com/specimen/Noto+Sans+KR",
+      "allow_convert": true,
+      "variable": {
+        "url": "https://raw.githubusercontent.com/google/fonts/main/ofl/notosanskr/NotoSansKR[wght].ttf",
+        "weights": [300, 400, 700]
+      }
+    },
+    {
+      "id": "nanum-square",
+      "name": "나눔스퀘어",
+      "family": "NanumSquare",
+      "category": "body",
+      "mood": "각진 정보형 고딕",
+      "license": "OFL",
+      "license_url": "https://hangeul.naver.com/fonts/search?f=nanum",
+      "allow_convert": true,
+      "files": [
+        { "weight": 300, "url": "https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquare/NanumSquareL.ttf" },
+        { "weight": 400, "url": "https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquare/NanumSquareR.ttf" },
+        { "weight": 700, "url": "https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquare/NanumSquareB.ttf" }
+      ]
+    },
+    {
+      "id": "presentation",
+      "name": "프리젠테이션",
+      "family": "Freesentation",
+      "category": "body",
+      "mood": "발표·안내문 느낌의 고딕",
+      "license": "OFL",
+      "license_url": "https://noonnu.cc/font_page/1369",
+      "allow_convert": true,
+      "files": [
+        { "weight": 300, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-3Light.woff2" },
+        { "weight": 400, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-4Regular.woff2" },
+        { "weight": 700, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2404@1.0/Freesentation-7Bold.woff2" }
+      ]
+    },
+    {
+      "id": "maru-buri",
+      "name": "마루 부리",
+      "family": "MaruBuri",
+      "category": "serif",
+      "mood": "현대적이고 우아한 명조",
+      "license": "OFL",
+      "license_url": "https://noonnu.cc/font_page/487",
+      "allow_convert": true,
+      "files": [
+        { "weight": 300, "url": "https://hangeul.pstatic.net/hangeul_static/webfont/MaruBuri/MaruBuri-Light.woff2" },
+        { "weight": 400, "url": "https://hangeul.pstatic.net/hangeul_static/webfont/MaruBuri/MaruBuri-Regular.woff2" },
+        { "weight": 700, "url": "https://hangeul.pstatic.net/hangeul_static/webfont/MaruBuri/MaruBuri-Bold.woff2" }
+      ]
+    },
+    {
+      "id": "noto-serif-kr",
+      "name": "본명조 (Noto Serif KR)",
+      "family": "NotoSerifKR",
+      "category": "serif",
+      "mood": "정갈한 표준 명조",
+      "license": "OFL",
+      "license_url": "https://fonts.google.com/specimen/Noto+Serif+KR",
+      "allow_convert": true,
+      "variable": {
+        "url": "https://raw.githubusercontent.com/google/fonts/main/ofl/notoserifkr/NotoSerifKR[wght].ttf",
+        "weights": [300, 400, 700]
+      }
+    },
+    {
+      "id": "nanum-myeongjo",
+      "name": "나눔명조",
+      "family": "NanumMyeongjo",
+      "category": "serif",
+      "mood": "클래식한 명조",
+      "license": "OFL",
+      "license_url": "https://fonts.google.com/specimen/Nanum+Myeongjo",
+      "allow_convert": true,
+      "files": [
+        { "weight": 400, "url": "https://raw.githubusercontent.com/google/fonts/main/ofl/nanummyeongjo/NanumMyeongjo-Regular.ttf" },
+        { "weight": 700, "url": "https://raw.githubusercontent.com/google/fonts/main/ofl/nanummyeongjo/NanumMyeongjo-Bold.ttf" },
+        { "weight": 800, "url": "https://raw.githubusercontent.com/google/fonts/main/ofl/nanummyeongjo/NanumMyeongjo-ExtraBold.ttf" }
+      ]
+    },
+    {
+      "id": "ridibatang",
+      "name": "리디바탕",
+      "family": "RIDIBatang",
+      "category": "serif",
+      "mood": "책 같은 따뜻한 바탕",
+      "license": "OFL",
+      "license_url": "https://noonnu.cc/font_page/324",
+      "allow_convert": true,
+      "files": [
+        { "weight": 400, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_twelve@1.0/RIDIBatang.woff" }
+      ]
+    },
+    {
+      "id": "bookk-myungjo",
+      "name": "부크크 명조",
+      "family": "BookkMyungjo",
+      "category": "serif",
+      "mood": "문학적이고 차분한 명조",
+      "license": "부크크 라이선스 (임베딩 허용, 수정 금지)",
+      "license_url": "https://noonnu.cc/font_page/1084",
+      "allow_convert": false,
+      "files": [
+        { "weight": 400, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302@1.0/BookkMyungjo-Lt.woff2" },
+        { "weight": 700, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302@1.0/BookkMyungjo-Bd.woff2" }
+      ]
+    },
+    {
+      "id": "chosun-myungjo",
+      "name": "조선일보명조",
+      "family": "ChosunIlboMyungjo",
+      "category": "serif",
+      "mood": "신문 같은 신뢰감",
+      "license": "조선일보 라이선스 (임베딩 허용, 원형 그대로 사용)",
+      "license_url": "https://noonnu.cc/font_page/63",
+      "allow_convert": false,
+      "files": [
+        { "weight": 400, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_one@1.0/Chosunilbo_myungjo.woff" }
+      ]
+    },
+    {
+      "id": "cafe24-surround",
+      "name": "카페24 써라운드",
+      "family": "Cafe24Ssurround",
+      "category": "rounded",
+      "mood": "둥글고 귀여운 카페·디저트",
+      "license": "카페24 라이선스 (임베딩 허용, 수정 시 OFL 적용)",
+      "license_url": "https://noonnu.cc/font_page/669",
+      "allow_convert": true,
+      "files": [
+        { "weight": 400, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2105_2@1.0/Cafe24Ssurround.woff" }
+      ]
+    },
+    {
+      "id": "gowun-dodum",
+      "name": "고운돋움",
+      "family": "GowunDodum",
+      "category": "rounded",
+      "mood": "섬세하고 부드러운 돋움",
+      "license": "OFL",
+      "license_url": "https://noonnu.cc/font_page/734",
+      "allow_convert": true,
+      "files": [
+        { "weight": 400, "url": "https://raw.githubusercontent.com/google/fonts/main/ofl/gowundodum/GowunDodum-Regular.ttf" }
+      ]
+    },
+    {
+      "id": "school-safety-rounded-smile",
+      "name": "학교안심 둥근미소",
+      "family": "SchoolSafetyRoundedSmile",
+      "category": "rounded",
+      "mood": "밝고 친근한 둥근 고딕",
+      "license": "OFL",
+      "license_url": "https://noonnu.cc/font_page/1479",
+      "allow_convert": true,
+      "files": [
+        { "weight": 400, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2408-5@1.0/HakgyoansimDunggeunmisoTTF-R.woff2" },
+        { "weight": 700, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2408-5@1.0/HakgyoansimDunggeunmisoTTF-B.woff2" }
+      ]
+    },
+    {
+      "id": "ownglyph-park-dahyun",
+      "name": "온글잎 박다현체",
+      "family": "OwnglyphParkDahyun",
+      "category": "handwriting",
+      "mood": "자연스러운 손글씨",
+      "license": "온글잎 라이선스 (임베딩 허용)",
+      "license_url": "https://noonnu.cc/font_page/1541",
+      "allow_convert": false,
+      "files": [
+        { "weight": 400, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/2411-3@1.0/Ownglyph_ParkDaHyun.woff2" }
+      ]
+    },
+    {
+      "id": "hippie",
+      "name": "히피체",
+      "family": "Hippie",
+      "category": "handwriting",
+      "mood": "자유분방하고 트렌디한 손글씨",
+      "license": "OFL",
+      "license_url": "https://noonnu.cc/font_page/1967",
+      "allow_convert": true,
+      "files": [
+        { "weight": 400, "url": "https://cdn.jsdelivr.net/gh/Project-Noonnu/2610081905@hippie/hippie/hippie_히피체.woff2" }
+      ]
+    },
+    {
+      "id": "nanum-barun-pen",
+      "name": "나눔바른펜",
+      "family": "NanumBarunpen",
+      "category": "handwriting",
+      "mood": "단정한 펜글씨",
+      "license": "OFL",
+      "license_url": "https://noonnu.cc/font_page/42",
+      "allow_convert": true,
+      "files": [
+        { "weight": 400, "url": "https://hangeul.pstatic.net/hangeul_static/webfont/NanumBarunpen/NanumBarunpenR.ttf" },
+        { "weight": 700, "url": "https://hangeul.pstatic.net/hangeul_static/webfont/NanumBarunpen/NanumBarunpenB.ttf" }
+      ]
+    },
+    {
+      "id": "nanum-brush-script",
+      "name": "나눔손글씨 붓",
+      "family": "NanumBrushScript",
+      "category": "handwriting",
+      "mood": "붓 캘리그라피, 전통·식품",
+      "license": "OFL",
+      "license_url": "https://fonts.google.com/specimen/Nanum+Brush+Script",
+      "allow_convert": true,
+      "files": [
+        { "weight": 400, "url": "https://raw.githubusercontent.com/google/fonts/main/ofl/nanumbrushscript/NanumBrushScript-Regular.ttf" }
+      ]
+    },
+    {
+      "id": "ink-liquid",
+      "name": "잉크립퀴드체",
+      "family": "InkLiquid",
+      "category": "handwriting",
+      "mood": "감성 캘리그라피, 뷰티·카페",
+      "license": "더페이스샵 라이선스 (임베딩 허용, 변형·BI/CI 금지)",
+      "license_url": "https://noonnu.cc/font_page/68",
+      "allow_convert": false,
+      "files": [
+        { "weight": 400, "url": "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_one@1.0/InkLipquid.woff" }
+      ]
+    }
+  ]
+}

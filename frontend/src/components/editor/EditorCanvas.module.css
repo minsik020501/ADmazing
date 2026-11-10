@@ -1,0 +1,36 @@
+/**
+ * EditorCanvas 컴포넌트 스타일.
+ *
+ * 생성일자: 2026-11-04
+ * 생성자: bioyejin
+ * 수정일자: 2026-11-05
+ * 수정자: bioyejin
+ */
+
+/* 편집 영역 폭을 재는 칸. 확대해서 캔버스가 더 커지면 이 안에서 스크롤한다 */
+.container {
+  display: flex;
+  width: 100%;
+  max-height: 70vh;
+  overflow: auto;
+}
+
+/* 캔버스와 직접 입력 칸을 겹치는 기준 */
+.frame {
+  position: relative;
+  flex-shrink: 0;
+  /* 가운데 정렬. justify-content와 달리 넘칠 때 왼쪽·위쪽이 잘리지 않는다 */
+  margin: auto;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+}
+
+/* 확대해서 끌어 옮길 수 있을 때 손 모양. 끄는 동안 글자가 선택되지 않게 한다 */
+.pannable {
+  cursor: grab;
+  user-select: none;
+}
+
+.panning {
+  cursor: grabbing;
+}

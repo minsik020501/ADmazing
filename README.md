@@ -57,11 +57,32 @@ SDXL_DEVICE=cuda      # GPU를 못 잡으면 CPU로 넘어가지 않고 바로 �
 ZIMAGE_DEVICE=cuda
 ```
 
+#### Z-Image 양자화 (선택)
+
+GPU 서버에서 `.env`에 `ZIMAGE_QUANT=fp8`(또는 `int8`)을 넣으면 transformer·text_encoder 가중치를 8bit로 줄여 올립니다. `fp8`은 SM 8.9 이상 GPU(L4 등)에서만 동작합니다.
+
+`docker compose up` 시 api보다 먼저 `model-prep` 서비스가 실행되어, `models/z-image-turbo-<종류>/`가 없으면 `models/z-image-turbo/`에서 변환해 저장합니다. 첫 실행에만 변환 시간이 걸리고, 이후에는 바로 끝납니다. torch·torchao·diffusers·transformers 버전이 바뀌면 다시 변환합니다.
+
+```bash
+docker compose logs model-prep     # 변환 진행 상황 확인
+```
+
 컨테이너가 GPU를 보는지 확인:
 
 ```bash
 docker compose exec api python -c "import torch; print(torch.cuda.is_available())"
 ```
+
+### 광고 문구 폰트
+
+`docker compose up` 시 frontend보다 먼저 `font-prep` 서비스가 실행되어 [fonts/manifest.json](fonts/manifest.json)의 폰트를 받아 woff2로 준비합니다. 폰트 파일은 git에 올리지 않고 Docker 볼륨(`font-files`)에 두며, frontend에서 `/fonts/...` 경로로 제공됩니다. 첫 실행에만 받는 시간이 걸리고, 받기에 실패해도 frontend는 뜹니다(해당 폰트만 기본 글꼴로 표시).
+
+```bash
+docker compose logs font-prep      # 준비 결과 확인
+```
+
+- 웹폰트 주소가 없는 폰트는 manifest에 `manual`로 적고, 배포처에서 직접 받아 `fonts/manual/<id>/`에 넣습니다.
+- 폰트를 추가·변경하면 manifest를 고친 뒤 로컬에서 `python scripts/prepare_fonts.py`를 실행해 `frontend/src/styles/fonts.css`(@font-face)와 `frontend/src/constants/fonts.json`(화면용 폰트 목록)을 갱신하고 커밋합니다 (`pip install -r scripts/requirements.txt` 필요).
 
 ### 학습한 모델 사용
 

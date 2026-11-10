@@ -1,0 +1,506 @@
+/**
+ * 광고 문구용 웹폰트 (@font-face).
+ * scripts/prepare_fonts.py가 fonts/manifest.json으로 만든 파일이다. 직접 수정하지 않는다.
+ * 폰트 파일은 docker compose의 font-prep이 준비하며, 실제로 쓰일 때만 내려받는다.
+ *
+ * 생성일자: 2026-11-04
+ * 생성자: ven_choi
+ * 수정일자: 2026-11-05
+ * 수정자: ven_choi
+ */
+
+/* Mona12 — OFL */
+@font-face {
+  font-family: "Mona12Ad";
+  src: url("/fonts/mona12/mona12-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Mona12Ad";
+  src: url("/fonts/mona12/mona12-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* G마켓 산스 — OFL */
+@font-face {
+  font-family: "GmarketSans";
+  src: url("/fonts/gmarket-sans/gmarket-sans-300.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "GmarketSans";
+  src: url("/fonts/gmarket-sans/gmarket-sans-500.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "GmarketSans";
+  src: url("/fonts/gmarket-sans/gmarket-sans-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 에스코어드림 — 에스코어 라이선스 (임베딩 허용, 수정 금지) */
+@font-face {
+  font-family: "SCoreDream";
+  src: url("/fonts/s-core-dream/s-core-dream-300.woff") format("woff");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "SCoreDream";
+  src: url("/fonts/s-core-dream/s-core-dream-400.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "SCoreDream";
+  src: url("/fonts/s-core-dream/s-core-dream-700.woff") format("woff");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 페이퍼로지 — OFL */
+@font-face {
+  font-family: "Paperlogy";
+  src: url("/fonts/paperlogy/paperlogy-300.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Paperlogy";
+  src: url("/fonts/paperlogy/paperlogy-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Paperlogy";
+  src: url("/fonts/paperlogy/paperlogy-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 에이투지체 — OFL */
+@font-face {
+  font-family: "A2z";
+  src: url("/fonts/a2z/a2z-300.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "A2z";
+  src: url("/fonts/a2z/a2z-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "A2z";
+  src: url("/fonts/a2z/a2z-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 어그로체 — 샌드박스네트워크 라이선스 (임베딩·수정 허용) */
+@font-face {
+  font-family: "SBAggro";
+  src: url("/fonts/aggro/aggro-300.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "SBAggro";
+  src: url("/fonts/aggro/aggro-500.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "SBAggro";
+  src: url("/fonts/aggro/aggro-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 여기어때 잘난체 — 여기어때 라이선스 (임베딩 조건부, 수정 후 재배포 금지, 출처 표기 권장) */
+@font-face {
+  font-family: "YeogiOttaeJalnan";
+  src: url("/fonts/jalnan/jalnan-400.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 검은고딕 — OFL */
+@font-face {
+  font-family: "BlackHanSans";
+  src: url("/fonts/black-han-sans/black-han-sans-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 도현체 — OFL */
+@font-face {
+  font-family: "DoHyeon";
+  src: url("/fonts/dohyeon/dohyeon-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 이사만루 — 공게임즈 라이선스 (임베딩 허용, 수정 후 유료 판매 금지) */
+@font-face {
+  font-family: "Isamanru";
+  src: url("/fonts/isamanru/isamanru-300.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Isamanru";
+  src: url("/fonts/isamanru/isamanru-500.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Isamanru";
+  src: url("/fonts/isamanru/isamanru-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 빗썸고딕 Original — OFL */
+@font-face {
+  font-family: "BithumbGothicOriginal";
+  src: url("/fonts/bithumb-gothic/bithumb-gothic-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 프리텐다드 — OFL */
+@font-face {
+  font-family: "Pretendard";
+  src: url("/fonts/pretendard/pretendard-300.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Pretendard";
+  src: url("/fonts/pretendard/pretendard-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Pretendard";
+  src: url("/fonts/pretendard/pretendard-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 수트 — OFL */
+@font-face {
+  font-family: "SUIT";
+  src: url("/fonts/suit/suit-300.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "SUIT";
+  src: url("/fonts/suit/suit-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "SUIT";
+  src: url("/fonts/suit/suit-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 본고딕 (Noto Sans KR) — OFL */
+@font-face {
+  font-family: "NotoSansKR";
+  src: url("/fonts/noto-sans-kr/noto-sans-kr-300.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "NotoSansKR";
+  src: url("/fonts/noto-sans-kr/noto-sans-kr-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "NotoSansKR";
+  src: url("/fonts/noto-sans-kr/noto-sans-kr-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 나눔스퀘어 — OFL */
+@font-face {
+  font-family: "NanumSquare";
+  src: url("/fonts/nanum-square/nanum-square-300.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "NanumSquare";
+  src: url("/fonts/nanum-square/nanum-square-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "NanumSquare";
+  src: url("/fonts/nanum-square/nanum-square-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 프리젠테이션 — OFL */
+@font-face {
+  font-family: "Freesentation";
+  src: url("/fonts/presentation/presentation-300.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Freesentation";
+  src: url("/fonts/presentation/presentation-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Freesentation";
+  src: url("/fonts/presentation/presentation-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 마루 부리 — OFL */
+@font-face {
+  font-family: "MaruBuri";
+  src: url("/fonts/maru-buri/maru-buri-300.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "MaruBuri";
+  src: url("/fonts/maru-buri/maru-buri-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "MaruBuri";
+  src: url("/fonts/maru-buri/maru-buri-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 본명조 (Noto Serif KR) — OFL */
+@font-face {
+  font-family: "NotoSerifKR";
+  src: url("/fonts/noto-serif-kr/noto-serif-kr-300.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "NotoSerifKR";
+  src: url("/fonts/noto-serif-kr/noto-serif-kr-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "NotoSerifKR";
+  src: url("/fonts/noto-serif-kr/noto-serif-kr-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 나눔명조 — OFL */
+@font-face {
+  font-family: "NanumMyeongjo";
+  src: url("/fonts/nanum-myeongjo/nanum-myeongjo-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "NanumMyeongjo";
+  src: url("/fonts/nanum-myeongjo/nanum-myeongjo-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "NanumMyeongjo";
+  src: url("/fonts/nanum-myeongjo/nanum-myeongjo-800.woff2") format("woff2");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 리디바탕 — OFL */
+@font-face {
+  font-family: "RIDIBatang";
+  src: url("/fonts/ridibatang/ridibatang-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 부크크 명조 — 부크크 라이선스 (임베딩 허용, 수정 금지) */
+@font-face {
+  font-family: "BookkMyungjo";
+  src: url("/fonts/bookk-myungjo/bookk-myungjo-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "BookkMyungjo";
+  src: url("/fonts/bookk-myungjo/bookk-myungjo-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 조선일보명조 — 조선일보 라이선스 (임베딩 허용, 원형 그대로 사용) */
+@font-face {
+  font-family: "ChosunIlboMyungjo";
+  src: url("/fonts/chosun-myungjo/chosun-myungjo-400.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 카페24 써라운드 — 카페24 라이선스 (임베딩 허용, 수정 시 OFL 적용) */
+@font-face {
+  font-family: "Cafe24Ssurround";
+  src: url("/fonts/cafe24-surround/cafe24-surround-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 고운돋움 — OFL */
+@font-face {
+  font-family: "GowunDodum";
+  src: url("/fonts/gowun-dodum/gowun-dodum-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 학교안심 둥근미소 — OFL */
+@font-face {
+  font-family: "SchoolSafetyRoundedSmile";
+  src: url("/fonts/school-safety-rounded-smile/school-safety-rounded-smile-400.woff2")
+    format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "SchoolSafetyRoundedSmile";
+  src: url("/fonts/school-safety-rounded-smile/school-safety-rounded-smile-700.woff2")
+    format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 온글잎 박다현체 — 온글잎 라이선스 (임베딩 허용) */
+@font-face {
+  font-family: "OwnglyphParkDahyun";
+  src: url("/fonts/ownglyph-park-dahyun/ownglyph-park-dahyun-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 히피체 — OFL */
+@font-face {
+  font-family: "Hippie";
+  src: url("/fonts/hippie/hippie-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 나눔바른펜 — OFL */
+@font-face {
+  font-family: "NanumBarunpen";
+  src: url("/fonts/nanum-barun-pen/nanum-barun-pen-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "NanumBarunpen";
+  src: url("/fonts/nanum-barun-pen/nanum-barun-pen-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 나눔손글씨 붓 — OFL */
+@font-face {
+  font-family: "NanumBrushScript";
+  src: url("/fonts/nanum-brush-script/nanum-brush-script-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 잉크립퀴드체 — 더페이스샵 라이선스 (임베딩 허용, 변형·BI/CI 금지) */
+@font-face {
+  font-family: "InkLiquid";
+  src: url("/fonts/ink-liquid/ink-liquid-400.woff") format("woff");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}

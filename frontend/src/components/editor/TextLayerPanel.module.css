@@ -1,0 +1,141 @@
+/**
+ * TextLayerPanel 컴포넌트 스타일.
+ *
+ * 생성일자: 2026-11-04
+ * 생성자: bioyejin
+ * 수정일자: 2026-11-10
+ * 수정자: bioyejin
+ */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* 항목 한 묶음 (위에 이름, 아래에 조절) */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.label {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text);
+}
+
+.labelRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.count {
+  color: var(--color-text-tertiary);
+}
+
+.textarea {
+  display: block;
+  width: 100%;
+  padding: var(--space-2);
+  color: var(--color-text);
+  resize: none;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+/* 두 항목을 왼쪽부터 나란히 둔다 (토글 폭이 같아 위아래 줄의 오른쪽 항목도 맞는다) */
+.pair {
+  display: flex;
+  gap: calc(var(--space-8) * 2);
+}
+
+.toggles {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.position {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.axis {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--color-text-secondary);
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--color-text);
+  cursor: pointer;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  transition: background-color var(--transition-fast);
+}
+
+.toggle:hover {
+  background: var(--color-surface-muted);
+}
+
+.toggle[aria-pressed="true"] {
+  color: var(--color-primary-text);
+  background: var(--color-primary-weak);
+  border-color: var(--color-primary);
+}
+
+/* 묶어서 한 번에 비활성화하는 용도라 기본 테두리와 여백을 없앤다 */
+.curve {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.curve:disabled {
+  opacity: 0.45;
+}
+
+/* 구부리기 바로 아래에 붙는 보조 안내라 기본 글자(12px)보다 작게 둔다 */
+.curveHint {
+  margin: 0;
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+}
+
+/* 빨간 글자. 마우스를 올려도 색을 유지한다 */
+.section .deleteButton {
+  color: var(--color-danger);
+}
+
+.hint {
+  margin: 0;
+  color: var(--color-text-tertiary);
+}
+
+.notice {
+  margin: 0;
+  color: var(--color-danger);
+}
+
+/* 여러 상자를 선택했을 때 패널 맨 위 안내 */
+.multiNotice {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary-text);
+  background: var(--color-primary-weak);
+  border-radius: var(--radius-md);
+}

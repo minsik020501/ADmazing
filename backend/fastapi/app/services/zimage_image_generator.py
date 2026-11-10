@@ -4,16 +4,21 @@ backend/ai/compare_ratios.py의 Z-Image 로딩 방식을 서버용으로 옮긴 
 
 생성일자: 2026-10-28
 생성자: ven_choi
-수정일자: 2026-10-28
+수정일자: 2026-11-04
 수정자: ven_choi
 """
 
 import threading
+from pathlib import Path
 
 from app.core.config import settings
+from app.services.generation_cancelled_error import GenerationCancelledError
 from app.services.gpu_out_of_memory_error import GpuOutOfMemoryError
+from app.services.image_generator import StepCallback
 from app.utils.device import resolve_device
+from app.utils.diffusers_callback import to_step_end_callback
 from app.utils.image import to_base64
+from app.utils.zimage_quant import check_cuda, quant_model_dir, stale_reason
 
 
 class ZImageImageGenerator:
@@ -34,15 +39,19 @@ class ZImageImageGenerator:
         # 파이프라인 하나를 여러 요청이 동시에 돌리지 않도록 한 번에 하나씩 처리한다
         self._lock = threading.Lock()
 
-        model_dir = settings.zimage_model_dir
-        if not model_dir.exists():
-            raise FileNotFoundError(
-                f"Z-Image 모델 폴더가 없습니다: {model_dir}. "
-                "레포 루트의 models/에 모델을 받았는지 확인하세요."
-            )
+        if settings.zimage_quant == "none":
+            model_dir = settings.zimage_model_dir
+            if not model_dir.exists():
+                raise FileNotFoundError(
+                    f"Z-Image 모델 폴더가 없습니다: {model_dir}. "
+                    "레포 루트의 models/에 모델을 받았는지 확인하세요."
+                )
+        else:
+            model_dir = self._resolve_quant_dir()
 
         # bf16으로 올려 fp32 대비 메모리를 절반으로 줄인다 (모델 카드 권장).
-        # CPU는 bf16 연산이 느려서 float32로 올린다
+        # CPU는 bf16 연산이 느려서 float32로 올린다.
+        # 양자화 모델도 연산은 bf16으로 하고 가중치만 8bit로 저장되어 있다
         dtype = torch.float32 if self.device == "cpu" else torch.bfloat16
 
         use_offload = self.device == "cuda" and settings.zimage_use_offload
@@ -70,12 +79,49 @@ class ZImageImageGenerator:
         self.pipe.vae.tile_sample_min_size = 512
         self.pipe.vae.tile_latent_min_size = 64
 
+    def _resolve_quant_dir(self) -> Path:
+        """ZIMAGE_QUANT에 맞게 미리 변환해 둔 양자화 모델 폴더를 찾는다.
+
+        변환은 api보다 먼저 실행되는 model-prep(app/cli/prepare_zimage.py)이 한다.
+        api는 /models를 읽기 전용으로 마운트하므로 여기서는 확인만 한다.
+
+        Returns:
+            Path: 양자화 모델 폴더.
+
+        Raises:
+            RuntimeError: cuda가 아니거나, fp8을 지원하지 않는 GPU거나, 오프로드를 켰을 때.
+            FileNotFoundError: 변환된 모델이 없거나 지금 패키지 버전과 맞지 않을 때.
+        """
+        quant = settings.zimage_quant
+        if self.device != "cuda":
+            raise RuntimeError(
+                f"ZIMAGE_QUANT={quant}는 cuda에서만 쓸 수 있습니다 "
+                f"(현재 디바이스: {self.device})."
+            )
+        check_cuda(self._torch, quant)
+        if settings.zimage_use_offload:
+            # torchao 양자화 가중치는 CPU 오프로드와 함께 쓸 수 없다
+            raise RuntimeError(
+                "ZIMAGE_QUANT와 ZIMAGE_USE_OFFLOAD=1은 함께 쓸 수 없습니다. "
+                "양자화 모델은 GPU 전용(ZIMAGE_USE_OFFLOAD=0)으로 올립니다."
+            )
+
+        quant_dir = quant_model_dir(settings.zimage_model_dir, quant)
+        reason = stale_reason(quant_dir, quant)
+        if reason is not None:
+            raise FileNotFoundError(
+                f"양자화 모델을 쓸 수 없습니다: {reason}. "
+                "docker compose up으로 model-prep을 먼저 실행하세요."
+            )
+        return quant_dir
+
     def generate(
         self,
         prompt: str,
         width: int,
         height: int,
         seeds: list[int],
+        on_step: StepCallback | None = None,
     ) -> list[str]:
         """로드된 Z-Image 파이프라인으로 seed 개수만큼 이미지를 한 번에(배치로) 생성한다.
 
@@ -84,12 +130,14 @@ class ZImageImageGenerator:
             width: 이미지 너비 (16의 배수).
             height: 이미지 높이 (16의 배수).
             seeds: 이미지마다 사용할 seed 목록. 목록 길이만큼 이미지를 생성한다.
+            on_step: 디노이징 step이 끝날 때마다 호출할 콜백.
 
         Returns:
             list[str]: seeds 순서대로 생성한 PNG 이미지의 base64 문자열 목록.
 
         Raises:
             GpuOutOfMemoryError: 생성 중 GPU 메모리가 부족할 때.
+            GenerationCancelledError: on_step에서 취소되었을 때.
         """
         # 디바이스와 상관없이 같은 seed면 같은 그림이 나오도록 CPU 생성기를 쓴다.
         # 이미지마다 생성기를 따로 두어야 seed 하나로 해당 이미지를 재현할 수 있다
@@ -108,7 +156,13 @@ class ZImageImageGenerator:
                     height=height,
                     num_images_per_prompt=len(seeds),
                     generator=generators,
+                    callback_on_step_end=to_step_end_callback(on_step),
                 ).images
+            except GenerationCancelledError:
+                # 콜백에서 멈추면 파이프라인이 끝에서 하는 offload 정리를 건너뛰므로
+                # 다음 요청에서 모델이 GPU에 겹쳐 올라가지 않도록 직접 정리한다
+                self.pipe.maybe_free_model_hooks()
+                raise
             except self._torch.cuda.OutOfMemoryError as e:
                 self._torch.cuda.empty_cache()
                 raise GpuOutOfMemoryError from e

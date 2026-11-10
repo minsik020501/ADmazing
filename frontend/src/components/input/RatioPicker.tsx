@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-10-22
  * 생성자: bioyejin
- * 수정일자: 2026-10-22
+ * 수정일자: 2026-11-06
  * 수정자: bioyejin
  */
 
@@ -37,7 +37,7 @@ export interface RatioPickerProps {
 }
 
 /**
- * "4. 비율" 섹션. 비율 모양 아이콘, 비율, 용도 이름이 담긴 칩 중 하나를 고른다.
+ * "5. 비율" 섹션. 비율 모양 아이콘, 비율, 용도 이름이 담긴 칩 중 하나를 고른다.
  *
  * @param props - 선택된 비율과 변경 처리 함수
  * @returns 비율 선택 섹션
@@ -49,7 +49,7 @@ export default function RatioPicker({ value, onChange }: RatioPickerProps) {
     <section className={styles.section} aria-labelledby={labelId}>
       <SectionLabel
         id={labelId}
-        number={4}
+        number={5}
         title="비율"
         description="광고를 올릴 곳에 맞는 가로:세로 비율을 골라 주세요"
       />

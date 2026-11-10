@@ -1,0 +1,192 @@
+/**
+ * CopyRequestInput 컴포넌트 스타일.
+ *
+ * 생성일자: 2026-11-06
+ * 생성자: bioyejin
+ * 수정일자: 2026-11-10
+ * 수정자: bioyejin
+ */
+
+.section {
+  margin-top: var(--input-section-gap);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--input-content-gap);
+}
+
+/* 입력 칸이 여러 줄로 늘어나도 역할과 지우기 버튼은 첫 줄에 맞춘다 */
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+/* ---- 역할 선택 ---- */
+
+.roleBox {
+  position: relative;
+  flex-shrink: 0;
+  width: 96px;
+}
+
+/* 기본 화살표는 위치를 바꿀 수 없어 숨기고, 아래 .arrow를 직접 그린다.
+   오른쪽 여백(화살표 바깥)을 왼쪽 여백(글자 앞)과 같은 space-2로 맞춘다 */
+.role {
+  width: 100%;
+  height: 40px;
+  padding: 0 calc(var(--space-2) + 16px + var(--space-1)) 0 var(--space-2);
+  font-size: var(--font-size-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: border-color var(--transition-fast);
+  appearance: none;
+}
+
+.arrow {
+  position: absolute;
+  top: 50%;
+  right: var(--space-2);
+  color: var(--color-text-secondary);
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+
+/* ---- 내용 입력 ---- */
+
+/* 입력 칸과 같은 글꼴·여백으로 내용을 숨겨 그린 복사본(::after)이 높이를 정하고,
+   입력 칸은 그 위에 겹쳐 같은 크기로 채운다 */
+.field {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.field::after,
+.input {
+  /* 전역 box-sizing(*)은 ::after에 적용되지 않아 직접 지정한다 */
+  box-sizing: border-box;
+  min-height: 40px;
+  /* 한 줄일 때 40px: 줄 높이 24px + 위아래 여백 7px + 테두리 1px */
+  padding: 7px 64px 7px var(--space-3);
+  font-size: var(--font-size-md);
+  line-height: 24px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  border: 1px solid transparent;
+}
+
+.field::after {
+  /* 끝의 공백은 마지막 줄이 줄바꿈된 경우에도 높이가 모자라지 않게 한다 */
+  display: block;
+  content: attr(data-value) " ";
+  visibility: hidden;
+}
+
+/* 오른쪽 아래 글자 수 자리를 비워 둔다 */
+.input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  border-radius: var(--radius-md);
+  resize: none;
+  transition: border-color var(--transition-fast);
+}
+
+.input::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.role:hover,
+.input:hover {
+  border-color: var(--color-border-strong);
+}
+
+.role:focus-visible,
+.input:focus-visible {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+/* 같은 역할을 내용이 있는 두 줄 이상에서 고른 경우(역할), 글자 수를 넘은 경우(내용).
+   마우스를 올리거나 입력 중이어도 빨간 테두리를 유지한다 */
+.role.invalid,
+.input.invalid {
+  border-color: var(--color-danger);
+}
+
+/* 마지막 줄 높이에 맞춘다 (입력 칸 아래 여백 7px + 테두리 1px, 줄 높이 24px) */
+.count {
+  position: absolute;
+  right: var(--space-3);
+  bottom: 8px;
+  font-size: var(--font-size-sm);
+  line-height: 24px;
+  color: var(--color-text-tertiary);
+  pointer-events: none;
+}
+
+.countOver {
+  color: var(--color-danger);
+}
+
+/* ---- 지우기 ---- */
+
+/* 높이 32px 버튼을 40px 칸 첫 줄 가운데에 둔다 */
+.remove {
+  margin-top: 4px;
+}
+
+/* 줄이 하나일 때는 보이지 않지만 자리는 차지한다 */
+.hidden {
+  visibility: hidden;
+}
+
+/* ---- 안내, 추가 ---- */
+
+.notices {
+  margin-top: var(--space-3);
+  text-align: center;
+}
+
+.notice {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-danger);
+}
+
+.addRow {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-3);
+}
+
+/* 글자 길이만큼(약 66px)보다 조금 넓게 */
+.add {
+  width: 84px;
+}
+
+/* 좁은 화면에서는 역할과 지우기 버튼이 윗줄, 내용이 아랫줄로 나뉜다 */
+@media (max-width: 599px) {
+  .row {
+    flex-wrap: wrap;
+  }
+
+  .field {
+    flex-basis: 100%;
+    order: 1;
+  }
+
+  .remove {
+    margin-left: auto;
+  }
+}

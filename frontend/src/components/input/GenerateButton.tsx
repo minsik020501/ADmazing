@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-10-22
  * 생성자: bioyejin
- * 수정일자: 2026-10-22
+ * 수정일자: 2026-11-10
  * 수정자: bioyejin
  */
 
@@ -20,20 +20,18 @@ export interface GenerateButtonProps {
   /** 생성 중이면 "생성 중..."을 표시 */
   loading: boolean;
   onClick: () => void;
-  /** 서버 상태. 받았으면 버튼 아래에 생성 장수와 예상 시간을 안내한다 */
+  /** 서버 상태. 받았으면 버튼 아래에 생성 장수를 안내한다 */
   health: HealthResponse | null;
 }
 
 /**
- * 생성 장수와 예상 시간 안내 문구를 만든다.
- * 실제 모델은 4장에 약 1분이 걸리고(GPU 서버 측정), mock은 바로 끝나 시간을 안내하지 않는다.
+ * 생성 장수 안내 문구를 만든다. 걸리는 시간은 생성 중 로딩 화면의 진행 막대로 보여준다.
  *
  * @param health - 서버 상태
  * @returns 안내 문구
  */
 function toHint(health: HealthResponse): string {
-  const count = `한 번에 ${health.num_images_per_request}장을 만들어요`;
-  return health.image_generator === "mock" ? count : `${count} · 약 1분 걸려요`;
+  return `한 번에 ${health.num_images_per_request}장을 만들어요`;
 }
 
 /**
@@ -51,7 +49,13 @@ export default function GenerateButton({
 }: GenerateButtonProps) {
   return (
     <div className={styles.wrapper}>
-      <Button variant="primary" disabled={disabled} title={SHORTCUT_LABEL} onClick={onClick}>
+      <Button
+        variant="primary"
+        className={styles.button}
+        disabled={disabled}
+        title={SHORTCUT_LABEL}
+        onClick={onClick}
+      >
         {loading ? "생성 중..." : "이미지 생성"}
       </Button>
       {health && <p className={styles.hint}>{toHint(health)}</p>}

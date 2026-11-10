@@ -1,0 +1,31 @@
+/**
+ * SliderField 컴포넌트 스타일.
+ *
+ * 생성일자: 2026-11-05
+ * 생성자: bioyejin
+ * 수정일자: 2026-11-05
+ * 수정자: bioyejin
+ */
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.label {
+  flex: 0 0 52px;
+  color: var(--color-text-secondary);
+}
+
+.range {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--color-primary);
+}
+
+/* 단위가 없는 줄도 숫자 칸 위치가 맞도록 폭을 고정한다 */
+.unit {
+  flex: 0 0 16px;
+  color: var(--color-text-tertiary);
+}

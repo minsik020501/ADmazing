@@ -1,0 +1,38 @@
+/**
+ * InlineTextEditor 컴포넌트 스타일.
+ *
+ * 생성일자: 2026-11-04
+ * 생성자: bioyejin
+ * 수정일자: 2026-11-06
+ * 수정자: bioyejin
+ */
+
+/* 캔버스 글자와 똑같이 보이도록 안쪽 여백·테두리·배경 없이 겹친다. 위치와 글꼴은 style로 지정 */
+.input {
+  position: absolute;
+  z-index: 1;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  /* 줄바꿈 폭이 정해진 상자는 단어 단위로 줄을 바꾼다 (캔버스와 같은 방식) */
+  white-space: pre-wrap;
+  word-break: keep-all;
+  resize: none;
+  background: transparent;
+  border: none;
+  outline: 1px dashed var(--color-primary);
+  outline-offset: 4px;
+}
+
+/* 폭이 자동인 상자는 Enter로만 줄을 바꾼다 */
+.autoWidth {
+  white-space: pre;
+}
+
+/* 입력 칸 뒤의 외곽선·그림자. 글자는 비워 두고, 외곽선이 그림자 위에 오도록 기본 순서로 그린다 */
+.effects {
+  z-index: 0;
+  color: transparent;
+  pointer-events: none;
+  outline: none;
+}

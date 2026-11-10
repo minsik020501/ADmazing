@@ -1,0 +1,78 @@
+/**
+ * ResultSection 컴포넌트 스타일.
+ *
+ * 생성일자: 2026-11-02
+ * 생성자: bioyejin
+ * 수정일자: 2026-11-10
+ * 수정자: bioyejin
+ */
+
+/* 입력 영역과 구분선으로 나눈다 */
+.section {
+  margin-top: var(--space-10);
+  padding-top: var(--space-8);
+  border-top: 1px solid var(--color-border);
+}
+
+.prompt {
+  margin: 0;
+  color: var(--color-text);
+  /* 긴 영어 프롬프트가 칸을 넘지 않게 */
+  overflow-wrap: anywhere;
+}
+
+.summary {
+  margin: var(--space-2) 0 0;
+  color: var(--color-text-tertiary);
+}
+
+/* 모든 이미지를 같은 크기로 2개씩 (4장이면 2×2) */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-8);
+}
+
+.imageButton {
+  display: block;
+  padding: 0;
+  overflow: hidden;
+  cursor: zoom-in;
+  background: none;
+  border: none;
+  border-radius: var(--radius-lg);
+  transition: opacity var(--transition-fast);
+}
+
+.imageButton:hover {
+  opacity: 0.85;
+}
+
+/* img의 width·height 속성(서버 해상도)으로 비율을 정해, 이미지를 읽기 전에도 자리를 잡아 둔다 */
+.image {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/*
+ * 왼쪽 [다시 생성하기], 오른쪽 [텍스트 삽입하기].
+ * 같은 폭의 두 칸으로 나눠, 버튼 길이가 달라도 두 버튼 사이 틈이 영역 가운데에 오게 한다
+ */
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+  /* 입력 화면의 비율 칩 ↔ [이미지 생성] 여백과 같게 */
+  margin-top: var(--input-generate-gap);
+}
+
+/* 왼쪽 버튼은 칸의 오른쪽 끝, 오른쪽 버튼은 칸의 왼쪽 끝에 붙여 가운데로 모은다 */
+.actions > :first-child {
+  justify-self: end;
+}
+
+.actions > :last-child {
+  justify-self: start;
+}
