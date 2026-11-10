@@ -35,6 +35,15 @@ export interface TextLayers {
   update: (imageIndex: number, id: string, changes: LayerChanges) => void;
   /** 문구 상자를 지운다 */
   remove: (imageIndex: number, id: string) => void;
+  /** 여러 문구 상자를 맨 위에 한 번에 추가한다 (되돌리기 한 단계). 개수 제한을 넘으면 추가하지 않고 false */
+  addMany: (imageIndex: number, layers: TextLayer[]) => boolean;
+  /**
+   * 여러 문구 상자의 값을 한 번에 바꾼다 (되돌리기 한 단계).
+   * 같은 상자들의 같은 항목을 이어서 바꾸면(방향키, 슬라이더 등) 한 단계로 묶는다
+   */
+  updateMany: (imageIndex: number, changesById: Record<string, LayerChanges>) => void;
+  /** 여러 문구 상자를 한 번에 지운다 (되돌리기 한 단계) */
+  removeMany: (imageIndex: number, ids: string[]) => void;
   /** 문구를 다 지운 상자를 없앤다. 되돌리면 입력 전 문구가 있던 상자로 돌아간다 */
   removeEmpty: (imageIndex: number, id: string) => void;
   /**
@@ -186,6 +195,53 @@ export default function useTextLayers(resetKey: unknown): TextLayers {
     [change],
   );
 
+  const addMany = useCallback(
+    (imageIndex: number, added: TextLayer[]) => {
+      const { layers } = historyByImage[imageIndex] ?? EMPTY_HISTORY;
+      if (layers.length + added.length > LAYER_LIMITS.layerCount.max) return false;
+      const now = Date.now();
+      change(imageIndex, (history) => commit(history, [...history.layers, ...added], now));
+      return true;
+    },
+    [historyByImage, change],
+  );
+
+  const updateMany = useCallback(
+    (imageIndex: number, changesById: Record<string, LayerChanges>) => {
+      const ids = Object.keys(changesById);
+      if (ids.length === 0) return;
+      const now = Date.now();
+      const keys = [...new Set(ids.flatMap((id) => Object.keys(changesById[id])))].sort();
+      const group = `${[...ids].sort().join("+")}:${keys.join(",")}`;
+      change(imageIndex, (history) => {
+        let changed = false;
+        const layers = history.layers.map((layer) => {
+          const changes = changesById[layer.id];
+          if (!changes) return layer;
+          const same = Object.entries(changes).every(
+            ([key, value]) => layer[key as keyof TextLayer] === value,
+          );
+          if (same) return layer;
+          changed = true;
+          return { ...layer, ...changes };
+        });
+        return changed ? commit(history, layers, now, group) : history;
+      });
+    },
+    [change],
+  );
+
+  const removeMany = useCallback(
+    (imageIndex: number, ids: string[]) => {
+      const now = Date.now();
+      change(imageIndex, (history) => {
+        const layers = history.layers.filter((layer) => !ids.includes(layer.id));
+        return layers.length === history.layers.length ? history : commit(history, layers, now);
+      });
+    },
+    [change],
+  );
+
   const remove = useCallback(
     (imageIndex: number, id: string) => {
       const now = Date.now();
@@ -291,6 +347,9 @@ export default function useTextLayers(resetKey: unknown): TextLayers {
     update,
     remove,
     removeEmpty,
+    addMany,
+    updateMany,
+    removeMany,
     replace,
     appliedOf,
     undo,
