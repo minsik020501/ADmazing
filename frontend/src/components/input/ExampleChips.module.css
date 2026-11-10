@@ -3,20 +3,26 @@
  *
  * 생성일자: 2026-10-22
  * 생성자: bioyejin
- * 수정일자: 2026-10-22
+ * 수정일자: 2026-11-10
  * 수정자: bioyejin
  */
 
 .section {
-  margin-top: var(--space-6);
+  margin-top: var(--input-section-gap);
 }
 
-/* 좁은 화면에서는 여러 줄로 넘어간다 */
+/* 넓은 화면에서는 6개가 한 줄에 들어가도록 칩 사이와 칩 안 좌우 여백을 줄였다.
+   좁은 화면에서는 여러 줄로 넘어간다 */
 .chips {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
-  margin-top: var(--space-3);
+  gap: 6px;
+  margin-top: var(--input-content-gap);
+}
+
+/* 공용 칩(Chip)의 좌우 여백 12px를 8px로 */
+.chips .chip {
+  padding: 0 var(--space-2);
 }
 
 /* 확인 팝업 설명 안에서 칩 이름만 강조 */

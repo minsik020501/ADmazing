@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-10-22
  * 생성자: bioyejin
- * 수정일자: 2026-10-22
+ * 수정일자: 2026-11-10
  * 수정자: bioyejin
  */
 
@@ -55,7 +55,10 @@ export default function PromptInput({ value, onChange, onSubmit, loading }: Prom
 
       <div className={styles.meta}>
         <div className={styles.hints}>
-          <p>색감·분위기·구도를 구체적으로 적을수록 좋아요</p>
+          <p>
+            색감 · 분위기 · 구도를 구체적으로 적을수록 좋아요 (주의: 텍스트에 대한 묘사는 생성되지
+            않을 수 있어요)
+          </p>
           <p>ex. 나무 테이블 위의 라떼, 따뜻한 조명, 아늑한 카페 분위기, 위에서 내려다본 구도</p>
         </div>
         <span className={styles.count}>{value.length}자</span>

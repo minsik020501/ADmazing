@@ -23,6 +23,7 @@ import {
   FONT_SIZE_BUTTON_STEP_PX,
   LAYER_LIMITS,
   LINE_HEIGHT_BUTTON_STEP,
+  SLIDER_ZERO_SNAP,
 } from "../../constants/editor";
 import Button from "../common/Button";
 import ColorField from "./ColorField";
@@ -345,6 +346,7 @@ export default function TextLayerPanel({
             value={Math.round(selectedLayer.rotation)}
             min={limits.rotation.min}
             max={limits.rotation.max}
+            snapToZero={SLIDER_ZERO_SNAP}
             onChange={(rotation) => onChange(selectedLayer.id, { rotation })}
           />
 
@@ -355,6 +357,7 @@ export default function TextLayerPanel({
                 value={selectedLayer.curve}
                 min={limits.curve.min}
                 max={limits.curve.max}
+                snapToZero={SLIDER_ZERO_SNAP}
                 onChange={(curve) => onChange(selectedLayer.id, { curve })}
               />
             </fieldset>

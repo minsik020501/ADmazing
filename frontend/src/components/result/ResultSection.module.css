@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-11-02
  * 생성자: bioyejin
- * 수정일자: 2026-11-04
+ * 수정일자: 2026-11-10
  * 수정자: bioyejin
  */
 
@@ -64,7 +64,8 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-3);
-  margin-top: var(--space-6);
+  /* 입력 화면의 비율 칩 ↔ [이미지 생성] 여백과 같게 */
+  margin-top: var(--input-generate-gap);
 }
 
 /* 왼쪽 버튼은 칸의 오른쪽 끝, 오른쪽 버튼은 칸의 왼쪽 끝에 붙여 가운데로 모은다 */

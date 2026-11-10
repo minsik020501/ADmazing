@@ -32,6 +32,7 @@
   --space-6: 24px;
   --space-8: 32px;
   --space-10: 40px;
+  --space-12: 48px;
 
   /* 모서리 (2~6px, 미세하게 둥근 업무용 느낌) */
   --radius-sm: 2px;
@@ -45,6 +46,11 @@
 
   /* 레이아웃 */
   --sidebar-width: 264px;
+  /* 입력 화면 섹션: 섹션 사이, 제목 ↔ 설명, 설명 ↔ 칩·입력 칸, 마지막 섹션 ↔ [이미지 생성] */
+  --input-section-gap: var(--space-10);
+  --input-label-gap: var(--space-2);
+  --input-content-gap: var(--space-4);
+  --input-generate-gap: var(--space-10);
   /* 입력 화면의 [이미지 생성] 버튼 폭 ("이미지 생성" 글자 64px + 좌우 여백 32px + 테두리) */
   --action-button-width: 100px;
 

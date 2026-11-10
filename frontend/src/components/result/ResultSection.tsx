@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-11-02
  * 생성자: bioyejin
- * 수정일자: 2026-11-04
+ * 수정일자: 2026-11-10
  * 수정자: bioyejin
  */
 
@@ -27,7 +27,7 @@ import styles from "./ResultSection.module.css";
 function toSummary(options: GenerateOptions, count: number): string {
   const style =
     options.styleId === DEFAULT_STYLE_ID
-      ? "스타일 없음"
+      ? "스타일 랜덤"
       : (STYLE_PRESETS.find((preset) => preset.id === options.styleId)?.label ?? options.styleId);
   const ratio = IMAGE_RATIOS.find((item) => item.value === options.ratio);
   const ratioText = ratio ? `${ratio.value} ${ratio.label}` : options.ratio;

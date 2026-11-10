@@ -7,7 +7,7 @@
  *
  * 생성일자: 2026-11-04
  * 생성자: ven_choi
- * 수정일자: 2026-11-05
+ * 수정일자: 2026-11-10
  * 수정자: bioyejin
  */
 
@@ -43,10 +43,10 @@ export interface AdFont {
 export const FONT_CATEGORY_LABELS: Record<AdFontCategory, string> = {
   signature: "시그니처",
   headline: "임팩트 헤드라인",
-  body: "본문·서브카피",
-  serif: "고급·감성 명조",
+  body: "본문 · 서브카피",
+  serif: "고급 · 감성 명조",
   rounded: "부드러운 둥근 고딕",
-  handwriting: "손글씨·캘리그라피",
+  handwriting: "손글씨 · 캘리그라피",
 };
 
 /** 광고 문구용 폰트 전체 (manifest 순서) */

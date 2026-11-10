@@ -12,7 +12,7 @@
   flex-direction: column;
   align-items: center;
   gap: var(--space-2);
-  margin-top: var(--space-6);
+  margin-top: var(--input-generate-gap);
 }
 
 /* 고정 폭. "생성 중..."으로 바뀌어도 폭이 그대로다 */

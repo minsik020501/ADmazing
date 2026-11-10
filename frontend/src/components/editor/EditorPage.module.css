@@ -121,6 +121,12 @@
   border-radius: var(--radius-md);
 }
 
+/* 오른쪽 점 3개 자리(AnimatedDots, 3ch)만큼 왼쪽도 비워, "적용 중" 글자가 정가운데에 오게 한다 */
+.busyLayer::before {
+  width: 3ch;
+  content: "";
+}
+
 /* 미리보기 이미지. 레이어 안에 들어오게 줄이고 비율은 유지 */
 .previewImage {
   display: block;
