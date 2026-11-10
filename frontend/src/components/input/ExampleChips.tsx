@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-10-22
  * 생성자: bioyejin
- * 수정일자: 2026-10-22
+ * 수정일자: 2026-11-10
  * 수정자: bioyejin
  */
 
@@ -81,13 +81,13 @@ export default function ExampleChips({ value, onSelect }: ExampleChipsProps) {
       <SectionLabel
         id={labelId}
         number={2}
-        title="예시 프롬프트"
+        title="예시 프롬프트 (선택)"
         description="누를 때마다 다른 예시 문장이 채워져요"
       />
 
       <div className={styles.chips}>
         {EXAMPLE_PROMPTS.map((example) => (
-          <Chip key={example.id} onClick={() => handleClick(example)}>
+          <Chip key={example.id} className={styles.chip} onClick={() => handleClick(example)}>
             {example.label}
           </Chip>
         ))}

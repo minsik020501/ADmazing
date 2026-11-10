@@ -127,7 +127,7 @@ function Choices({
 
       <div className={styles.group} role="group" aria-label="스타일">
         <span className={styles.groupLabel}>스타일</span>
-        <div className={styles.wrapRow}>
+        <div className={styles.scrollRow}>
           {FONT_STYLES.map((option) => (
             <Option
               key={option.id}
