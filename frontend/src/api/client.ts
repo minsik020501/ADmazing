@@ -7,6 +7,7 @@
  * 수정자: bioyejin
  */
 
+import type { CopyRequestRow } from "../constants/copyRequests";
 import { STYLE_PRESETS } from "../constants/stylePresets";
 
 /** 추천 문구 하나 */
@@ -122,6 +123,8 @@ export interface GenerateOptions {
   styleId: string;
   /** 비율 (constants/imageRatios.ts, 서버 허용값과 같음) */
   ratio: string;
+  /** 삽입할 문구 입력 줄. AI가 문구를 추천할 때 참고한다 */
+  copyRequests: CopyRequestRow[];
 }
 
 /**
@@ -140,20 +143,26 @@ function buildPrompt(prompt: string, styleId: string): string {
  * 화면에서 고른 옵션을 서버 요청 본문으로 바꾼다.
  * 화면 옵션을 서버 요청 형식으로 바꾸는 일은 이 함수에서만 한다.
  *
- * @param options - 프롬프트, 스타일, 비율
+ * 비어 있는 문구 줄은 보내지 않고, 내용이 있는 줄이 하나도 없으면 copy_requests를 넣지 않는다.
+ *
+ * @param options - 프롬프트, 스타일, 비율, 문구 입력 줄
  * @returns JSON 문자열로 된 요청 본문
  */
 function toRequestBody(options: GenerateOptions): string {
+  const copyRequests = options.copyRequests
+    .map((row) => [row.role, row.text.trim()])
+    .filter(([, text]) => text !== "");
   return JSON.stringify({
     prompt: buildPrompt(options.prompt, options.styleId),
     ratio: options.ratio,
+    ...(copyRequests.length > 0 && { copy_requests: Object.fromEntries(copyRequests) }),
   });
 }
 
 /**
  * 이미지 생성 작업을 등록한다. 서버는 생성을 기다리지 않고 바로 작업 id를 돌려준다.
  *
- * @param options - 프롬프트, 스타일, 비율
+ * @param options - 프롬프트, 스타일, 비율, 문구 입력 줄
  * @returns 진행 상황 조회와 취소에 쓰는 작업 id
  * @throws {Error} 응답 상태가 2xx가 아닐 때 (예: 422 입력 검증 실패)
  */

@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-10-22
  * 생성자: bioyejin
- * 수정일자: 2026-10-22
+ * 수정일자: 2026-11-06
  * 수정자: bioyejin
  */
 
@@ -20,7 +20,7 @@ export interface StylePickerProps {
 }
 
 /**
- * "3. 스타일" 섹션. 스타일 칩 중 하나만 고를 수 있다.
+ * "4. 스타일" 섹션. 스타일 칩 중 하나만 고를 수 있다.
  *
  * @param props - 선택된 스타일 id와 변경 처리 함수
  * @returns 스타일 선택 섹션
@@ -32,7 +32,7 @@ export default function StylePicker({ value, onChange }: StylePickerProps) {
     <section className={styles.section} aria-labelledby={labelId}>
       <SectionLabel
         id={labelId}
-        number={3}
+        number={4}
         title="스타일"
         description="이미지의 전체적인 표현 방식을 골라 주세요"
       />
