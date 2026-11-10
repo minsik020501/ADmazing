@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-11-04
  * 생성자: bioyejin
- * 수정일자: 2026-11-06
+ * 수정일자: 2026-11-10
  * 수정자: bioyejin
  */
 
@@ -60,6 +60,22 @@ export const TEXT_COLOR_PRESETS = [
   { value: "#1E88E5", label: "파랑" },
   { value: "#8E24AA", label: "보라" },
 ] as const;
+
+/** 이미지 대표색 뽑기 설정 (components/editor/imagePalette.ts) */
+export const IMAGE_PALETTE = {
+  /** 뽑을 색 수 */
+  size: 5,
+  /** 색을 셀 때 줄이는 크기 (긴 변 px). 대표색에는 세부가 필요 없다 */
+  sampleSide: 64,
+  /** 비슷한 색을 묶는 단계 (채널마다 256 → 16단계) */
+  binBits: 4,
+  /** 이미지에서 차지하는 비율이 이보다 작은 색은 뺀다 (잡티) */
+  minShare: 0.005,
+  /** OKLab 거리가 이보다 가까우면 같은 색으로 보고 고르지 않는다 */
+  minDistance: 0.08,
+  /** 많이 쓰인 색에 주는 가산점의 세기 (0이면 거리만, 클수록 많이 쓰인 색 우선) */
+  shareWeight: 0.25,
+} as const;
 
 /** 효과 슬라이더의 최댓값 (원본 이미지 px) */
 export const EFFECT_MAX_PX = {

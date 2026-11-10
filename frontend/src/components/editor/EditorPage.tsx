@@ -22,6 +22,7 @@ import { base64ToBlob, downloadBlob, toImageFileName } from "./download";
 import EditorCanvas, { type EditorCanvasHandle } from "./EditorCanvas";
 import EditorOverlay from "./EditorOverlay";
 import EditorSidePanel from "./EditorSidePanel";
+import { ImagePaletteContext, useImagePalette } from "./imagePalette";
 import { createTextLayer, type TextLayer } from "./textLayer";
 import TextLayerPanel from "./TextLayerPanel";
 import ThumbnailStrip from "./ThumbnailStrip";
@@ -124,6 +125,8 @@ export default function EditorPage({
   const image = result.images[index];
   const layers = textLayers.layersOf(index);
   const proposalState = copyProposals.stateOf(index);
+  // 색 고르기 칸의 '이미지 색'. 서버 palette 대신 서로 다른 색이 고르게 나오도록 직접 뽑는다
+  const imagePalette = useImagePalette(image);
   // 이 이미지에 AI 추천안 배치를 받아 오는 중이면 캔버스를 어둡게 덮는다
   const applyingProposal = proposalState.pendingChip !== null;
   const selectedLayer = layers.find((layer) => layer.id === selectedId) ?? null;
@@ -476,31 +479,33 @@ export default function EditorPage({
           />
         </section>
 
-        <EditorSidePanel
-          ai={
-            <AiProposalList
-              copies={image.copies}
-              copiesError={image.copies_error}
-              ratio={result.ratio}
-              state={proposalState}
-              busy={copyProposals.busy}
-              onApply={handleChipClick}
-              onChoose={(choice) => handleProposalChange(copyProposals.choose(index, choice))}
+        <ImagePaletteContext.Provider value={imagePalette}>
+          <EditorSidePanel
+            ai={
+              <AiProposalList
+                copies={image.copies}
+                copiesError={image.copies_error}
+                ratio={result.ratio}
+                state={proposalState}
+                busy={copyProposals.busy}
+                onApply={handleChipClick}
+                onChoose={(choice) => handleProposalChange(copyProposals.choose(index, choice))}
+              />
+            }
+          >
+            <TextLayerPanel
+              selectedLayer={selectedLayer}
+              imageWidth={result.width}
+              imageHeight={result.height}
+              notice={notice}
+              onAdd={handleAdd}
+              onDelete={handleDelete}
+              onChange={(id, changes) => textLayers.update(index, id, changes)}
+              onTextEnd={() => textLayers.endChangeGroup(index)}
+              onFontPreview={setPreviewFontId}
             />
-          }
-        >
-          <TextLayerPanel
-            selectedLayer={selectedLayer}
-            imageWidth={result.width}
-            imageHeight={result.height}
-            notice={notice}
-            onAdd={handleAdd}
-            onDelete={handleDelete}
-            onChange={(id, changes) => textLayers.update(index, id, changes)}
-            onTextEnd={() => textLayers.endChangeGroup(index)}
-            onFontPreview={setPreviewFontId}
-          />
-        </EditorSidePanel>
+          </EditorSidePanel>
+        </ImagePaletteContext.Provider>
       </div>
 
       <Modal

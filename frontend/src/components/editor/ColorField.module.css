@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-11-05
  * 생성자: bioyejin
- * 수정일자: 2026-11-05
+ * 수정일자: 2026-11-10
  * 수정자: bioyejin
  */
 
@@ -45,16 +45,34 @@
   border-radius: var(--radius-sm);
 }
 
+/* 1줄 기본색, 2줄 이미지 색 */
 .palette {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: var(--space-2);
   padding: var(--space-2);
   background: var(--color-surface-muted);
   border-radius: var(--radius-md);
 }
 
-/* 기본색. 흰색도 보이도록 테두리를 두고, 고른 색은 바깥 테두리로 표시 */
+.paletteRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.rowLabel {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* 기본색·이미지 색. 흰색도 보이도록 테두리를 두고, 고른 색은 바깥 테두리로 표시 */
 .swatch {
   width: 24px;
   height: 24px;

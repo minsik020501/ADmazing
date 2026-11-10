@@ -3,12 +3,13 @@
  *
  * 생성일자: 2026-11-05
  * 생성자: bioyejin
- * 수정일자: 2026-11-05
+ * 수정일자: 2026-11-10
  * 수정자: bioyejin
  */
 
-import { useEffect, useId, useState } from "react";
+import { useContext, useEffect, useId, useState } from "react";
 import { TEXT_COLOR_PRESETS } from "../../constants/editor";
+import { ImagePaletteContext } from "./imagePalette";
 import SliderField from "./SliderField";
 import { HEX_COLOR } from "./textLayer";
 import styles from "./ColorField.module.css";
@@ -26,7 +27,8 @@ export interface ColorFieldProps {
 
 /**
  * 색 동그라미와 hex 입력 칸, 그 아래 불투명도 슬라이더를 보여준다. 동그라미를 누르면 사이에
- * 무지개 원(브라우저 색상 선택기, 스포이드 포함)과 기본색이 펼쳐진다. hex는 #RRGGBB가 완성되면
+ * 1줄 기본색(무지개 원 = 브라우저 색상 선택기, 스포이드 포함)과 2줄 이미지 색(편집 중인 이미지의
+ * 대표색, ImagePaletteContext)이 펼쳐진다. hex는 #RRGGBB가 완성되면
  * 바로 반영하고, 칸을 벗어날 때 틀린 값이면 원래 색으로 되돌린다.
  *
  * @param props - 이름, 지금 색과 불투명도, 변경 처리 함수
@@ -39,6 +41,7 @@ export default function ColorField({
   onChange,
   onOpacityChange,
 }: ColorFieldProps) {
+  const imageColors = useContext(ImagePaletteContext);
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(value);
   const paletteId = useId();
@@ -84,28 +87,54 @@ export default function ColorField({
       </div>
 
       {open && (
-        <div id={paletteId} className={styles.palette} role="group" aria-label={`${label} 기본색`}>
-          {/* 무지개색 원을 눌러 브라우저 색상 선택기(스포이드 포함)를 연다 */}
-          <label className={styles.picker} title="다른 색 고르기">
-            <input
-              type="color"
-              className={styles.pickerInput}
-              value={value.toLowerCase()}
-              aria-label="다른 색 고르기"
-              onChange={(e) => onChange(e.target.value.toUpperCase())}
-            />
-          </label>
-          {TEXT_COLOR_PRESETS.map((preset) => (
-            <button
-              key={preset.value}
-              type="button"
-              className={styles.swatch}
-              style={{ background: preset.value }}
-              aria-label={preset.label}
-              aria-pressed={value === preset.value}
-              onClick={() => onChange(preset.value)}
-            />
-          ))}
+        <div id={paletteId} className={styles.palette}>
+          <div className={styles.paletteRow} role="group" aria-label={`${label} 기본색`}>
+            <span className={styles.rowLabel}>기본색</span>
+            <div className={styles.swatches}>
+              {/* 무지개색 원을 눌러 브라우저 색상 선택기(스포이드 포함)를 연다 */}
+              <label className={styles.picker} title="다른 색 고르기">
+                <input
+                  type="color"
+                  className={styles.pickerInput}
+                  value={value.toLowerCase()}
+                  aria-label="다른 색 고르기"
+                  onChange={(e) => onChange(e.target.value.toUpperCase())}
+                />
+              </label>
+              {TEXT_COLOR_PRESETS.map((preset) => (
+                <button
+                  key={preset.value}
+                  type="button"
+                  className={styles.swatch}
+                  style={{ background: preset.value }}
+                  aria-label={preset.label}
+                  aria-pressed={value === preset.value}
+                  onClick={() => onChange(preset.value)}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* 이미지에서 뽑은 대표색. 계산 중이거나 뽑지 못했으면 줄을 숨긴다 */}
+          {imageColors.length > 0 && (
+            <div className={styles.paletteRow} role="group" aria-label={`${label} 이미지 색`}>
+              <span className={styles.rowLabel}>이미지 색</span>
+              <div className={styles.swatches}>
+                {imageColors.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    className={styles.swatch}
+                    style={{ background: color }}
+                    title={color}
+                    aria-label={`이미지 색 ${color}`}
+                    aria-pressed={value === color}
+                    onClick={() => onChange(color)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
