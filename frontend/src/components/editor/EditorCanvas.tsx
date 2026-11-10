@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-11-04
  * 생성자: bioyejin
- * 수정일자: 2026-11-06
+ * 수정일자: 2026-11-10
  * 수정자: bioyejin
  */
 
@@ -28,8 +28,13 @@ import {
 import useFontsLoaded from "../../hooks/useFontsLoaded";
 import InlineTextEditor from "./InlineTextEditor";
 import LayerToolbar, { LAYER_TOOLBAR_HEIGHT, LAYER_TOOLBAR_WIDTH } from "./LayerToolbar";
+import { snapToGuides, toSnapBox, type SnapBox, type SnapGuide } from "./snapGuides";
 import { resolveLayerFont, toCssFont, type TextLayer } from "./textLayer";
-import TextLayerNode, { TEXT_LAYER_NODE_NAME, type TextLayerSize } from "./TextLayerNode";
+import TextLayerNode, {
+  SELECTION_OUTLINE_NAME,
+  TEXT_LAYER_NODE_NAME,
+  type TextLayerSize,
+} from "./TextLayerNode";
 import styles from "./EditorCanvas.module.css";
 
 // 글꼴을 미리 받을 때 쓰는 글자 크기 (크기와 상관없이 같은 파일을 받으므로 아무 값이나 됨)
@@ -43,7 +48,9 @@ const ROTATION_SNAPS = [-180, -135, -90, -45, 0, 45, 90, 135, 180];
 const ROTATION_SNAP_TOLERANCE = 4;
 // 상자 위 도구줄과 선택 테두리 사이 간격. 회전 핸들을 가리지 않게 띄운다 (화면 px)
 const TOOLBAR_GAP_PX = 44;
-// 가운데 안내선의 두께와 점선 길이 (화면 px), 불투명도
+// 끌 때 상자의 모서리·가운데가 맞출 선(캔버스 가운데선, 다른 상자)에 이만큼 가까워지면 붙는다 (화면 px)
+const SNAP_PX = 8;
+// 맞춤 안내선의 두께와 점선 길이 (화면 px), 불투명도
 const GUIDE_WIDTH_PX = 1;
 const GUIDE_DASH_PX = 6;
 const GUIDE_OPACITY = 0.75;
@@ -54,6 +61,27 @@ const WHEEL_LINE_HEIGHT_PX = 16;
 // 네 모서리 핸들만 쓴다
 const CORNER_ANCHORS = ["top-left", "top-right", "bottom-left", "bottom-right"];
 
+/**
+ * 문구 상자가 캔버스에서 차지하는 테두리를 구한다. 배경 상자가 있으면 배경 상자 테두리 기준이다.
+ *
+ * @param layer - 문구 상자
+ * @param size - 그려진 글자 크기 (원본 px, 배경 여백 제외)
+ * @param x - 가운데 x (원본 px)
+ * @param y - 가운데 y (원본 px)
+ * @param imageHeight - 원본 이미지 높이 (배경 여백 비율을 px로 바꾸는 데 쓴다)
+ * @returns 테두리 (회전한 상자는 회전한 모양을 감싸는 테두리)
+ */
+function layerSnapBox(
+  layer: TextLayer,
+  size: TextLayerSize,
+  x: number,
+  y: number,
+  imageHeight: number,
+): SnapBox {
+  const padding = (layer.background?.padding ?? 0) * imageHeight;
+  return toSnapBox(x, y, size.width + padding * 2, size.height + padding * 2, layer.rotation);
+}
+
 export interface EditorCanvasHandle {
   /**
    * 이미지와 문구를 합쳐 원본 해상도 PNG로 만든다. 선택 테두리는 넣지 않는다.
@@ -63,6 +91,15 @@ export interface EditorCanvasHandle {
   toBlob: () => Promise<Blob>;
 }
 
+/**
+ * 상자를 고르는 방식.
+ * press: 상자를 누름 (이미 선택된 상자면 여러 개 선택을 그대로 두어 함께 끌 수 있게, 아니면 그 상자만),
+ * toggle: Ctrl(⌘)을 누른 채 누름 (선택에 더하거나 뺌), only: 그 상자만 선택 (끌지 않고 클릭했을 때)
+ */
+export type SelectMode = "press" | "toggle" | "only";
+
+type LayerChanges = Partial<Omit<TextLayer, "id">>;
+
 export interface EditorCanvasProps {
   /** PNG 이미지의 base64 문자열 */
   imageBase64: string;
@@ -71,15 +108,18 @@ export interface EditorCanvasProps {
   imageHeight: number;
   /** 그릴 문구 상자 (뒤에 있을수록 위) */
   layers: TextLayer[];
-  selectedId: string | null;
+  /** 선택한 문구 상자 id (선택한 순서) */
+  selectedIds: string[];
   /** 직접 입력 중인 문구 상자 id */
   editingId: string | null;
-  /** 문구 상자를 누르면 그 id, 빈 곳을 누르면 null */
-  onSelect: (id: string | null) => void;
+  /** 문구 상자를 누르면 그 id와 고르는 방식, 빈 곳을 누르면 null */
+  onSelect: (id: string | null, mode: SelectMode) => void;
   onStartEdit: (id: string) => void;
   /** 입력 칸 바깥을 누르거나 Esc를 누르면 호출 */
   onEndEdit: () => void;
-  onChange: (id: string, changes: Partial<Omit<TextLayer, "id">>) => void;
+  onChange: (id: string, changes: LayerChanges) => void;
+  /** 여러 상자를 함께 끌었을 때 바뀐 위치를 한 번에 알린다 (되돌리기 한 단계) */
+  onChangeMany: (changesById: Record<string, LayerChanges>) => void;
   onDuplicate: (id: string) => void;
   onDelete: (id: string) => void;
   /** 확대 배율 (원본 대비). null이면 편집 영역에 맞춘다 */
@@ -151,12 +191,13 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function 
     imageWidth,
     imageHeight,
     layers,
-    selectedId,
+    selectedIds,
     editingId,
     onSelect,
     onStartEdit,
     onEndEdit,
     onChange,
+    onChangeMany,
     onDuplicate,
     onDelete,
     zoom,
@@ -175,8 +216,15 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function 
   const [available, setAvailable] = useState({ width: 0, height: 0 });
   // 끌거나 크기·각도를 바꾸는 동안은 상자 위 도구줄을 숨긴다
   const [interacting, setInteracting] = useState(false);
-  // 상자를 끄는 동안 이미지 가운데선에 붙어 있으면 그 선을 보여준다
-  const [centerGuides, setCenterGuides] = useState({ vertical: false, horizontal: false });
+  // 상자를 끄는 동안 캔버스 가운데선이나 다른 상자에 맞춰져 있으면 그 안내선을 보여준다
+  const [guides, setGuides] = useState<SnapGuide[]>([]);
+  // 끄는 중인 상자와, 함께 움직이는 다른 선택 상자들의 끌기 시작 위치 (원본 px)
+  const dragRef = useRef<{
+    id: string;
+    origin: { x: number; y: number };
+    companions: Map<string, { x: number; y: number }>;
+  } | null>(null);
+  const multiSelected = selectedIds.length > 1;
   // 빈 곳을 끌어 캔버스를 옮기는 중이면 true
   const [panning, setPanning] = useState(false);
   // 휠 이벤트가 렌더보다 빠르게 와도 이어서 계산하도록 지금 배율을 따로 기억한다
@@ -272,16 +320,21 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function 
     return () => container.removeEventListener("wheel", handleWheel);
   }, [onZoomChange]);
 
-  // 선택한 상자에 테두리를 붙인다. 입력 중에는 입력 칸이 테두리를 대신한다
+  // 하나만 선택하면 테두리와 크기·회전 핸들(Transformer)을 붙인다. 입력 중에는 입력 칸이 테두리를 대신한다.
+  // 여러 개 선택이면 붙이지 않는다: Transformer는 붙은 노드들을 스스로 함께 끌어 상자마다 끌기 끝 이벤트가
+  // 따로 나므로, 함께 끌기는 handleSnap이 맡고 테두리는 상자마다 TextLayerNode가 그린다
   useEffect(() => {
     const transformer = transformerRef.current;
     if (!transformer) return;
-    const node = selectedId && selectedId !== editingId ? nodesRef.current.get(selectedId) : null;
+    const node =
+      selectedIds.length === 1 && selectedIds[0] !== editingId
+        ? nodesRef.current.get(selectedIds[0])
+        : undefined;
     transformer.nodes(node ? [node] : []);
     // 묶음 안의 글자·배경 크기가 바뀐 것은 테두리가 스스로 알지 못해 직접 다시 맞춘다
     transformer.forceUpdate();
     transformer.getLayer()?.batchDraw();
-  }, [selectedId, editingId, layers, fontsVersion]);
+  }, [selectedIds, editingId, layers, fontsVersion]);
 
   useImperativeHandle(
     ref,
@@ -293,7 +346,10 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function 
 
         // 잠깐 원본 크기로 되돌려 그린다. 배율로 늘려 저장하면 반올림으로 1px 어긋날 수 있다.
         // 화면을 다시 그리기 전에 끝나는 동기 작업이라 깜빡이지 않는다
+        // 선택 테두리(하나: Transformer, 여러 개: 상자마다 그린 테두리)는 넣지 않는다
+        const outlines = stage.find(`.${SELECTION_OUTLINE_NAME}`);
         transformer?.visible(false);
+        outlines.forEach((outline) => outline.visible(false));
         stage.size({ width: imageWidth, height: imageHeight });
         stage.scale({ x: 1, y: 1 });
         let canvas: HTMLCanvasElement;
@@ -303,6 +359,7 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function 
           stage.size({ width: stageWidth, height: stageHeight });
           stage.scale({ x: scale, y: scale });
           transformer?.visible(true);
+          outlines.forEach((outline) => outline.visible(true));
         }
 
         return new Promise<Blob>((resolve, reject) => {
@@ -356,18 +413,89 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function 
     });
   }, []);
 
-  // 붙은 상태가 그대로면 상태를 바꾸지 않아, 끄는 동안 캔버스를 불필요하게 다시 그리지 않는다
-  const handleCenterSnap = useCallback((vertical: boolean, horizontal: boolean) => {
-    setCenterGuides((prev) =>
-      prev.vertical === vertical && prev.horizontal === horizontal
-        ? prev
-        : { vertical, horizontal },
-    );
-  }, []);
+  /**
+   * 끄는 상자를 캔버스 가운데선과 다른 상자의 모서리·가운데에 맞춘 위치를 구하고 안내선을 보여준다.
+   * 끄는 상자가 여러 개 선택 중 하나면, 다른 선택 상자도 같은 거리만큼 함께 옮긴다
+   * (함께 움직이는 상자는 맞출 대상에서 뺀다). 상자 가운데는 이미지 밖으로 나가지 않는다.
+   */
+  const handleSnap = useCallback(
+    (id: string, x: number, y: number) => {
+      const clampTo = (value: number, max: number) => Math.min(max, Math.max(0, value));
+      const dragging = layers.find((layer) => layer.id === id);
+      const size = sizes[id];
+      if (!dragging || !size) {
+        setGuides((prev) => (prev.length === 0 ? prev : []));
+        return { x: clampTo(x, imageWidth), y: clampTo(y, imageHeight) };
+      }
+      // 끌기를 시작할 때 함께 움직일 상자와 시작 위치를 기억한다
+      if (dragRef.current?.id !== id) {
+        const companions = new Map<string, { x: number; y: number }>();
+        if (selectedIds.includes(id)) {
+          for (const layer of layers) {
+            if (layer.id !== id && selectedIds.includes(layer.id)) {
+              companions.set(layer.id, { x: layer.x * imageWidth, y: layer.y * imageHeight });
+            }
+          }
+        }
+        dragRef.current = {
+          id,
+          origin: { x: dragging.x * imageWidth, y: dragging.y * imageHeight },
+          companions,
+        };
+      }
+      const { origin, companions } = dragRef.current;
+      const others = layers
+        .filter((layer) => layer.id !== id && !companions.has(layer.id) && sizes[layer.id])
+        .map((layer) =>
+          layerSnapBox(
+            layer,
+            sizes[layer.id],
+            layer.x * imageWidth,
+            layer.y * imageHeight,
+            imageHeight,
+          ),
+        );
+      const moving = layerSnapBox(dragging, size, x, y, imageHeight);
+      // 배율이 달라도 화면에서 같은 거리로 붙도록 화면 px를 원본 px로 바꾼다
+      const threshold = SNAP_PX / (scaleRef.current || 1);
+      const {
+        dx,
+        dy,
+        guides: next,
+      } = snapToGuides(moving, others, imageWidth, imageHeight, threshold);
+      // 안내선이 그대로면 상태를 바꾸지 않아, 끄는 동안 캔버스를 불필요하게 다시 그리지 않는다
+      setGuides((prev) => (JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
+      const snapped = { x: clampTo(x + dx, imageWidth), y: clampTo(y + dy, imageHeight) };
+      for (const [companionId, start] of companions) {
+        nodesRef.current.get(companionId)?.position({
+          x: clampTo(start.x + snapped.x - origin.x, imageWidth),
+          y: clampTo(start.y + snapped.y - origin.y, imageHeight),
+        });
+      }
+      return snapped;
+    },
+    [layers, sizes, selectedIds, imageWidth, imageHeight],
+  );
 
+  const handleSnapEnd = useCallback(() => setGuides([]), []);
+
+  // 끌기가 끝나면 새 위치를 저장한다. 함께 움직인 상자가 있으면 한 번에 저장해 되돌리기 한 단계로 만든다
   const handleMove = useCallback(
-    (id: string, x: number, y: number) => onChange(id, { x, y }),
-    [onChange],
+    (id: string, x: number, y: number) => {
+      const companions = dragRef.current?.id === id ? dragRef.current.companions : null;
+      dragRef.current = null;
+      if (!companions || companions.size === 0) {
+        onChange(id, { x, y });
+        return;
+      }
+      const changes: Record<string, LayerChanges> = { [id]: { x, y } };
+      for (const companionId of companions.keys()) {
+        const node = nodesRef.current.get(companionId);
+        if (node) changes[companionId] = { x: node.x() / imageWidth, y: node.y() / imageHeight };
+      }
+      onChangeMany(changes);
+    },
+    [onChange, onChangeMany, imageWidth, imageHeight],
   );
 
   // 크기를 바꾸면 외곽선·그림자·배경 여백도 같은 배율로 맞춰 모양을 유지한다
@@ -415,7 +543,8 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function 
     listening: false,
   };
 
-  // 선택한 상자 위 도구줄 위치. 입력·끌기 중에는 숨기고, 위에 자리가 없으면 상자 아래에 둔다
+  // 선택한 상자 위 도구줄 위치. 여러 개 선택·입력·끌기 중에는 숨기고, 위에 자리가 없으면 상자 아래에 둔다
+  const selectedId = selectedIds.length === 1 ? selectedIds[0] : null;
   const selectedLayer = layers.find((layer) => layer.id === selectedId);
   const selectedSize = selectedId ? sizes[selectedId] : undefined;
   let toolbarPosition: { left: number; top: number } | null = null;
@@ -458,7 +587,7 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function 
             // 이미지(빈 곳)를 누르면 선택을 풀고, 확대 중이면 끌어서 옮기기를 시작한다
             onMouseDown={(e) => {
               if (e.target === e.target.getStage() || e.target.name() === "background") {
-                onSelect(null);
+                onSelect(null, "only");
                 if (pannable) startPan(e.evt);
               }
             }}
@@ -472,7 +601,7 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function 
             }}
             onTouchStart={(e) => {
               if (e.target === e.target.getStage() || e.target.name() === "background") {
-                onSelect(null);
+                onSelect(null, "only");
               }
             }}
           >
@@ -493,22 +622,26 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function 
                   imageWidth={imageWidth}
                   imageHeight={imageHeight}
                   editing={layer.id === editingId}
+                  outlineColor={
+                    multiSelected && selectedIds.includes(layer.id) ? selectionColor : null
+                  }
                   onRegister={handleRegister}
                   onMeasure={handleMeasure}
-                  onSelect={onSelect}
+                  onPress={(id, additive) => onSelect(id, additive ? "toggle" : "press")}
+                  onClick={(id, additive) => {
+                    if (!additive) onSelect(id, "only");
+                  }}
                   onStartEdit={onStartEdit}
                   onMove={handleMove}
                   onTransform={handleTransform}
-                  onCenterSnap={handleCenterSnap}
+                  onSnap={handleSnap}
+                  onSnapEnd={handleSnapEnd}
                   onInteract={setInteracting}
                 />
               ))}
-              {centerGuides.vertical && (
-                <Line points={[imageWidth / 2, 0, imageWidth / 2, imageHeight]} {...guideStyle} />
-              )}
-              {centerGuides.horizontal && (
-                <Line points={[0, imageHeight / 2, imageWidth, imageHeight / 2]} {...guideStyle} />
-              )}
+              {guides.map((points) => (
+                <Line key={points.join(",")} points={points} {...guideStyle} />
+              ))}
               <Transformer
                 ref={transformerRef}
                 rotateAnchorOffset={ROTATE_ANCHOR_OFFSET_PX}

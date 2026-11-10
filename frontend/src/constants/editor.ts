@@ -131,6 +131,10 @@ export const ZOOM_WHEEL_SPEED = 0.0015;
 /** 복제한 문구 상자를 원본에서 비켜 놓는 거리 (이미지 대비 비율) */
 export const DUPLICATE_OFFSET = 0.03;
 
+/** 방향키로 선택한 상자를 옮기는 거리 (화면 px). Shift를 함께 누르면 NUDGE_SHIFT_PX */
+export const NUDGE_PX = 1;
+export const NUDGE_SHIFT_PX = 10;
+
 /** 선택 테두리가 문구 상자에서 떨어진 거리 (화면 px) */
 export const SELECTION_PADDING_PX = 6;
 

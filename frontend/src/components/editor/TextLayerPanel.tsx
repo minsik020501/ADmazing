@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-11-04
  * 생성자: bioyejin
- * 수정일자: 2026-11-06
+ * 수정일자: 2026-11-10
  * 수정자: bioyejin
  */
 
@@ -14,6 +14,7 @@ import {
   AlignRight,
   Bold,
   Italic,
+  Minus,
   Plus,
   Strikethrough,
   Trash2,
@@ -40,8 +41,13 @@ const ALIGN_OPTIONS: { value: TextAlign; label: string; icon: ReactNode }[] = [
 ];
 
 export interface TextLayerPanelProps {
-  /** 선택한 문구 상자. 없으면 null */
+  /** 선택한 문구 상자 (여러 개면 처음 고른 상자로, 그 값을 보여준다). 없으면 null */
   selectedLayer: TextLayer | null;
+  /**
+   * 선택한 상자 수. 2개 이상이면 바꾼 값을 모두에 적용하고(onChange), 상자마다 달라야 하는
+   * 문구·위치 칸은 숨기며, 글자 크기는 −/+로 상자마다 같은 만큼만 바꾼다(onFontSizeStep)
+   */
+  selectionCount: number;
   /** 원본 이미지 크기(px). 글자 크기와 위치를 px로 보여주는 데 쓴다 */
   imageWidth: number;
   imageHeight: number;
@@ -49,8 +55,10 @@ export interface TextLayerPanelProps {
   notice: string | null;
   onAdd: () => void;
   onDelete: (id: string) => void;
-  /** 선택한 문구 상자의 값을 바꾼다 */
+  /** 선택한 문구 상자의 값을 바꾼다 (여러 개 선택이면 모두) */
   onChange: (id: string, changes: Partial<Omit<TextLayer, "id">>) => void;
+  /** 여러 개 선택일 때 상자마다 글자 크기를 이만큼(원본 px) 키우거나 줄인다 */
+  onFontSizeStep: (deltaPx: number) => void;
   /** 문구 입력칸을 벗어날 때 호출 (되돌리기 단계를 끊는 데 사용) */
   onTextEnd: () => void;
   /** 글꼴 메뉴에서 항목으로 이동할 때 캔버스에 임시로 보여줄 글꼴 id. 끝나면 null */
@@ -147,16 +155,19 @@ function ToggleButton({ label, pressed, onClick, children }: ToggleButtonProps) 
  */
 export default function TextLayerPanel({
   selectedLayer,
+  selectionCount,
   imageWidth,
   imageHeight,
   notice,
   onAdd,
   onDelete,
   onChange,
+  onFontSizeStep,
   onTextEnd,
   onFontPreview,
 }: TextLayerPanelProps) {
   const limits = LAYER_LIMITS;
+  const multiple = selectionCount > 1;
 
   return (
     <section className={styles.section} aria-label="텍스트 편집기">
@@ -166,12 +177,18 @@ export default function TextLayerPanel({
 
       {selectedLayer ? (
         <>
-          <TextInput
-            key={`text-${selectedLayer.id}`}
-            value={selectedLayer.text}
-            onChange={(text) => onChange(selectedLayer.id, { text })}
-            onEnd={onTextEnd}
-          />
+          {multiple ? (
+            <p className={styles.multiNotice}>
+              상자 {selectionCount}개 선택됨 · 바꾼 값은 모두에 적용돼요
+            </p>
+          ) : (
+            <TextInput
+              key={`text-${selectedLayer.id}`}
+              value={selectedLayer.text}
+              onChange={(text) => onChange(selectedLayer.id, { text })}
+              onEnd={onTextEnd}
+            />
+          )}
 
           <div className={styles.field}>
             <span className={styles.label}>글꼴</span>
@@ -213,15 +230,35 @@ export default function TextLayerPanel({
               <label className={styles.label} htmlFor="text-layer-font-size">
                 크기
               </label>
-              <NumberField
-                id="text-layer-font-size"
-                label="글자 크기"
-                buttonStep={FONT_SIZE_BUTTON_STEP_PX}
-                value={Math.round(selectedLayer.fontSize * imageHeight)}
-                min={Math.ceil(limits.fontSize.min * imageHeight)}
-                max={Math.floor(limits.fontSize.max * imageHeight)}
-                onChange={(px) => onChange(selectedLayer.id, { fontSize: px / imageHeight })}
-              />
+              {multiple ? (
+                // 같은 숫자로 맞추면 Title과 본문 크기가 같아지므로, 상자마다 같은 만큼만 바꾼다
+                <div className={styles.toggles}>
+                  <ToggleButton
+                    label="모두 작게"
+                    pressed={false}
+                    onClick={() => onFontSizeStep(-FONT_SIZE_BUTTON_STEP_PX)}
+                  >
+                    <Minus size={16} />
+                  </ToggleButton>
+                  <ToggleButton
+                    label="모두 크게"
+                    pressed={false}
+                    onClick={() => onFontSizeStep(FONT_SIZE_BUTTON_STEP_PX)}
+                  >
+                    <Plus size={16} />
+                  </ToggleButton>
+                </div>
+              ) : (
+                <NumberField
+                  id="text-layer-font-size"
+                  label="글자 크기"
+                  buttonStep={FONT_SIZE_BUTTON_STEP_PX}
+                  value={Math.round(selectedLayer.fontSize * imageHeight)}
+                  min={Math.ceil(limits.fontSize.min * imageHeight)}
+                  max={Math.floor(limits.fontSize.max * imageHeight)}
+                  onChange={(px) => onChange(selectedLayer.id, { fontSize: px / imageHeight })}
+                />
+              )}
             </div>
           </div>
 
@@ -276,29 +313,31 @@ export default function TextLayerPanel({
             onChange={(changes) => onChange(selectedLayer.id, changes)}
           />
 
-          <div className={styles.field}>
-            <span className={styles.label}>위치</span>
-            <div className={styles.position}>
-              <label className={styles.axis}>
-                X
-                <NumberField
-                  value={Math.round(selectedLayer.x * imageWidth)}
-                  min={0}
-                  max={imageWidth}
-                  onChange={(px) => onChange(selectedLayer.id, { x: px / imageWidth })}
-                />
-              </label>
-              <label className={styles.axis}>
-                Y
-                <NumberField
-                  value={Math.round(selectedLayer.y * imageHeight)}
-                  min={0}
-                  max={imageHeight}
-                  onChange={(px) => onChange(selectedLayer.id, { y: px / imageHeight })}
-                />
-              </label>
+          {!multiple && (
+            <div className={styles.field}>
+              <span className={styles.label}>위치</span>
+              <div className={styles.position}>
+                <label className={styles.axis}>
+                  X
+                  <NumberField
+                    value={Math.round(selectedLayer.x * imageWidth)}
+                    min={0}
+                    max={imageWidth}
+                    onChange={(px) => onChange(selectedLayer.id, { x: px / imageWidth })}
+                  />
+                </label>
+                <label className={styles.axis}>
+                  Y
+                  <NumberField
+                    value={Math.round(selectedLayer.y * imageHeight)}
+                    min={0}
+                    max={imageHeight}
+                    onChange={(px) => onChange(selectedLayer.id, { y: px / imageHeight })}
+                  />
+                </label>
+              </div>
             </div>
-          </div>
+          )}
 
           <SliderField
             label="회전"
@@ -329,11 +368,15 @@ export default function TextLayerPanel({
             icon={<Trash2 size={14} />}
             onClick={() => onDelete(selectedLayer.id)}
           >
-            선택한 상자 삭제
+            {multiple ? `선택한 상자 ${selectionCount}개 삭제` : "선택한 상자 삭제"}
           </Button>
         </>
       ) : (
-        <p className={styles.hint}>상자를 누르면 문구와 모양을 바꿀 수 있어요</p>
+        <p className={styles.hint}>
+          상자를 누르면 문구와 모양을 바꿀 수 있어요
+          <br />
+          Ctrl(⌘)을 누른 채 누르면 여러 개를 고를 수 있어요
+        </p>
       )}
 
       {notice && <p className={styles.notice}>{notice}</p>}

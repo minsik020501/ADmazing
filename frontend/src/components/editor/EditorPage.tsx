@@ -10,7 +10,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, Download, Eye, Minus, Plus, Redo2, RotateCcw, Save, Undo2 } from "lucide-react";
 import type { GenerateResponse } from "../../api/client";
-import { DUPLICATE_OFFSET, LAYER_LIMITS, ZOOM_LIMITS } from "../../constants/editor";
+import {
+  DUPLICATE_OFFSET,
+  LAYER_LIMITS,
+  NUDGE_PX,
+  NUDGE_SHIFT_PX,
+  ZOOM_LIMITS,
+} from "../../constants/editor";
 import type { CopyProposals } from "../../hooks/useCopyProposals";
 import type { TextLayers } from "../../hooks/useTextLayers";
 import AnimatedDots from "../common/AnimatedDots";
@@ -19,7 +25,7 @@ import Modal from "../common/Modal";
 import AiProposalList from "./AiProposalList";
 import { pickTextColor } from "./autoColor";
 import { base64ToBlob, downloadBlob, toImageFileName } from "./download";
-import EditorCanvas, { type EditorCanvasHandle } from "./EditorCanvas";
+import EditorCanvas, { type EditorCanvasHandle, type SelectMode } from "./EditorCanvas";
 import EditorOverlay from "./EditorOverlay";
 import EditorSidePanel from "./EditorSidePanel";
 import { ImagePaletteContext, useImagePalette } from "./imagePalette";
@@ -30,6 +36,16 @@ import styles from "./EditorPage.module.css";
 
 // 글자를 입력받지 않는 input 종류
 const NON_TEXT_INPUT_TYPES = ["range", "color", "checkbox", "radio", "button"];
+
+// 방향키 → 옮길 방향 [x, y]
+const ARROW_DIRECTIONS: Record<string, [number, number]> = {
+  ArrowLeft: [-1, 0],
+  ArrowRight: [1, 0],
+  ArrowUp: [0, -1],
+  ArrowDown: [0, 1],
+};
+
+type LayerChanges = Partial<Omit<TextLayer, "id">>;
 
 export interface EditorPageProps {
   result: GenerateResponse;
@@ -104,9 +120,10 @@ export default function EditorPage({
   copyProposals,
 }: EditorPageProps) {
   const canvasRef = useRef<EditorCanvasHandle>(null);
-  // Ctrl+C·X로 복사한 문구 상자. 다른 이미지에 붙일 수 있도록 이미지를 바꿔도 유지한다
-  const clipboardRef = useRef<TextLayer | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Ctrl+C·X로 복사한 문구 상자들. 다른 이미지에 붙일 수 있도록 이미지를 바꿔도 유지한다
+  const clipboardRef = useRef<TextLayer[] | null>(null);
+  // 선택한 문구 상자 id (선택한 순서). Ctrl(⌘)+클릭으로 여러 개를 고를 수 있다
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -129,15 +146,22 @@ export default function EditorPage({
   const imagePalette = useImagePalette(image);
   // 이 이미지에 AI 추천안 배치를 받아 오는 중이면 캔버스를 어둡게 덮는다
   const applyingProposal = proposalState.pendingChip !== null;
-  const selectedLayer = layers.find((layer) => layer.id === selectedId) ?? null;
+  const selectedLayers = selectedIds
+    .map((id) => layers.find((layer) => layer.id === id))
+    .filter((layer): layer is TextLayer => layer !== undefined);
+  // 패널에 값을 보여줄 상자 (여러 개면 처음 고른 상자). 바꾼 값은 선택한 상자 모두에 들어간다
+  const selectedLayer = selectedLayers[0] ?? null;
   const shownLayers = previewFontId
-    ? layers.map((layer) => (layer.id === selectedId ? { ...layer, fontId: previewFontId } : layer))
+    ? layers.map((layer) =>
+        selectedIds.includes(layer.id) ? { ...layer, fontId: previewFontId } : layer,
+      )
     : layers;
+  const selectionKey = selectedIds.join(",");
   const overlayOpen = saveOpen || resetOpen || restoreChip !== null || previewUrl !== null;
 
   // 다른 이미지로 바꾸면 선택과 입력을 풀고 확대도 기본(화면 맞춤)으로 되돌린다
   useEffect(() => {
-    setSelectedId(null);
+    setSelectedIds([]);
     setEditingId(null);
     setNotice(null);
     setZoom(null);
@@ -146,12 +170,14 @@ export default function EditorPage({
   // 선택이 바뀌면 임시 글꼴을 지운다
   useEffect(() => {
     setPreviewFontId(null);
-  }, [selectedId]);
+  }, [selectionKey]);
 
-  // 되돌리기로 선택한 상자가 없어지면 선택을 푼다
+  // 되돌리기 등으로 선택한 상자가 없어지면 그 상자를 선택에서 뺀다
   useEffect(() => {
-    if (selectedId && !selectedLayer) setSelectedId(null);
-  }, [selectedId, selectedLayer]);
+    if (selectedLayers.length !== selectedIds.length) {
+      setSelectedIds(selectedLayers.map((layer) => layer.id));
+    }
+  }, [selectedIds, selectedLayers]);
 
   // 미리보기를 닫거나 화면을 나가면 임시 주소를 정리한다
   useEffect(() => {
@@ -159,19 +185,36 @@ export default function EditorPage({
     return () => URL.revokeObjectURL(previewUrl);
   }, [previewUrl]);
 
-  // 상자를 선택한 채 Delete(맥은 Backspace)를 누르면 지운다. 글자 입력 중이나 팝업이 열려 있으면 지우지 않는다
+  // 상자를 선택한 채 Delete(맥은 Backspace)를 누르면 선택한 상자를 모두 지우고,
+  // 방향키를 누르면 화면 기준 1px(Shift와 함께 10px)씩 옮긴다. 글자 입력 중이나 팝업이 열려 있으면 쓰지 않는다
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
-      if (!selectedId || editingId || overlayOpen || isTypingTarget(e.target)) return;
+      if (selectedIds.length === 0 || editingId || overlayOpen || isTypingTarget(e.target)) return;
       if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault();
-        textLayers.remove(index, selectedId);
-        setSelectedId(null);
+        textLayers.removeMany(index, selectedIds);
+        setSelectedIds([]);
+        return;
       }
+      const direction = ARROW_DIRECTIONS[e.key];
+      if (!direction || e.ctrlKey || e.metaKey || e.altKey || scale === 0) return;
+      e.preventDefault();
+      // 화면에서 같은 거리로 움직이도록 화면 px를 원본 대비 비율로 바꾼다
+      const step = (e.shiftKey ? NUDGE_SHIFT_PX : NUDGE_PX) / scale;
+      const dx = (direction[0] * step) / result.width;
+      const dy = (direction[1] * step) / result.height;
+      const changes: Record<string, LayerChanges> = {};
+      for (const layer of selectedLayers) {
+        changes[layer.id] = {
+          x: Math.min(1, Math.max(0, layer.x + dx)),
+          y: Math.min(1, Math.max(0, layer.y + dy)),
+        };
+      }
+      textLayers.updateMany(index, changes);
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedId, editingId, overlayOpen, index, textLayers]);
+  }, [selectedIds, selectedLayers, editingId, overlayOpen, index, textLayers, scale, result]);
 
   // Ctrl+Z로 되돌리고 Ctrl+Y나 Ctrl+Shift+Z로 다시 실행한다 (맥은 Cmd). 글자 입력 중이나 팝업이 열려 있으면 쓰지 않는다
   useEffect(() => {
@@ -189,30 +232,32 @@ export default function EditorPage({
   }, [editingId, overlayOpen, index, textLayers]);
 
   /**
-   * 문구 상자를 살짝 비켜 지금 이미지에 넣고, 넣은 상자를 선택한다.
+   * 문구 상자들을 살짝 비켜 지금 이미지에 한 번에 넣고(되돌리기 한 단계), 넣은 상자들을 선택한다.
    *
-   * @param source - 복사할 문구 상자
-   * @returns 넣은 상자. 개수 제한을 넘으면 null
+   * @param sources - 복사할 문구 상자들
+   * @returns 넣은 상자들. 개수 제한을 넘으면 null
    */
-  const addCopy = useCallback(
-    (source: TextLayer): TextLayer | null => {
-      const copy = createTextLayer({
-        ...source,
-        x: Math.min(1, source.x + DUPLICATE_OFFSET),
-        y: Math.min(1, source.y + DUPLICATE_OFFSET),
-      });
-      if (!textLayers.add(index, copy)) {
+  const addCopies = useCallback(
+    (sources: TextLayer[]): TextLayer[] | null => {
+      const copies = sources.map((source) =>
+        createTextLayer({
+          ...source,
+          x: Math.min(1, source.x + DUPLICATE_OFFSET),
+          y: Math.min(1, source.y + DUPLICATE_OFFSET),
+        }),
+      );
+      if (!textLayers.addMany(index, copies)) {
         setNotice(`문구 상자는 이미지 한 장에 ${LAYER_LIMITS.layerCount.max}개까지 넣을 수 있어요`);
         return null;
       }
       setNotice(null);
-      setSelectedId(copy.id);
-      return copy;
+      setSelectedIds(copies.map((copy) => copy.id));
+      return copies;
     },
     [index, textLayers],
   );
 
-  // Ctrl+C·X·V로 문구 상자를 복사·잘라내기·붙여넣기 한다 (맥은 Cmd). 글자 입력 중이나 팝업이 열려 있으면 쓰지 않는다
+  // Ctrl+C·X·V로 선택한 문구 상자들을 복사·잘라내기·붙여넣기 한다 (맥은 Cmd). 글자 입력 중이나 팝업이 열려 있으면 쓰지 않는다
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey) return;
@@ -223,19 +268,22 @@ export default function EditorPage({
         if (!copied) return;
         e.preventDefault();
         // 다음 붙여넣기가 방금 넣은 상자에서 이어지도록 계단처럼 비켜 간다
-        clipboardRef.current = addCopy(copied) ?? copied;
-      } else if ((e.code === "KeyC" || e.code === "KeyX") && selectedLayer) {
+        clipboardRef.current = addCopies(copied) ?? copied;
+      } else if ((e.code === "KeyC" || e.code === "KeyX") && selectedLayers.length > 0) {
         e.preventDefault();
-        clipboardRef.current = selectedLayer;
+        clipboardRef.current = selectedLayers;
         if (e.code === "KeyX") {
-          textLayers.remove(index, selectedLayer.id);
-          setSelectedId(null);
+          textLayers.removeMany(
+            index,
+            selectedLayers.map((layer) => layer.id),
+          );
+          setSelectedIds([]);
         }
       }
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedLayer, editingId, overlayOpen, index, textLayers, addCopy]);
+  }, [selectedLayers, editingId, overlayOpen, index, textLayers, addCopies]);
 
   const closeSave = useCallback(() => {
     setSaveOpen(false);
@@ -254,7 +302,7 @@ export default function EditorPage({
       return;
     }
     setNotice(null);
-    setSelectedId(layer.id);
+    setSelectedIds([layer.id]);
     setEditingId(layer.id);
   }
 
@@ -263,23 +311,85 @@ export default function EditorPage({
     const layer = layers.find((item) => item.id === editingId);
     if (layer && layer.text.trim() === "") {
       textLayers.removeEmpty(index, layer.id);
-      setSelectedId(null);
+      setSelectedIds([]);
     }
     textLayers.endChangeGroup(index);
     setEditingId(null);
   }
 
-  /** 문구 상자를 지운다. */
+  /** 문구 상자를 지운다. 여러 개 선택 중인 상자면 선택한 상자를 모두 지운다. */
   function handleDelete(id: string) {
-    textLayers.remove(index, id);
-    setSelectedId(null);
+    if (selectedIds.length > 1 && selectedIds.includes(id)) {
+      textLayers.removeMany(index, selectedIds);
+    } else {
+      textLayers.remove(index, id);
+    }
+    setSelectedIds([]);
     setEditingId(null);
   }
 
   /** 문구 상자를 살짝 비켜 복제하고, 복제한 상자를 선택한다. */
   function handleDuplicate(id: string) {
     const source = layers.find((layer) => layer.id === id);
-    if (source) addCopy(source);
+    if (source) addCopies([source]);
+  }
+
+  /**
+   * 캔버스에서 상자를 고른다.
+   *
+   * @param id - 누른 상자 id. 빈 곳을 누르면 null
+   * @param mode - press: 이미 선택된 상자면 그대로(함께 끌기), 아니면 그 상자만 /
+   *   toggle: Ctrl(⌘)+클릭으로 더하거나 빼기 / only: 그 상자만
+   */
+  function handleSelect(id: string | null, mode: SelectMode) {
+    if (id === null) {
+      setSelectedIds([]);
+    } else if (mode === "toggle") {
+      setSelectedIds((prev) =>
+        prev.includes(id) ? prev.filter((other) => other !== id) : [...prev, id],
+      );
+    } else if (mode === "press") {
+      setSelectedIds((prev) => (prev.includes(id) ? prev : [id]));
+    } else {
+      setSelectedIds([id]);
+    }
+    if (id !== editingId) setEditingId(null);
+  }
+
+  /**
+   * 패널에서 바꾼 값을 선택한 상자 모두에 넣는다 (여러 개면 되돌리기 한 단계).
+   *
+   * @param changes - 바꿀 값
+   */
+  function handlePanelChange(changes: LayerChanges) {
+    if (selectedLayers.length === 1) {
+      textLayers.update(index, selectedLayers[0].id, changes);
+      return;
+    }
+    textLayers.updateMany(
+      index,
+      Object.fromEntries(selectedLayers.map((layer) => [layer.id, changes])),
+    );
+  }
+
+  /**
+   * 선택한 상자마다 글자 크기를 같은 만큼 키우거나 줄인다. Title과 본문의 크기 차이가 그대로 남는다.
+   *
+   * @param deltaPx - 바꿀 크기 (원본 이미지 px, 줄이면 음수)
+   */
+  function handleFontSizeStep(deltaPx: number) {
+    const { min, max } = LAYER_LIMITS.fontSize;
+    textLayers.updateMany(
+      index,
+      Object.fromEntries(
+        selectedLayers.map((layer) => [
+          layer.id,
+          {
+            fontSize: Math.min(max, Math.max(min, layer.fontSize + deltaPx / result.height)),
+          },
+        ]),
+      ),
+    );
   }
 
   /**
@@ -290,7 +400,7 @@ export default function EditorPage({
    */
   async function handleProposalChange(applying: Promise<boolean>) {
     if (await applying) {
-      setSelectedId(null);
+      setSelectedIds([]);
       setEditingId(null);
       setNotice(null);
     }
@@ -319,7 +429,7 @@ export default function EditorPage({
   /** 지금 이미지의 문구를 모두 지운다. */
   function handleReset() {
     textLayers.replace(index, []);
-    setSelectedId(null);
+    setSelectedIds([]);
     setEditingId(null);
     setNotice(null);
     setResetOpen(false);
@@ -445,18 +555,16 @@ export default function EditorPage({
               imageWidth={result.width}
               imageHeight={result.height}
               layers={shownLayers}
-              selectedId={selectedId}
+              selectedIds={selectedIds}
               editingId={editingId}
-              onSelect={(id) => {
-                setSelectedId(id);
-                if (id !== editingId) setEditingId(null);
-              }}
+              onSelect={handleSelect}
               onStartEdit={(id) => {
-                setSelectedId(id);
+                setSelectedIds([id]);
                 setEditingId(id);
               }}
               onEndEdit={handleEndEdit}
               onChange={(id, changes) => textLayers.update(index, id, changes)}
+              onChangeMany={(changes) => textLayers.updateMany(index, changes)}
               onDuplicate={handleDuplicate}
               onDelete={handleDelete}
               zoom={zoom}
@@ -495,12 +603,14 @@ export default function EditorPage({
           >
             <TextLayerPanel
               selectedLayer={selectedLayer}
+              selectionCount={selectedLayers.length}
               imageWidth={result.width}
               imageHeight={result.height}
               notice={notice}
               onAdd={handleAdd}
               onDelete={handleDelete}
-              onChange={(id, changes) => textLayers.update(index, id, changes)}
+              onChange={(_, changes) => handlePanelChange(changes)}
+              onFontSizeStep={handleFontSizeStep}
               onTextEnd={() => textLayers.endChangeGroup(index)}
               onFontPreview={setPreviewFontId}
             />
