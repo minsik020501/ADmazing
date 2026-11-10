@@ -34,6 +34,13 @@
   font-weight: var(--font-weight-bold);
 }
 
+/* 오른쪽 점 3개 자리(AnimatedDots, 3ch)만큼 왼쪽도 비워, 글자가 정가운데에 오게 한다 */
+.title::before {
+  display: inline-block;
+  width: 3ch;
+  content: "";
+}
+
 .message {
   margin: 0;
   font-size: var(--font-size-md);
