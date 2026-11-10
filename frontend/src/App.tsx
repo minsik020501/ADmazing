@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-10-16
  * 생성자: ven_choi
- * 수정일자: 2026-11-04
+ * 수정일자: 2026-11-10
  * 수정자: bioyejin
  */
 
@@ -12,6 +12,7 @@ import { Menu } from "lucide-react";
 import { fetchHealth } from "./api/client";
 import Button from "./components/common/Button";
 import EditorPage from "./components/editor/EditorPage";
+import CopyRequestInput from "./components/input/CopyRequestInput";
 import ExampleChips from "./components/input/ExampleChips";
 import GenerateButton from "./components/input/GenerateButton";
 import PromptInput from "./components/input/PromptInput";
@@ -22,11 +23,19 @@ import Sidebar from "./components/layout/Sidebar";
 import ThemeToggle from "./components/layout/ThemeToggle";
 import LoadingOverlay from "./components/loading/LoadingOverlay";
 import ResultSection from "./components/result/ResultSection";
+import {
+  COPY_ROLE_OPTIONS,
+  createCopyRequestRow,
+  hasCopyRequestProblems,
+} from "./constants/copyRequests";
 import { DEFAULT_RATIO } from "./constants/imageRatios";
 import { DEFAULT_STYLE_ID } from "./constants/stylePresets";
 import useGeneration from "./hooks/useGeneration";
 import useTextLayers from "./hooks/useTextLayers";
 import styles from "./App.module.css";
+
+/** 삽입할 문구의 처음 상태: 첫 번째 역할의 빈 줄 하나 */
+const initialCopyRequests = () => [createCopyRequestRow(COPY_ROLE_OPTIONS[0].id)];
 
 /**
  * 좌측 패널과 메인 영역(프롬프트 입력 폼, 생성 결과)으로 이루어진 화면.
@@ -35,6 +44,7 @@ import styles from "./App.module.css";
  */
 export default function App() {
   const [prompt, setPrompt] = useState("");
+  const [copyRequests, setCopyRequests] = useState(initialCopyRequests);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [serverStatus, setServerStatus] = useState<ServerStatus>({ kind: "loading" });
   const [styleId, setStyleId] = useState(DEFAULT_STYLE_ID);
@@ -50,7 +60,8 @@ export default function App() {
   // 스크롤되는 메인 영역 (생성이 끝나면 결과가 보이도록 맨 아래로 스크롤)
   const mainRef = useRef<HTMLDivElement>(null);
 
-  const canGenerate = prompt.trim().length > 0 && !loading;
+  // 삽입할 문구에서 역할이 겹치거나 글자 수를 넘으면 안내가 보이고 생성할 수 없다
+  const canGenerate = prompt.trim().length > 0 && !hasCopyRequestProblems(copyRequests) && !loading;
 
   // 생성이 끝나면 입력 아래에 붙은 결과 영역 전체가 보이도록 맨 아래까지 스크롤한다.
   // 이미지는 width·height 속성으로 자리를 미리 잡아 두어, 읽기 전에도 전체 높이가 정해져 있다.
@@ -80,6 +91,7 @@ export default function App() {
   /** 입력값, 생성 옵션, 결과를 비우고 처음 상태로 돌아간다. */
   function handleNewProject() {
     setPrompt("");
+    setCopyRequests(initialCopyRequests());
     setStyleId(DEFAULT_STYLE_ID);
     setRatio(DEFAULT_RATIO);
     generation.reset();
@@ -103,9 +115,13 @@ export default function App() {
     });
   }
 
-  /** 입력한 프롬프트와 옵션으로 이미지 생성을 시작한다. 진행 상황은 로딩 화면에 표시된다. */
+  /**
+   * 입력한 프롬프트와 옵션으로 이미지 생성을 시작한다. 진행 상황은 로딩 화면에 표시된다.
+   * 프롬프트 칸의 Ctrl+Enter도 이 함수를 부르므로, 생성할 수 없는 상태면 여기서 멈춘다.
+   */
   function handleGenerate() {
-    generation.start({ prompt, styleId, ratio });
+    if (!canGenerate) return;
+    generation.start({ prompt, styleId, ratio, copyRequests });
   }
 
   // 입력·결과 화면과 에디터 화면 맨 위에 똑같이 보이는 타이틀
@@ -156,6 +172,7 @@ export default function App() {
               loading={loading}
             />
             <ExampleChips value={prompt} onSelect={setPrompt} />
+            <CopyRequestInput rows={copyRequests} onChange={setCopyRequests} />
             <StylePicker value={styleId} onChange={setStyleId} />
             <RatioPicker value={ratio} onChange={setRatio} />
             {generation.cancelled && <p className={styles.notice}>생성을 취소했어요</p>}
