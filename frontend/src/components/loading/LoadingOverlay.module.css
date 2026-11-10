@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-11-02
  * 생성자: bioyejin
- * 수정일자: 2026-11-02
+ * 수정일자: 2026-11-10
  * 수정자: bioyejin
  */
 
@@ -32,13 +32,6 @@
   margin: 0;
   font-size: var(--font-size-lg);
   font-weight: var(--font-weight-bold);
-}
-
-/* 점 개수가 바뀌어도 "생성 중" 글자가 움직이지 않도록 점 3개 자리를 둔다 */
-.dots {
-  display: inline-block;
-  width: 3ch;
-  text-align: left;
 }
 
 .message {
