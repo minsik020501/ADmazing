@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-11-04
  * 생성자: bioyejin
- * 수정일자: 2026-11-06
+ * 수정일자: 2026-11-10
  * 수정자: bioyejin
  */
 
@@ -128,4 +128,14 @@
 .notice {
   margin: 0;
   color: var(--color-danger);
+}
+
+/* 여러 상자를 선택했을 때 패널 맨 위 안내 */
+.multiNotice {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary-text);
+  background: var(--color-primary-weak);
+  border-radius: var(--radius-md);
 }
