@@ -29,7 +29,19 @@ class LayoutTemplate(NamedTuple):
     width: float
 
 
-TEMPLATES: dict[str, LayoutTemplate] = {
+# 템플릿 id. 문구 배치 추천 요청의 template_id로 레이아웃을 지정할 때 쓴다
+TemplateId = Literal[
+    "top_left",
+    "bottom_left",
+    "top_right",
+    "bottom_right",
+    "top_center",
+    "bottom_center",
+    "side_left",
+    "side_right",
+]
+
+TEMPLATES: dict[TemplateId, LayoutTemplate] = {
     "top_left": LayoutTemplate("좌상단 블록", "top", "left", 0.62),
     "bottom_left": LayoutTemplate("좌하단 블록", "bottom", "left", 0.62),
     "top_right": LayoutTemplate("우상단 블록", "top", "right", 0.62),
@@ -40,14 +52,35 @@ TEMPLATES: dict[str, LayoutTemplate] = {
     "side_right": LayoutTemplate("오른쪽 칼럼", "middle", "right", 0.42),
 }
 
-# (제목 글꼴, 본문 글꼴, 이름). 추천안마다 차례로 다른 짝을 쓴다
-FONT_PAIRS: list[tuple[str, str, str]] = [
-    ("gmarket-sans", "pretendard", "모던 고딕"),
-    ("maru-buri", "pretendard", "세리프 감성"),
-    ("paperlogy", "pretendard", "깔끔한 헤드라인"),
-    ("s-core-dream", "suit", "부드러운 고딕"),
-    ("noto-serif-kr", "noto-sans-kr", "클래식 명조"),
+# 글꼴 스타일 id. 문구 추천(OpenAI)이 이미지에 맞는 스타일을 이 중에서 고른다
+FontStyle = Literal[
+    "minimal_gothic",
+    "serif",
+    "clean",
+    "handwriting",
+    "signature",
+    "impact_sale",
+    "rounded",
 ]
+
+# 문구 추천이 고르는 스타일 수 (어울리는 순서)
+MAX_STYLES = 3
+
+# 스타일별 (제목 글꼴, 본문 글꼴, 스타일 이름). 굵게는 제목에만 쓴다.
+# 요청에 스타일이 없거나 모자라면 이 순서대로 추천안을 채운다
+FONT_STYLES: dict[FontStyle, tuple[str, str, str]] = {
+    "minimal_gothic": ("gmarket-sans", "nanum-square", "미니멀·모던 고딕"),
+    "serif": ("bookk-myungjo", "bookk-myungjo", "세리프 감성"),
+    "clean": ("paperlogy", "pretendard", "깔끔한 느낌"),
+    "handwriting": ("ink-liquid", "nanum-brush-script", "손글씨 느낌"),
+    "signature": ("mona12", "mona12", "시그니처"),
+    "impact_sale": ("bithumb-gothic", "paperlogy", "임팩트 세일"),
+    "rounded": (
+        "school-safety-rounded-smile",
+        "school-safety-rounded-smile",
+        "부드러운 둥근 느낌",
+    ),
+}
 
 # 짧은 변 대비 안전 여백
 MARGIN = 0.07

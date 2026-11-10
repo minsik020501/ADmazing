@@ -17,8 +17,12 @@ class GeneratedImage(BaseModel):
     image_base64: str = Field(..., description="PNG 이미지의 base64 문자열")
     seed: int = Field(..., description="이 이미지를 생성한 seed")
     copies: ImageCopies | None = Field(
-        None, description="이 이미지에 맞춘 역할별 추천 문구. 추천에 실패하면 null"
+        None,
+        description="이 이미지에 맞춘 역할별 추천 문구. 추천에 실패했거나 조건에 맞는 "
+        "문구가 하나도 없으면 null",
     )
     copies_error: str | None = Field(
-        None, description="문구 추천에 실패했을 때 화면에 보여줄 메시지"
+        None,
+        description="문구 추천에 실패했거나 조건에 맞는 문구가 하나도 없을 때 화면에 "
+        "보여줄 메시지",
     )
