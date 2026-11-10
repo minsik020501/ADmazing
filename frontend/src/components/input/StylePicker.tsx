@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-10-22
  * 생성자: bioyejin
- * 수정일자: 2026-11-06
+ * 수정일자: 2026-11-10
  * 수정자: bioyejin
  */
 
@@ -33,8 +33,8 @@ export default function StylePicker({ value, onChange }: StylePickerProps) {
       <SectionLabel
         id={labelId}
         number={4}
-        title="스타일"
-        description="이미지의 전체적인 표현 방식을 골라 주세요"
+        title="스타일 (선택)"
+        description="원하는 이미지의 표현 방식을 골라 주세요"
       />
       <div className={styles.chips}>
         {STYLE_PRESETS.map((preset) => (
