@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-11-04
  * 생성자: bioyejin
- * 수정일자: 2026-11-10
+ * 수정일자: 2026-11-11
  * 수정자: bioyejin
  */
 
@@ -267,8 +267,11 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function 
   const scale = fitScale > 0 ? (zoom ?? fitScale) : 0;
   const stageWidth = Math.floor(imageWidth * scale);
   const stageHeight = Math.floor(imageHeight * scale);
+  // 편집 영역 높이는 맞춤 배율일 때의 이미지 높이로 고정한다.
+  // 확대·축소해도 영역은 그대로이고, 그 안에서 이미지만 커지고 작아진다
+  const areaHeight = Math.floor(imageHeight * fitScale);
   // 확대해서 편집 영역보다 커졌을 때만 끌어서 옮길 수 있다
-  const pannable = stageWidth > available.width || stageHeight > available.height;
+  const pannable = stageWidth > available.width || stageHeight > areaHeight;
 
   useEffect(() => {
     if (scale > 0) onScaleChange(scale);
@@ -571,7 +574,11 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function 
   }
 
   return (
-    <div ref={containerRef} className={styles.container}>
+    <div
+      ref={containerRef}
+      className={styles.container}
+      style={areaHeight > 0 ? { height: areaHeight } : undefined}
+    >
       {scale > 0 && (
         <div
           ref={frameRef}
