@@ -1,6 +1,6 @@
 # backend/ai
 
-광고 이미지 모델의 준비, 학습, 비교 실험 코드입니다. 서버로 실행되지 않으며, 모델과 학습 결과물은 루트의 `models/` 폴더에 저장되고 backend(FastAPI)가 이를 불러와 사용합니다.
+광고 이미지 모델의 준비, 학습 코드입니다. 서버로 실행되지 않으며, 모델과 학습 결과물은 루트의 `models/` 폴더에 저장되고 backend(FastAPI)가 이를 불러와 사용합니다.
 
 ## 파일
 
@@ -9,15 +9,8 @@
 | `download_model.py` | SDXL 기본 모델과 fp16 VAE를 `models/`에 내려받기 |
 | `sdxl_pipeline.py` | SDXL로 영어 프롬프트에서 이미지 생성 (api의 `sdxl` 모드와 공용) |
 | `train.py`, `device.py` | 광고 이미지 모델 학습, 학습 디바이스 선택 |
-| `compare_ratios.py` | 비율별로 같은 프롬프트, seed 이미지를 생성해 PDF로 정리 |
-| `compare_quant*.py` | Z-Image-Turbo 양자화 구성별 생성, 지표 계산, PDF 리포트 |
-| `compare_layout_*.py`, `run_layout_server.py` | 문구 배치 추천 방식(Qwen3-VL 양자화, 템플릿, 현재 서버 추천기) 비교 |
-| `compare_subject_detector.py` | 가리면 안 되는 영역 찾기: Qwen grounding vs 전용 검출기 비교 |
-| `compare_contrast_methods.py` | 문구 색 대비 확인 방법 비교 |
-| `compare_accent_*.py` | 강조색 비교: 규칙(제품 영역 대표색) vs OpenAI |
 
-- 비교 결과(이미지, JSONL, PDF)는 `outputs/<실험명>/`에 저장되며 git에 올리지 않습니다.
-- 경로, 디바이스 등 설정은 루트 `.env`의 `SDXL_*`, `ZIMAGE_*` 값을 함께 씁니다 (상대 경로는 레포 루트 기준).
+- 경로, 디바이스 등 설정은 루트 `.env`의 `SDXL_*` 값을 함께 씁니다 (상대 경로는 레포 루트 기준).
 
 ## 산출물 규칙
 

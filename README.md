@@ -31,7 +31,7 @@
 admazing/
 ├── backend/
 │   ├── fastapi/     # API 서버 (:11000) — 번역, 이미지 생성, 문구, 배치 추천
-│   └── ai/          # 모델 학습, 실험, 비교 스크립트 (서버 아님) → 산출물을 models/에 저장
+│   └── ai/          # 모델 준비, 학습 코드 (서버 아님) → 산출물을 models/에 저장
 ├── frontend/        # React + Vite + TypeScript (:12000)
 ├── fonts/           # 광고 문구용 폰트 목록(manifest.json)과 직접 받은 폰트
 ├── scripts/         # 폰트 준비 스크립트 (font-prep 서비스)
@@ -45,7 +45,7 @@ admazing/
 
 - [backend/fastapi/README.md](backend/fastapi/README.md) — API 엔드포인트, 서비스 구성, 설정
 - [frontend/README.md](frontend/README.md) — 화면 구성, 폴더 구조, 개발 명령
-- [backend/ai/README.md](backend/ai/README.md) — 모델 준비, 학습, 비교 실험
+- [backend/ai/README.md](backend/ai/README.md) — 모델 준비, 학습
 
 ## 요청 흐름
 
