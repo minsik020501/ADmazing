@@ -26,7 +26,7 @@
   border-radius: var(--radius-sm);
 }
 
-/* 확대해서 끌어 옮길 수 있을 때 손 모양. 끄는 동안 글자가 선택되지 않게 한다 */
+/* 이미지의 빈 곳은 끌어 옮길 수 있어 손 모양 (축소했을 때도). 끄는 동안 글자가 선택되지 않게 한다 */
 .pannable {
   cursor: grab;
   user-select: none;
