@@ -29,8 +29,9 @@ API 서버 주소는 `VITE_API_PROXY_TARGET`으로 바꿀 수 있습니다 (dock
 3. **결과**: 번역된 프롬프트, 옵션 요약, 이미지 격자, 크게 보기, 같은 옵션으로 다시 생성
 4. **에디터**: 썸네일 줄에서 이미지를 고르고 캔버스에 문구 상자를 넣어 편집한 뒤 PNG로 저장
    - 글자 모양, 색(이미지 대표색 포함), 외곽선, 그림자, 배경 상자, 회전, 곡선
-   - AI 추천 탭: 추천 문구 칩과 배치 추천안 선택
+   - AI 추천 탭: 추천 문구 칩과 배치 추천안 선택. 문구 상자를 누르면 텍스트 편집기 탭으로 넘어가고, 빈 곳을 누르면 돌아옴
    - 되돌리기/다시 실행, 복사, 잘라내기, 붙여넣기, 맞춤 가이드, 방향키 이동, 여러 개 선택
+   - 확대, 축소(편집 영역 크기는 고정)와 이미지를 끌어서 옮기기
 
 서버 상태 배지와 라이트/다크 테마 전환은 화면 오른쪽 아래에 있습니다.
 
@@ -48,12 +49,13 @@ src/
 │   ├── result/          # 결과 영역, 이미지 크게 보기
 │   └── editor/          # 에디터 화면, 캔버스, 문구 패널, 필드 부품, 맞춤, 곡선, 저장 유틸
 ├── constants/           # 예시 프롬프트, 스타일, 비율, 문구 역할, 폰트 목록(fonts.json)
-├── hooks/               # useGeneration, useTextLayers, useCopyProposals, useFontsLoaded
+├── hooks/               # useGeneration, useTextLayers, useCopyProposals, useFontsLoaded, usePreloadFonts
 └── styles/              # 디자인 토큰(tokens.css), 웹폰트(fonts.css)
 ```
 
 - 문구 상자 JSON 형식은 [docs/text_layer_spec.md](../docs/text_layer_spec.md)를 따릅니다.
 - `styles/fonts.css`와 `constants/fonts.json`은 `scripts/prepare_fonts.py`가 만드는 파일이므로 직접 고치지 않습니다. 폰트 파일은 `font-prep` 서비스가 `public/fonts/`로 제공합니다 (루트 [README](../README.md#광고-문구-폰트) 참고).
+- 앱을 열면 에디터에서 쓸 폰트 파일(약 43MB)을 브라우저가 한가할 때 미리 받아 둡니다 (`hooks/usePreloadFonts.ts`). 한 번 받으면 브라우저에 저장되어 다음 접속부터는 다시 받지 않습니다.
 - 비율 값(`constants/imageRatios.ts`)은 서버의 `app/core/image_ratio.py`와 같아야 합니다.
 
 ## 개발 규칙
