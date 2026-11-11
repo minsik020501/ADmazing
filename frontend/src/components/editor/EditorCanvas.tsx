@@ -578,6 +578,13 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function 
       ref={containerRef}
       className={styles.container}
       style={areaHeight > 0 ? { height: areaHeight } : undefined}
+      // 이미지 바깥 회색 바탕을 눌러도 선택을 푼다 (스크롤 막대를 누를 때는 제외). 끌어 옮기지는 않는다
+      onMouseDown={(e) => {
+        const area = e.currentTarget;
+        const onScrollbar =
+          e.nativeEvent.offsetX >= area.clientWidth || e.nativeEvent.offsetY >= area.clientHeight;
+        if (e.target === area && !onScrollbar) onSelect(null, "only");
+      }}
     >
       {scale > 0 && (
         <div
