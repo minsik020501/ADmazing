@@ -6,7 +6,29 @@
 |:-----------|:-----------|
 | 프로젝트명 | Admazing   |
 | 팀 이름    | 끝내주는팀 |
-| 인원       | 3명        |
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/images/team/member-1.png" width="160" alt="최민식"></td>
+    <td align="center"><img src="docs/images/team/member-2.png" width="160" alt="최승원"></td>
+    <td align="center"><img src="docs/images/team/member-3.png" width="160" alt="박예진"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>👑 최민식</b></td>
+    <td align="center"><b>최승원</b></td>
+    <td align="center"><b>박예진</b></td>
+  </tr>
+  <tr>
+    <td align="center">PM</td>
+    <td align="center">Backend</td>
+    <td align="center">Frontend</td>
+  </tr>
+  <tr>
+    <td align="center"><a href="https://app.notion.com/p/41571fde206b80cdb60adaab9ceba579?source=copy_link">개인일지</a></td>
+    <td align="center"><a href="https://app.notion.com/p/41571fde206b801f95e5e06ef9c4fd2f?source=copy_link">개인일지</a></td>
+    <td align="center"><a href="https://app.notion.com/p/41571fde206b80ccbd71e2cb351e8aea?source=copy_link">개인일지</a></td>
+  </tr>
+</table>
 
 ## 시연
 
