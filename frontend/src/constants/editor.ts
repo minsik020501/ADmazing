@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-11-04
  * 생성자: bioyejin
- * 수정일자: 2026-11-10
+ * 수정일자: 2026-11-11
  * 수정자: bioyejin
  */
 
@@ -146,3 +146,6 @@ export const HISTORY_LIMIT = 50;
 
 /** 같은 항목을 이 시간(ms) 안에 이어서 바꾸면 되돌리기 한 단계로 묶는다 (슬라이더 끌기 등) */
 export const HISTORY_GROUP_MS = 500;
+
+/** 앱을 열고 글꼴 파일을 미리 받을 때 한 번에 받는 파일 수 (첫 화면·생성 요청을 방해하지 않게 적게) */
+export const FONT_PRELOAD_CONCURRENCY = 2;

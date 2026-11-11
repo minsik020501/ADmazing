@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-11-04
  * 생성자: bioyejin
- * 수정일자: 2026-11-10
+ * 수정일자: 2026-11-11
  * 수정자: bioyejin
  */
 
@@ -27,7 +27,7 @@ import { pickTextColor } from "./autoColor";
 import { base64ToBlob, downloadBlob, toImageFileName } from "./download";
 import EditorCanvas, { type EditorCanvasHandle, type SelectMode } from "./EditorCanvas";
 import EditorOverlay from "./EditorOverlay";
-import EditorSidePanel from "./EditorSidePanel";
+import EditorSidePanel, { type PanelTab } from "./EditorSidePanel";
 import { ImagePaletteContext, useImagePalette } from "./imagePalette";
 import { createTextLayer, type TextLayer } from "./textLayer";
 import TextLayerPanel from "./TextLayerPanel";
@@ -125,6 +125,11 @@ export default function EditorPage({
   // 선택한 문구 상자 id (선택한 순서). Ctrl(⌘)+클릭으로 여러 개를 고를 수 있다
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
+  // 오른쪽 패널의 탭. 에디터를 열면 AI 추천 탭부터 보인다
+  const [panelTab, setPanelTab] = useState<PanelTab>("ai");
+  // AI 추천 탭에서 문구 상자를 눌러 텍스트 편집기 탭으로 저절로 넘어왔으면 true.
+  // 이때만 빈 곳을 눌러 선택을 풀면 AI 추천 탭으로 돌아간다 (직접 고른 탭은 그대로 둔다)
+  const autoTextTabRef = useRef(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   // 글꼴 메뉴에서 항목을 옮겨 다닐 때 캔버스에만 임시로 입히는 글꼴 (저장값은 그대로)
@@ -344,6 +349,10 @@ export default function EditorPage({
   function handleSelect(id: string | null, mode: SelectMode) {
     if (id === null) {
       setSelectedIds([]);
+      if (autoTextTabRef.current) {
+        autoTextTabRef.current = false;
+        setPanelTab("ai");
+      }
     } else if (mode === "toggle") {
       setSelectedIds((prev) =>
         prev.includes(id) ? prev.filter((other) => other !== id) : [...prev, id],
@@ -353,7 +362,26 @@ export default function EditorPage({
     } else {
       setSelectedIds([id]);
     }
+    if (id !== null) showTextTab();
     if (id !== editingId) setEditingId(null);
+  }
+
+  /** 문구 상자를 누르면 텍스트 편집기 탭을 보여준다. AI 추천 탭에서 넘어왔으면 기억해 둔다. */
+  function showTextTab() {
+    if (panelTab === "ai") {
+      autoTextTabRef.current = true;
+      setPanelTab("text");
+    }
+  }
+
+  /**
+   * 탭 버튼을 직접 누른다. 직접 고른 탭은 선택을 풀어도 바뀌지 않는다.
+   *
+   * @param tab - 고른 탭
+   */
+  function handleTabChange(tab: PanelTab) {
+    autoTextTabRef.current = false;
+    setPanelTab(tab);
   }
 
   /**
@@ -548,7 +576,13 @@ export default function EditorPage({
             </span>
           </div>
 
-          <div className={styles.stage}>
+          {/* 캔버스 둘레의 회색 바탕을 눌러도 선택을 푼다 */}
+          <div
+            className={styles.stage}
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) handleSelect(null, "only");
+            }}
+          >
             <EditorCanvas
               ref={canvasRef}
               imageBase64={image.image_base64}
@@ -561,6 +595,7 @@ export default function EditorPage({
               onStartEdit={(id) => {
                 setSelectedIds([id]);
                 setEditingId(id);
+                showTextTab();
               }}
               onEndEdit={handleEndEdit}
               onChange={(id, changes) => textLayers.update(index, id, changes)}
@@ -589,6 +624,8 @@ export default function EditorPage({
 
         <ImagePaletteContext.Provider value={imagePalette}>
           <EditorSidePanel
+            tab={panelTab}
+            onTabChange={handleTabChange}
             ai={
               <AiProposalList
                 copies={image.copies}
