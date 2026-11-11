@@ -1,6 +1,16 @@
 # backend/ai
 
-광고 이미지 모델의 학습·실험 코드입니다. 서버로 실행되지 않으며, 학습 결과물은 루트의 `models/` 폴더에 저장되고 backend(FastAPI)가 이를 불러와 사용합니다.
+광고 이미지 모델의 준비, 학습 코드입니다. 서버로 실행되지 않으며, 모델과 학습 결과물은 루트의 `models/` 폴더에 저장되고 backend(FastAPI)가 이를 불러와 사용합니다.
+
+## 파일
+
+| 파일 | 설명 |
+|:--|:--|
+| `download_model.py` | SDXL 기본 모델과 fp16 VAE를 `models/`에 내려받기 |
+| `sdxl_pipeline.py` | SDXL로 영어 프롬프트에서 이미지 생성 (api의 `sdxl` 모드와 공용) |
+| `train.py`, `device.py` | 광고 이미지 모델 학습, 학습 디바이스 선택 |
+
+- 경로, 디바이스 등 설정은 루트 `.env`의 `SDXL_*` 값을 함께 씁니다 (상대 경로는 레포 루트 기준).
 
 ## 산출물 규칙
 
@@ -39,7 +49,7 @@ python train.py --name ad-lora-v1 --device mps --output-root ../../models
 
 | 경로 | git | 용도 |
 |:--|:--|:--|
-| `notebooks/` | 포함 | 팀에 공유할 실험 (설정·결과 기록) |
+| `notebooks/` | 포함 | 팀에 공유할 실험 (설정, 결과 기록) |
 | `notebooks/scratch/` | 제외 | 개인 실험용 |
 
 노트북 출력(생성 이미지 등)은 커밋하지 않습니다. 저장소를 clone한 뒤 한 번만 아래를 실행하면 커밋 시 출력이 자동으로 제거됩니다.
