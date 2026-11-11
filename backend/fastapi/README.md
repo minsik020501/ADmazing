@@ -60,7 +60,7 @@ app/
 
 - `COPY_RECOMMENDER=openai`: 이미지(긴 변 `COPY_IMAGE_MAX_SIDE`px로 축소)와 프롬프트를 OpenAI에 보내 제목, 부제, 본문 문구를 역할별로 추천하고 강조색을 함께 고릅니다.
 - `COPY_RECOMMENDER=mock`: OpenAI 없이 고정 문구를 반환합니다 (개발용).
-- 요청의 `keywords`(최대 3개)는 모든 문구에 글자 그대로 들어갑니다. 이미지 1장이 `COPY_TIMEOUT_SECONDS`를 넘기면 그 이미지만 `copies_error`로 응답합니다.
+- 요청의 `copy_requests`(제목, 부제, 본문 역할별 요청)는 그대로 넣는 값이 아니라 AI가 참고해 역할에 맞게 다시 쓰는 내용입니다. 가격, 날짜, 숫자는 바꾸지 않습니다. 이미지 1장이 `COPY_TIMEOUT_SECONDS`를 넘기면 그 이미지만 `copies_error`로 응답합니다.
 
 ### 문구 배치 추천
 
