@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-10-16
  * 생성자: ven_choi
- * 수정일자: 2026-11-10
+ * 수정일자: 2026-11-11
  * 수정자: bioyejin
  */
 
@@ -32,6 +32,7 @@ import { DEFAULT_RATIO } from "./constants/imageRatios";
 import { DEFAULT_STYLE_ID } from "./constants/stylePresets";
 import useCopyProposals from "./hooks/useCopyProposals";
 import useGeneration from "./hooks/useGeneration";
+import usePreloadFonts from "./hooks/usePreloadFonts";
 import useTextLayers from "./hooks/useTextLayers";
 import styles from "./App.module.css";
 
@@ -59,6 +60,8 @@ export default function App() {
   const textLayers = useTextLayers(result);
   // 이미지별로 적용한 AI 추천안과 받아 둔 배치. 문구 상자처럼 결과가 바뀌면 비운다
   const copyProposals = useCopyProposals(result, textLayers);
+  // 에디터에 들어가기 전에 글꼴 파일을 뒤에서 미리 받아, 글꼴을 고를 때 바로 적용되게 한다
+  usePreloadFonts();
 
   // 스크롤되는 메인 영역 (생성이 끝나면 결과가 보이도록 맨 아래로 스크롤)
   const mainRef = useRef<HTMLDivElement>(null);

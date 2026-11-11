@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-11-04
  * 생성자: bioyejin
- * 수정일자: 2026-11-10
+ * 수정일자: 2026-11-11
  * 수정자: bioyejin
  */
 
@@ -227,6 +227,9 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function 
   const multiSelected = selectedIds.length > 1;
   // 빈 곳을 끌어 캔버스를 옮기는 중이면 true
   const [panning, setPanning] = useState(false);
+  // 축소해서 편집 영역보다 작아진 이미지를 끌어 옮긴 거리 (화면 px, 가운데 기준).
+  // 영역보다 큰 방향은 스크롤로 옮기므로 이 값은 0으로 맞춰진다
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   // 휠 이벤트가 렌더보다 빠르게 와도 이어서 계산하도록 지금 배율을 따로 기억한다
   const scaleRef = useRef(0);
   // 휠로 확대할 때 마우스 아래에 붙잡아 둘 지점 (화면 위치, 원본 이미지 px)
@@ -267,12 +270,25 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function 
   const scale = fitScale > 0 ? (zoom ?? fitScale) : 0;
   const stageWidth = Math.floor(imageWidth * scale);
   const stageHeight = Math.floor(imageHeight * scale);
-  // 확대해서 편집 영역보다 커졌을 때만 끌어서 옮길 수 있다
-  const pannable = stageWidth > available.width || stageHeight > available.height;
+  // 편집 영역 높이는 맞춤 배율일 때의 이미지 높이로 고정한다.
+  // 확대·축소해도 영역은 그대로이고, 그 안에서 이미지만 커지고 작아진다
+  const areaHeight = Math.floor(imageHeight * fitScale);
+  // 이미지가 영역보다 작은 방향으로 옮길 수 있는 거리. 이미지가 영역 밖으로 나가지 않게 한다
+  const maxOffsetX = Math.max(0, (available.width - stageWidth) / 2);
+  const maxOffsetY = Math.max(0, (areaHeight - stageHeight) / 2);
+  const offsetLimitX = { min: -maxOffsetX, max: maxOffsetX };
+  const offsetLimitY = { min: -maxOffsetY, max: maxOffsetY };
+  const offsetX = clamp(panOffset.x, offsetLimitX);
+  const offsetY = clamp(panOffset.y, offsetLimitY);
 
   useEffect(() => {
     if (scale > 0) onScaleChange(scale);
   }, [scale, onScaleChange]);
+
+  // 화면에 맞추거나 다른 이미지로 바꾸면 옮긴 위치를 가운데로 되돌린다
+  useEffect(() => {
+    if (zoom === null) setPanOffset({ x: 0, y: 0 });
+  }, [zoom, imageBase64]);
 
   // 배율이 바뀐 뒤, 마우스 아래 지점이 그대로 있도록 스크롤을 맞춘다
   useLayoutEffect(() => {
@@ -374,7 +390,8 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function 
   );
 
   /**
-   * 빈 곳을 끄는 동안 마우스가 움직인 만큼 편집 영역 스크롤을 옮긴다.
+   * 이미지의 빈 곳을 끄는 동안 마우스가 움직인 만큼 이미지를 옮긴다.
+   * 영역보다 큰 방향은 스크롤을, 영역보다 작은 방향(축소했을 때)은 이미지 위치를 옮긴다.
    * 마우스가 캔버스 밖으로 나가도 이어지도록 window에서 듣는다.
    *
    * @param start - 끌기를 시작한 마우스 이벤트
@@ -383,11 +400,18 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function 
     const container = containerRef.current;
     if (!container) return;
     const { scrollLeft, scrollTop } = container;
+    const origin = { x: offsetX, y: offsetY };
 
     function handleMove(e: MouseEvent) {
       if (!container) return;
-      container.scrollLeft = scrollLeft - (e.clientX - start.clientX);
-      container.scrollTop = scrollTop - (e.clientY - start.clientY);
+      const dx = e.clientX - start.clientX;
+      const dy = e.clientY - start.clientY;
+      container.scrollLeft = scrollLeft - dx;
+      container.scrollTop = scrollTop - dy;
+      setPanOffset({
+        x: clamp(origin.x + dx, offsetLimitX),
+        y: clamp(origin.y + dy, offsetLimitY),
+      });
     }
     function handleUp() {
       window.removeEventListener("mousemove", handleMove);
@@ -571,12 +595,27 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function 
   }
 
   return (
-    <div ref={containerRef} className={styles.container}>
+    <div
+      ref={containerRef}
+      className={styles.container}
+      style={areaHeight > 0 ? { height: areaHeight } : undefined}
+      // 이미지 바깥 회색 바탕을 눌러도 선택을 푼다 (스크롤 막대를 누를 때는 제외). 끌어 옮기지는 않는다
+      onMouseDown={(e) => {
+        const area = e.currentTarget;
+        const onScrollbar =
+          e.nativeEvent.offsetX >= area.clientWidth || e.nativeEvent.offsetY >= area.clientHeight;
+        if (e.target === area && !onScrollbar) onSelect(null, "only");
+      }}
+    >
       {scale > 0 && (
         <div
           ref={frameRef}
-          className={`${styles.frame} ${pannable ? styles.pannable : ""} ${panning ? styles.panning : ""}`}
-          style={{ width: stageWidth, height: stageHeight }}
+          className={`${styles.frame} ${styles.pannable} ${panning ? styles.panning : ""}`}
+          style={{
+            width: stageWidth,
+            height: stageHeight,
+            transform: offsetX || offsetY ? `translate(${offsetX}px, ${offsetY}px)` : undefined,
+          }}
         >
           <Stage
             ref={stageRef}
@@ -584,11 +623,11 @@ const EditorCanvas = forwardRef<EditorCanvasHandle, EditorCanvasProps>(function 
             height={stageHeight}
             scaleX={scale}
             scaleY={scale}
-            // 이미지(빈 곳)를 누르면 선택을 풀고, 확대 중이면 끌어서 옮기기를 시작한다
+            // 이미지(빈 곳)를 누르면 선택을 풀고, 끌어서 옮기기를 시작한다 (축소했을 때도)
             onMouseDown={(e) => {
               if (e.target === e.target.getStage() || e.target.name() === "background") {
                 onSelect(null, "only");
-                if (pannable) startPan(e.evt);
+                startPan(e.evt);
               }
             }}
             // 문구 위에서는 옮길 수 있다는 커서를 보여주고, 그 밖에는 바깥 칸의 커서를 따른다
