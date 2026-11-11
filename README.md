@@ -10,12 +10,19 @@
 
 ## 시연
 
+> 프롬프트: `여름 한정 수박 주스, 투명한 유리잔에 담긴 빨간 수박 주스와 얼음, 밝은 햇살이 드는 테이블, 상큼하고 시원한 분위기, 정면 구도`
+> 삽입할 문구(Title): `여름 한정 수박 주스`, 스타일: 실사 사진, 비율: 1:1
+
+| 생성 원본 | 문구를 넣은 완성본 |
+|:-:|:-:|
+| ![생성 원본](docs/images/result-original.png) | ![완성본](docs/images/result-edited.png) |
+
 | | |
 |:-:|:-:|
-| ![시연 1](docs/images/demo-1.png) | ![시연 2](docs/images/demo-2.png) |
-| 시연 1 설명 (TODO) | 시연 2 설명 (TODO) |
-| ![시연 3](docs/images/demo-3.png) | ![시연 4](docs/images/demo-4.png) |
-| 시연 3 설명 (TODO) | 시연 4 설명 (TODO) |
+| ![입력 화면](docs/images/demo-1.png) | ![생성 진행 화면](docs/images/demo-2.png) |
+| **1. 입력**: 프롬프트, 넣고 싶은 문구, 스타일, 비율을 고릅니다 | **2. 생성**: 진행률을 보며 기다리고, 도중에 취소할 수 있습니다 |
+| ![생성 결과](docs/images/demo-3.png) | ![텍스트 에디터](docs/images/demo-4.png) |
+| **3. 결과**: 영어로 바꾼 프롬프트와 함께 4장을 한 번에 만듭니다 | **4. 에디터**: AI 추천 문구와 배치를 적용하고 글꼴, 효과를 다듬어 PNG로 저장합니다 |
 
 ## 주요 기능
 
