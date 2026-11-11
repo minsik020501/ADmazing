@@ -3,7 +3,7 @@
  *
  * 생성일자: 2026-11-04
  * 생성자: bioyejin
- * 수정일자: 2026-11-10
+ * 수정일자: 2026-11-11
  * 수정자: bioyejin
  */
 
@@ -121,9 +121,9 @@
   border-radius: var(--radius-md);
 }
 
-/* 오른쪽 점 3개 자리(AnimatedDots, 3ch)만큼 왼쪽도 비워, "적용 중" 글자가 정가운데에 오게 한다 */
+/* 왼쪽을 점 3개 자리의 절반만큼 비워 "적용 중..."이 눈으로 보기에 가운데에 오게 한다 */
 .busyLayer::before {
-  width: 3ch;
+  width: var(--dots-center-offset);
   content: "";
 }
 
