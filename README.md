@@ -6,6 +6,7 @@
 |:-----------|:-----------|
 | 프로젝트명 | Admazing   |
 | 팀 이름    | 끝내주는팀 |
+| 보고서     | [최종 보고서 (Google Drive)](https://drive.google.com/file/d/1OR7ns-ILrYuMPxfpBcidg_qea55sQjuC/view?usp=drive_link) |
 
 <table>
   <tr>
